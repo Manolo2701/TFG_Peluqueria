@@ -1,0 +1,118 @@
+<!-- frontend/src/app/pages/servicios/servicios.page.html -->
+<div class="servicios-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-actions">
+      <button mat-icon-button routerLink="/dashboard" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>Nuestros Servicios</h1>
+        <p>Descubre todos nuestros tratamientos y servicios de belleza</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando servicios...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <h3>Error al cargar los servicios</h3>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="cargarServicios()">
+      <mat-icon>refresh</mat-icon>
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Servicios Grid -->
+  <div *ngIf="!loading && !error" class="servicios-container">
+    <!-- Filtros por categoría -->
+    <div class="filtros-section" *ngIf="categorias.length > 0">
+      <h3>Filtrar por categoría:</h3>
+      <div class="filtros-chips">
+        <mat-chip
+          *ngFor="let categoria of categorias"
+          [class.selected]="categoriaFiltro === categoria"
+          (click)="filtrarPorCategoria(categoria)"
+          class="categoria-chip"
+        >
+          {{ categoria | titlecase }}
+        </mat-chip>
+        <mat-chip
+          [class.selected]="!categoriaFiltro"
+          (click)="filtrarPorCategoria('')"
+          class="categoria-chip todas"
+        >
+          Todas las categorías
+        </mat-chip>
+      </div>
+    </div>
+
+    <div *ngIf="serviciosFiltrados.length === 0" class="no-data-card">
+      <mat-icon>spa</mat-icon>
+      <h3>No hay servicios disponibles</h3>
+      <p *ngIf="categoriaFiltro">No hay servicios en la categoría "{{ categoriaFiltro }}"</p>
+      <p *ngIf="!categoriaFiltro">Actualmente no hay servicios disponibles.</p>
+    </div>
+
+    <div *ngIf="serviciosFiltrados.length > 0" class="servicios-grid">
+      <mat-card *ngFor="let servicio of serviciosFiltrados" class="servicio-card">
+        <div class="servicio-header">
+          <div class="servicio-icon" [class]="servicio.categoria">
+            <mat-icon>{{ getCategoriaIcon(servicio.categoria) }}</mat-icon>
+          </div>
+          <div class="servicio-title">
+            <h3>{{ servicio.nombre }}</h3>
+            <span class="categoria-badge">{{ servicio.categoria | titlecase }}</span>
+          </div>
+        </div>
+
+        <div class="servicio-content">
+          <p class="servicio-descripcion">{{ servicio.descripcion }}</p>
+
+          <div class="servicio-details">
+            <div class="detail-item">
+              <mat-icon>schedule</mat-icon>
+              <span>{{ servicio.duracion }} minutos</span>
+            </div>
+            <div class="detail-item">
+              <mat-icon>euro</mat-icon>
+              <span class="precio">{{ formatCurrency(servicio.precio) }}</span>
+            </div>
+          </div>
+
+          <!-- Información adicional -->
+          <div class="servicio-info-adicional">
+            <div class="info-item">
+              <mat-icon>info</mat-icon>
+              <span>Consulta disponibilidad para reservar</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>check_circle</mat-icon>
+              <span>Materiales incluidos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SOLO BOTÓN DE INFORMACIÓN -->
+        <div class="servicio-actions">
+          <button
+            mat-raised-button
+            color="accent"
+            class="info-btn"
+            (click)="verDetallesServicio(servicio)"
+          >
+            <mat-icon>info</mat-icon>
+            Ver Detalles
+          </button>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+</div>

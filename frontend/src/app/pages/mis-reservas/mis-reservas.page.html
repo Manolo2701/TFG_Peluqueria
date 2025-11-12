@@ -1,0 +1,179 @@
+<div class="mis-reservas-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-actions">
+      <button mat-icon-button routerLink="/dashboard" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>Mis Reservas</h1>
+        <p>Gestiona y revisa tu historial de reservas</p>
+      </div>
+    </div>
+    <button mat-raised-button color="primary" (click)="nuevaReserva()" class="nueva-reserva-btn">
+      <mat-icon>add</mat-icon>
+      Nueva Reserva
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando reservas...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <h3>Error al cargar las reservas</h3>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="cargarMisReservas()">
+      <mat-icon>refresh</mat-icon>
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error" class="reservas-content">
+    <!-- Estadísticas Rápidas -->
+    <div class="stats-cards">
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-number">{{ reservas.length }}</div>
+          <div class="stat-label">Total Reservas</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card confirmadas">
+        <mat-card-content>
+          <div class="stat-number">{{ contarReservasPorEstado('confirmada') }}</div>
+          <div class="stat-label">Confirmadas</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card pendientes">
+        <mat-card-content>
+          <div class="stat-number">{{ contarReservasPorEstado('pendiente') }}</div>
+          <div class="stat-label">Pendientes</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card completadas">
+        <mat-card-content>
+          <div class="stat-number">{{ contarReservasPorEstado('completada') }}</div>
+          <div class="stat-label">Completadas</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Filtros -->
+    <mat-card class="filtros-card">
+      <mat-card-content>
+        <div class="filtros-container">
+          <button
+            mat-stroked-button
+            [class.active]="filtroActivo === 'todas'"
+            (click)="onFiltroChange('todas')"
+            class="filtro-btn"
+          >
+            <mat-icon>list</mat-icon>
+            Todas ({{ reservas.length }})
+          </button>
+
+          <button
+            mat-stroked-button
+            [class.active]="filtroActivo === 'pendiente'"
+            (click)="onFiltroChange('pendiente')"
+            class="filtro-btn"
+          >
+            <mat-icon>schedule</mat-icon>
+            Pendientes ({{ contarReservasPorEstado('pendiente') }})
+          </button>
+
+          <button
+            mat-stroked-button
+            [class.active]="filtroActivo === 'confirmada'"
+            (click)="onFiltroChange('confirmada')"
+            class="filtro-btn"
+          >
+            <mat-icon>check_circle</mat-icon>
+            Confirmadas ({{ contarReservasPorEstado('confirmada') }})
+          </button>
+
+          <button
+            mat-stroked-button
+            [class.active]="filtroActivo === 'completada'"
+            (click)="onFiltroChange('completada')"
+            class="filtro-btn"
+          >
+            <mat-icon>done_all</mat-icon>
+            Completadas ({{ contarReservasPorEstado('completada') }})
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Lista de Reservas -->
+    <div *ngIf="reservasFiltradas.length === 0" class="no-data-card">
+      <mat-icon>event_busy</mat-icon>
+      <h3>No hay reservas</h3>
+      <p *ngIf="filtroActivo === 'todas'">
+        Aún no tienes reservas.
+        <button mat-button color="primary" (click)="nuevaReserva()" class="link-btn">
+          ¡Haz tu primera reserva!
+        </button>
+      </p>
+      <p *ngIf="filtroActivo !== 'todas'">No hay reservas con estado "{{ filtroActivo }}"</p>
+    </div>
+
+    <div *ngIf="reservasFiltradas.length > 0" class="reservas-container">
+      <mat-card *ngFor="let reserva of reservasFiltradas" class="reserva-card">
+        <div class="reserva-header">
+          <div class="reserva-info">
+            <div class="reserva-fecha">
+              <mat-icon>event</mat-icon>
+              <span>{{ formatDate(reserva.fecha_reserva) }}</span>
+            </div>
+            <div class="reserva-hora">
+              <mat-icon>schedule</mat-icon>
+              <span>{{ formatTime(reserva.hora_inicio) }}</span>
+              <span class="duracion" *ngIf="reserva.duracion">({{ reserva.duracion }} min)</span>
+            </div>
+          </div>
+          <div class="reserva-estado" [class]="getEstadoColor(reserva.estado)">
+            <mat-icon>{{ getEstadoIcon(reserva.estado) }}</mat-icon>
+            {{ reserva.estado | titlecase }}
+          </div>
+        </div>
+
+        <div class="reserva-content">
+          <div class="servicio-info">
+            <h3>{{ reserva.servicio_nombre || 'Servicio' }}</h3>
+            <p class="precio">{{ formatCurrency(reserva.precio) }}</p>
+          </div>
+
+          <div class="reserva-detalles">
+            <div class="detalle-item" *ngIf="reserva.trabajador_nombre">
+              <mat-icon>badge</mat-icon>
+              <span>
+                {{ reserva.trabajador_nombre }}
+                {{ reserva.trabajador_apellidos }}
+              </span>
+            </div>
+            <div class="detalle-item" *ngIf="reserva.fecha_creacion">
+              <mat-icon>calendar_today</mat-icon>
+              <span>Reservado el {{ formatDate(reserva.fecha_creacion) }}</span>
+            </div>
+          </div>
+
+          <div class="reserva-actions">
+            <button mat-button color="primary" (click)="verDetalles(reserva)">
+              <mat-icon>visibility</mat-icon>
+              Ver Detalles
+            </button>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+</div>

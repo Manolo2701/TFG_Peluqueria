@@ -1,0 +1,398 @@
+.mi-calendario-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: #f8f9fa;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    background: var(--white);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+
+    .header-content {
+        h1 {
+            margin: 0 0 8px 0;
+            color: var(--text-dark);
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        p {
+            margin: 0;
+            color: var(--text-medium);
+            font-size: 1.1rem;
+        }
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+
+        button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 140px;
+            padding: 8px 16px;
+            background-color: var(--secondary) !important;
+            color: var(--white) !important;
+
+            &:hover {
+                background-color: var(--primary-dark) !important;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(255, 109, 177, 0.3) !important;
+            }
+        }
+    }
+}
+
+.calendar-tabs {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+    margin-bottom: 24px;
+
+    ::ng-deep .mat-mdc-tab-header {
+        background: var(--primary-light);
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    ::ng-deep .mat-mdc-tab-body-wrapper {
+        padding: 24px;
+    }
+}
+
+.tab-content {
+    min-height: 400px;
+}
+
+.filters-card {
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+    border-left: 4px solid var(--secondary);
+
+    .filters-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+        padding: 20px;
+
+        .stats {
+            display: flex;
+            gap: 24px;
+
+            .stat-item {
+                padding: 8px 16px;
+                background: var(--primary-light);
+                border-radius: 20px;
+                color: var(--secondary);
+                font-weight: 500;
+
+                strong {
+                    color: var(--primary-dark);
+                    font-size: 1.2rem;
+                }
+            }
+        }
+    }
+}
+
+.loading-state,
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+
+    mat-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+    }
+
+    h3 {
+        margin: 16px 0 8px 0;
+        color: var(--text-dark);
+    }
+
+    p {
+        color: var(--text-medium);
+        margin-bottom: 24px;
+    }
+}
+
+.no-data-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--accent);
+
+    mat-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+        color: var(--accent);
+    }
+
+    h3 {
+        margin: 16px 0 8px 0;
+        color: var(--text-dark);
+    }
+
+    p {
+        color: var(--text-medium);
+        margin: 0;
+    }
+}
+
+.reservas-container,
+.ausencias-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 16px;
+}
+
+.reserva-card,
+.ausencia-card {
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid var(--secondary);
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 109, 177, 0.2);
+    }
+}
+
+.reserva-header,
+.ausencia-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+
+    .reserva-time,
+    .ausencia-type {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .time {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .duration {
+            color: var(--text-medium);
+            font-size: 0.875rem;
+        }
+    }
+
+    .reserva-status,
+    .ausencia-status {
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+
+        &.status-pendiente {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        &.status-confirmada {
+            background: #d1edff;
+            color: #0c5460;
+        }
+
+        &.status-aprobada {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        &.status-rechazada {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    }
+}
+
+.reserva-content,
+.ausencia-content {
+    padding: 16px;
+
+    .reserva-info,
+    .ausencia-dates {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .info-item,
+        .date-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-dark);
+
+            mat-icon {
+                color: var(--secondary);
+                font-size: 18px;
+                width: 18px;
+                height: 18px;
+            }
+        }
+    }
+
+    .ausencia-motivo {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+
+        p {
+            margin: 0;
+            color: var(--text-medium);
+        }
+    }
+}
+
+.reserva-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    gap: 8px;
+
+    button {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+}
+
+.ausencias-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+
+    h2 {
+        margin: 0;
+        color: var(--text-dark);
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+}
+
+.view-all-btn {
+    margin-left: 16px;
+
+    .mat-icon {
+        margin-right: 8px;
+    }
+}
+
+.filters-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+// Estilo para el datepicker deshabilitado
+.mat-form-field-disabled .mat-form-field-outline {
+    opacity: 0.5;
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .mi-calendario-container {
+        padding: 16px;
+    }
+
+    .page-header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+
+        .header-actions {
+            width: 100%;
+            flex-direction: column;
+
+            button {
+                width: 100%;
+                margin: 4px 0;
+                justify-content: center;
+            }
+        }
+    }
+
+    .filters-container {
+        flex-direction: column;
+        align-items: stretch !important;
+
+        .stats {
+            justify-content: center;
+        }
+    }
+
+    .reservas-container,
+    .ausencias-container {
+        grid-template-columns: 1fr;
+    }
+
+    .ausencias-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+
+        button {
+            width: 100%;
+        }
+    }
+
+    .reserva-actions {
+        flex-direction: column;
+        align-items: stretch;
+
+        button {
+            justify-content: center;
+        }
+    }
+}

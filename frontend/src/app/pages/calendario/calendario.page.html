@@ -1,0 +1,158 @@
+<div class="calendario-page">
+  <!-- REEMPLAZA la sección page-header con esto: -->
+  <div class="page-header">
+    <div class="header-actions">
+      <button mat-icon-button routerLink="/dashboard" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>Calendario General</h1>
+        <p>Vista completa de todas las reservas del sistema</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <mat-card class="filters-card">
+    <div class="filters-container">
+      <mat-form-field appearance="outline">
+        <mat-label>Seleccionar fecha</mat-label>
+        <input
+          matInput
+          [matDatepicker]="picker"
+          [(ngModel)]="fechaSeleccionada"
+          (dateChange)="onFechaChange()"
+          [disabled]="mostrandoTodasLasReservas"
+        />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+
+      <!-- BOTÓN VER TODAS LAS RESERVAS - CAMBIA DINÁMICAMENTE -->
+      <button
+        *ngIf="!mostrandoTodasLasReservas"
+        mat-stroked-button
+        color="primary"
+        (click)="verTodasLasReservas()"
+        class="view-all-btn"
+      >
+        <mat-icon>view_list</mat-icon>
+        Ver Todas las Reservas
+      </button>
+
+      <button
+        *ngIf="mostrandoTodasLasReservas"
+        mat-stroked-button
+        color="accent"
+        (click)="onFechaChange()"
+        class="view-all-btn"
+      >
+        <mat-icon>calendar_today</mat-icon>
+        Volver a Filtro por Fecha
+      </button>
+
+      <div class="stats">
+        <span class="stat-item">
+          <strong>{{ reservasFiltradas.length }}</strong>
+          {{ mostrandoTodasLasReservas ? 'reservas totales' : 'reservas' }}
+        </span>
+        <span class="stat-item">
+          <strong>{{ contarReservasConfirmadas() }}</strong> confirmadas
+        </span>
+        <span class="stat-item">
+          <strong>{{ contarReservasPendientes() }}</strong> pendientes
+        </span>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando calendario...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <h3>Error al cargar el calendario</h3>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="cargarReservas()">
+      <mat-icon>refresh</mat-icon>
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Tabla de Reservas -->
+  <div *ngIf="!loading && !error">
+    <mat-card
+      *ngIf="reservasFiltradas.length === 0 && !mostrandoTodasLasReservas"
+      class="no-data-card"
+    >
+      <mat-icon>event_busy</mat-icon>
+      <h3>No hay reservas para esta fecha</h3>
+      <p>No se encontraron reservas para el {{ fechaSeleccionada | date : 'fullDate' }}</p>
+    </mat-card>
+
+    <mat-card
+      *ngIf="reservasFiltradas.length === 0 && mostrandoTodasLasReservas"
+      class="no-data-card"
+    >
+      <mat-icon>event_busy</mat-icon>
+      <h3>No hay reservas en el sistema</h3>
+      <p>No se encontraron reservas registradas</p>
+    </mat-card>
+
+    <div *ngIf="reservasFiltradas.length > 0" class="reservas-container">
+      <mat-card *ngFor="let reserva of reservasFiltradas" class="reserva-card">
+        <div class="reserva-header">
+          <div class="reserva-time">
+            <mat-icon>schedule</mat-icon>
+            <span class="time">{{ formatTime(reserva.hora_inicio) }}</span>
+            <span class="duration" *ngIf="reserva.duracion">({{ reserva.duracion }} min)</span>
+          </div>
+          <div class="reserva-status" [class]="'status-' + reserva.estado">
+            {{ reserva.estado | titlecase }}
+          </div>
+        </div>
+
+        <div class="reserva-content">
+          <div class="reserva-info">
+            <div class="info-item">
+              <mat-icon>person</mat-icon>
+              <span
+                >{{ reserva.cliente_nombre || 'Cliente' }}
+                {{ reserva.cliente_apellidos || '' }}</span
+              >
+            </div>
+            <div class="info-item">
+              <mat-icon>spa</mat-icon>
+              <span>{{ reserva.servicio_nombre || 'Servicio' }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>badge</mat-icon>
+              <span>{{
+                reserva.trabajador_nombre && reserva.trabajador_apellidos
+                  ? reserva.trabajador_nombre + ' ' + reserva.trabajador_apellidos
+                  : reserva.trabajador_id
+                  ? 'Trabajador #' + reserva.trabajador_id
+                  : 'Sin asignar'
+              }}</span>
+            </div>
+            <div class="info-item" *ngIf="reserva.precio">
+              <mat-icon>euro</mat-icon>
+              <span>{{ formatCurrency(reserva.precio) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="reserva-actions">
+          <button mat-button color="primary" (click)="verDetalles(reserva)">
+            <mat-icon>visibility</mat-icon>
+            Ver Detalles
+          </button>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+</div>

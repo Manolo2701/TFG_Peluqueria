@@ -1,0 +1,6 @@
+﻿// Actualizar los logs de inicio en app.js
+console.log('[SISTEMA] Iniciando servidor Peluqueria Selene...');
+console.log('[SISTEMA] Conectando a base de datos...');
+console.log('[SISTEMA] Middlewares configurados');
+console.log('[SISTEMA] Rutas inicializadas');
+console.log('[SISTEMA] Servidor listo en puerto 3000');

@@ -1,0 +1,234 @@
+.calendario-page {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 24px;
+
+    .header-actions {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+
+        .back-button {
+            margin-top: 8px;
+        }
+
+        .header-text {
+            flex: 1;
+
+            h1 {
+                margin: 0 0 4px 0;
+                color: var(--text-dark);
+                font-size: 2rem;
+                font-weight: 600;
+            }
+
+            p {
+                margin: 0;
+                color: #666;
+                font-size: 14px;
+            }
+        }
+    }
+}
+
+.filters-card {
+    margin-bottom: 24px;
+    padding: 20px;
+}
+
+.filters-container {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+
+    mat-form-field {
+        min-width: 200px;
+    }
+}
+
+.stats {
+    display: flex;
+    gap: 20px;
+
+    .stat-item {
+        padding: 8px 16px;
+        background: var(--primary-light);
+        border-radius: 8px;
+        font-size: 0.9rem;
+
+        strong {
+            color: var(--secondary);
+            font-size: 1.1rem;
+        }
+    }
+}
+
+.loading-state,
+.error-state,
+.no-data-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+
+    mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+        opacity: 0.6;
+    }
+
+    h3 {
+        margin: 16px 0 8px 0;
+        color: var(--text-dark);
+    }
+
+    p {
+        color: var(--text-medium);
+        margin-bottom: 24px;
+    }
+}
+
+.reservas-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
+}
+
+.reserva-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid var(--primary);
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.reserva-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.reserva-time {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .time {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--text-dark);
+    }
+
+    .duration {
+        color: var(--text-medium);
+        font-size: 0.9rem;
+    }
+}
+
+.reserva-status {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+
+    &.status-confirmada {
+        background: #e8f5e8;
+        color: #2e7d32;
+    }
+
+    &.status-pendiente {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    &.status-cancelada {
+        background: #ffebee;
+        color: #c62828;
+    }
+}
+
+.reserva-content {
+    margin-bottom: 16px;
+}
+
+.reserva-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: var(--text-medium);
+    }
+}
+
+.reserva-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+}
+
+.view-all-btn {
+    margin-left: 16px;
+
+    .mat-icon {
+        margin-right: 8px;
+    }
+}
+
+.filters-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+// Estilo para el datepicker deshabilitado
+.mat-form-field-disabled .mat-form-field-outline {
+    opacity: 0.5;
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .calendario-page {
+        padding: 16px;
+    }
+
+    .filters-container {
+        flex-direction: column;
+        align-items: stretch;
+
+        .stats {
+            justify-content: center;
+        }
+    }
+
+    .reservas-container {
+        grid-template-columns: 1fr;
+    }
+}

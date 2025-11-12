@@ -1,0 +1,226 @@
+<div class="mi-calendario-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Mi Calendario</h1>
+      <p>Gestiona tus reservas y disponibilidad</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" routerLink="/dashboard">
+        <mat-icon>arrow_back</mat-icon>
+        Volver al Dashboard
+      </button>
+      <button mat-raised-button color="accent" (click)="recargar()" [disabled]="loading">
+        <mat-icon>refresh</mat-icon>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs para navegación -->
+  <mat-tab-group class="calendar-tabs">
+    <!-- TAB 1: MIS RESERVAS -->
+    <mat-tab label="Mis Reservas">
+      <div class="tab-content">
+        <!-- Filtros -->
+        <div class="filters-card">
+          <div class="filters-container">
+            <mat-form-field appearance="outline">
+              <mat-label>Seleccionar fecha</mat-label>
+              <input
+                matInput
+                [matDatepicker]="picker"
+                [(ngModel)]="fechaSeleccionada"
+                (dateChange)="onFechaChange()"
+                [disabled]="mostrandoTodasLasReservas"
+              />
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+
+            <!-- BOTÓN VER TODAS LAS RESERVAS - CAMBIA DINÁMICAMENTE -->
+            <button
+              *ngIf="!mostrandoTodasLasReservas"
+              mat-stroked-button
+              color="primary"
+              (click)="verTodasLasReservas()"
+              class="view-all-btn"
+            >
+              <mat-icon>view_list</mat-icon>
+              Ver Todas mis Reservas
+            </button>
+
+            <button
+              *ngIf="mostrandoTodasLasReservas"
+              mat-stroked-button
+              color="accent"
+              (click)="onFechaChange()"
+              class="view-all-btn"
+            >
+              <mat-icon>calendar_today</mat-icon>
+              Volver a Filtro por Fecha
+            </button>
+
+            <div class="stats">
+              <span class="stat-item">
+                <strong>{{ reservasFiltradas.length }}</strong>
+                {{ mostrandoTodasLasReservas ? 'reservas totales' : 'reservas hoy' }}
+              </span>
+              <span class="stat-item">
+                <strong>{{ contarReservasPendientes() }}</strong> pendientes
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estados de carga y error -->
+        <div *ngIf="loading" class="loading-state">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>Cargando calendario...</p>
+        </div>
+
+        <div *ngIf="error && !loading" class="error-state">
+          <mat-icon color="warn">error_outline</mat-icon>
+          <h3>Error al cargar el calendario</h3>
+          <p>{{ error }}</p>
+          <button mat-raised-button color="primary" (click)="recargar()">
+            <mat-icon>refresh</mat-icon>
+            Reintentar
+          </button>
+        </div>
+
+        <!-- Lista de reservas -->
+        <div *ngIf="!loading && !error">
+          <div
+            *ngIf="reservasFiltradas.length === 0 && !mostrandoTodasLasReservas"
+            class="no-data-card"
+          >
+            <mat-icon>event_busy</mat-icon>
+            <h3>No hay reservas para esta fecha</h3>
+            <p>No se encontraron reservas para el {{ fechaSeleccionada | date : 'fullDate' }}</p>
+          </div>
+
+          <div
+            *ngIf="reservasFiltradas.length === 0 && mostrandoTodasLasReservas"
+            class="no-data-card"
+          >
+            <mat-icon>event_busy</mat-icon>
+            <h3>No tienes reservas</h3>
+            <p>No se encontraron reservas asignadas a tu cuenta</p>
+          </div>
+
+          <div *ngIf="reservasFiltradas.length > 0" class="reservas-container">
+            <mat-card *ngFor="let reserva of reservasFiltradas" class="reserva-card">
+              <div class="reserva-header">
+                <div class="reserva-time">
+                  <mat-icon>schedule</mat-icon>
+                  <span class="time">{{ formatTime(reserva.hora_inicio) }}</span>
+                  <span class="duration" *ngIf="reserva.duracion"
+                    >({{ reserva.duracion }} min)</span
+                  >
+                </div>
+                <div class="reserva-status" [class]="'status-' + reserva.estado">
+                  {{ reserva.estado | titlecase }}
+                </div>
+              </div>
+
+              <div class="reserva-content">
+                <div class="reserva-info">
+                  <div class="info-item">
+                    <mat-icon>person</mat-icon>
+                    <span>{{ reserva.cliente_nombre }} {{ reserva.cliente_apellidos }}</span>
+                  </div>
+                  <div class="info-item">
+                    <mat-icon>spa</mat-icon>
+                    <span>{{ reserva.servicio_nombre }}</span>
+                  </div>
+                  <div class="info-item" *ngIf="reserva.precio">
+                    <mat-icon>euro</mat-icon>
+                    <span>{{ formatCurrency(reserva.precio) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="reserva-actions">
+                <button mat-button color="primary" (click)="verDetalles(reserva)">
+                  <mat-icon>visibility</mat-icon>
+                  Ver Detalles
+                </button>
+
+                <button
+                  *ngIf="reserva.estado === 'pendiente'"
+                  mat-raised-button
+                  color="primary"
+                  (click)="aceptarReserva(reserva)"
+                >
+                  <mat-icon>check_circle</mat-icon>
+                  Aceptar
+                </button>
+
+                <button
+                  *ngIf="reserva.estado === 'pendiente'"
+                  mat-button
+                  color="warn"
+                  (click)="rechazarReserva(reserva)"
+                >
+                  <mat-icon>cancel</mat-icon>
+                  Rechazar
+                </button>
+              </div>
+            </mat-card>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- TAB 2: MIS AUSENCIAS -->
+    <mat-tab label="Mis Ausencias">
+      <div class="tab-content">
+        <div class="ausencias-header">
+          <h2>Gestión de Ausencias</h2>
+          <button mat-raised-button color="primary" (click)="solicitarAusencia()">
+            <mat-icon>add</mat-icon>
+            Solicitar Ausencia
+          </button>
+        </div>
+
+        <div *ngIf="ausencias.length === 0" class="no-data-card">
+          <mat-icon>beach_access</mat-icon>
+          <h3>No tienes ausencias programadas</h3>
+          <p>Puedes solicitar una ausencia cuando lo necesites</p>
+        </div>
+
+        <div *ngIf="ausencias.length > 0" class="ausencias-container">
+          <mat-card *ngFor="let ausencia of ausencias" class="ausencia-card">
+            <div class="ausencia-header">
+              <div class="ausencia-type">
+                <mat-icon>{{ getAusenciaIcon(ausencia.tipo) }}</mat-icon>
+                <span class="tipo">{{ ausencia.tipo | titlecase }}</span>
+              </div>
+              <div class="ausencia-status" [class]="'status-' + ausencia.estado">
+                {{ ausencia.estado | titlecase }}
+              </div>
+            </div>
+
+            <div class="ausencia-content">
+              <div class="ausencia-dates">
+                <div class="date-item">
+                  <mat-icon>event</mat-icon>
+                  <span>Inicio: {{ ausencia.fecha_inicio | date : 'mediumDate' }}</span>
+                </div>
+                <div class="date-item">
+                  <mat-icon>event</mat-icon>
+                  <span>Fin: {{ ausencia.fecha_fin | date : 'mediumDate' }}</span>
+                </div>
+              </div>
+
+              <div class="ausencia-motivo" *ngIf="ausencia.motivo">
+                <p><strong>Motivo:</strong> {{ ausencia.motivo }}</p>
+              </div>
+            </div>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

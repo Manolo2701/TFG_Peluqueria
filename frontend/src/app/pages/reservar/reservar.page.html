@@ -1,0 +1,483 @@
+<div class="reservar-page">
+  <!-- Header consistente con otras páginas -->
+  <div class="page-header">
+    <div class="header-actions">
+      <button mat-icon-button routerLink="/dashboard" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>Reservar Cita</h1>
+        <p>Selecciona el día y hora para tu reserva</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Cargando configuración...</p>
+  </div>
+
+  <!-- Contenido cuando no está loading -->
+  <div *ngIf="!loading">
+    <!-- Indicador de pasos -->
+    <div class="pasos-indicador">
+      <div
+        class="paso-indicador"
+        [class.activo]="pasoActual === 1"
+        [class.completado]="pasoActual > 1"
+      >
+        <div class="numero">1</div>
+        <span>Fecha y Hora</span>
+      </div>
+      <div
+        class="paso-indicador"
+        [class.activo]="pasoActual === 2"
+        [class.completado]="pasoActual > 2"
+      >
+        <div class="numero">2</div>
+        <span>Servicio</span>
+      </div>
+      <div
+        class="paso-indicador"
+        [class.activo]="pasoActual === 3"
+        [class.completado]="pasoActual > 3"
+      >
+        <div class="numero">3</div>
+        <span>Profesional</span>
+      </div>
+      <div class="paso-indicador" [class.activo]="pasoActual === 4">
+        <div class="numero">4</div>
+        <span>Confirmar</span>
+      </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="reservar-content">
+      <!-- Paso 1: Seleccionar Fecha y Hora -->
+      <div *ngIf="pasoActual === 1" class="paso paso-1">
+        <mat-card class="calendario-card">
+          <mat-card-header>
+            <mat-card-title>Selecciona Fecha y Hora</mat-card-title>
+            <mat-card-subtitle *ngIf="semanaActual">
+              Semana del {{ semanaActual.inicio | date : 'dd/MM/yyyy' }} al
+              {{ semanaActual.fin | date : 'dd/MM/yyyy' }}
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <!-- Navegación de semanas -->
+            <div class="semana-navegacion" *ngIf="semanaActual">
+              <button mat-icon-button (click)="semanaAnterior()" class="nav-btn">
+                <mat-icon>chevron_left</mat-icon>
+              </button>
+              <span class="semana-texto">
+                {{ formatDateSpanish(semanaActual.inicio) }} -
+                {{ formatDateSpanish(semanaActual.fin) }}
+              </span>
+              <button mat-icon-button (click)="siguienteSemana()" class="nav-btn">
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+
+            <!-- Calendario Semanal -->
+            <div class="calendario-semanal" *ngIf="semanaActual && semanaActual.dias.length > 0">
+              <!-- Cabecera de días -->
+              <div class="dias-cabecera">
+                <div
+                  class="dia-cabecera"
+                  *ngFor="let dia of semanaActual.dias; trackBy: trackByDia"
+                >
+                  <div class="dia-nombre">{{ dia.nombre }}</div>
+                  <div class="dia-fecha">{{ dia.numero }}</div>
+                </div>
+              </div>
+
+              <!-- Horarios -->
+              <div class="horarios-container">
+                <!-- Turno de Mañana -->
+                <div class="turno">
+                  <h4 class="turno-titulo">⏰ Mañana (9:30 - 13:00)</h4>
+                  <div class="horarios-grid">
+                    <div
+                      *ngFor="let dia of semanaActual.dias; trackBy: trackByDia"
+                      class="dia-horarios"
+                    >
+                      <button
+                        *ngFor="let hora of horariosManana; trackBy: trackByHora"
+                        mat-raised-button
+                        [class]="getClaseHorarioPrecalculada(dia, hora)"
+                        (click)="seleccionarHorario(dia, hora)"
+                        [disabled]="!esHorarioDisponible(dia, hora)"
+                        class="horario-btn"
+                      >
+                        {{ hora }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Separador -->
+                <div class="separador-turnos">
+                  <mat-divider></mat-divider>
+                </div>
+
+                <!-- Turno de Tarde -->
+                <div class="turno">
+                  <h4 class="turno-titulo">🌙 Tarde (17:00 - 20:00)</h4>
+                  <div class="horarios-grid">
+                    <div
+                      *ngFor="let dia of semanaActual.dias; trackBy: trackByDia"
+                      class="dia-horarios"
+                    >
+                      <button
+                        *ngFor="let hora of horariosTarde; trackBy: trackByHora"
+                        mat-raised-button
+                        [class]="getClaseHorarioPrecalculada(dia, hora)"
+                        (click)="seleccionarHorario(dia, hora)"
+                        [disabled]="!esHorarioDisponible(dia, hora)"
+                        class="horario-btn"
+                      >
+                        {{ hora }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mensaje si no hay días disponibles -->
+            <div *ngIf="!semanaActual || semanaActual.dias.length === 0" class="no-resultados">
+              <mat-icon>event_busy</mat-icon>
+              <h4>No hay fechas disponibles</h4>
+              <p>Intenta más tarde o contacta con el establecimiento</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Paso 2: Seleccionar Servicio -->
+      <div *ngIf="pasoActual === 2" class="paso paso-2">
+        <mat-card class="servicios-card">
+          <mat-card-header>
+            <mat-card-title>Selecciona un Servicio</mat-card-title>
+            <mat-card-subtitle>
+              {{ fechaSeleccionadaFormateada }} a las {{ horaSeleccionada }}
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <!-- Buscador de Servicios -->
+            <div class="buscador-container">
+              <mat-form-field appearance="outline" class="full-width buscador-field">
+                <mat-label>Buscar servicios...</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="searchTerm"
+                  (input)="obtenerSugerencias()"
+                  (keyup.enter)="buscarServicios()"
+                  placeholder="Escribe para buscar servicios, categorías..."
+                />
+                <button mat-icon-button matSuffix *ngIf="searchTerm" (click)="limpiarBusqueda()">
+                  <mat-icon>clear</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  matSuffix
+                  (click)="buscarServicios()"
+                  [disabled]="loadingBusqueda"
+                >
+                  <mat-icon *ngIf="!loadingBusqueda">search</mat-icon>
+                  <mat-spinner *ngIf="loadingBusqueda" diameter="20"></mat-spinner>
+                </button>
+              </mat-form-field>
+
+              <!-- Sugerencias -->
+              <div
+                class="sugerencias-container"
+                *ngIf="mostrarSugerencias && sugerencias.length > 0"
+              >
+                <div
+                  class="sugerencia-item"
+                  *ngFor="let sugerencia of sugerencias"
+                  (click)="seleccionarSugerencia(sugerencia)"
+                >
+                  <mat-icon>search</mat-icon>
+                  <span>{{ sugerencia }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contador de resultados -->
+            <div class="resultados-info" *ngIf="searchTerm">
+              <p>
+                {{ serviciosFiltrados.length }} resultado(s) para "{{ searchTerm }}"
+                <button mat-button color="primary" (click)="limpiarBusqueda()">
+                  <mat-icon>clear</mat-icon>
+                  Limpiar
+                </button>
+              </p>
+            </div>
+
+            <!-- Grid de servicios separados por categorías -->
+            <div class="servicios-grid" *ngIf="!loadingBusqueda">
+              <!-- Columna de Peluquería -->
+              <div class="categoria-columna" *ngIf="serviciosPeluqueria.length > 0">
+                <h3 class="categoria-titulo">
+                  <mat-icon>content_cut</mat-icon>
+                  Peluquería
+                </h3>
+                <div class="servicios-list">
+                  <mat-card
+                    *ngFor="let servicio of serviciosPeluqueria; trackBy: trackByServicio"
+                    class="servicio-card"
+                    [class.selected]="servicioSeleccionado?.id === servicio.id"
+                    (click)="seleccionarServicio(servicio)"
+                  >
+                    <div class="servicio-header">
+                      <div class="servicio-icon peluqueria">
+                        <mat-icon>content_cut</mat-icon>
+                      </div>
+                      <div class="servicio-info">
+                        <h3>{{ servicio.nombre }}</h3>
+                        <span class="categoria">{{ servicio.categoria | titlecase }}</span>
+                      </div>
+                    </div>
+
+                    <div class="servicio-details">
+                      <p class="descripcion">{{ servicio.descripcion }}</p>
+                      <div class="detalles">
+                        <span class="duracion">{{ servicio.duracion }} min</span>
+                        <span class="precio">{{ formatCurrency(servicio.precio) }}</span>
+                      </div>
+                    </div>
+
+                    <div
+                      class="seleccion-indicator"
+                      *ngIf="servicioSeleccionado?.id === servicio.id"
+                    >
+                      <mat-icon>check_circle</mat-icon>
+                      <span>Seleccionado</span>
+                    </div>
+                  </mat-card>
+                </div>
+              </div>
+
+              <!-- Columna de Estética -->
+              <div class="categoria-columna" *ngIf="serviciosEstetica.length > 0">
+                <h3 class="categoria-titulo">
+                  <mat-icon>spa</mat-icon>
+                  Estética
+                </h3>
+                <div class="servicios-list">
+                  <mat-card
+                    *ngFor="let servicio of serviciosEstetica; trackBy: trackByServicio"
+                    class="servicio-card"
+                    [class.selected]="servicioSeleccionado?.id === servicio.id"
+                    (click)="seleccionarServicio(servicio)"
+                  >
+                    <div class="servicio-header">
+                      <div class="servicio-icon estetica">
+                        <mat-icon>spa</mat-icon>
+                      </div>
+                      <div class="servicio-info">
+                        <h3>{{ servicio.nombre }}</h3>
+                        <span class="categoria">{{ servicio.categoria | titlecase }}</span>
+                      </div>
+                    </div>
+
+                    <div class="servicio-details">
+                      <p class="descripcion">{{ servicio.descripcion }}</p>
+                      <div class="detalles">
+                        <span class="duracion">{{ servicio.duracion }} min</span>
+                        <span class="precio">{{ formatCurrency(servicio.precio) }}</span>
+                      </div>
+                    </div>
+
+                    <div
+                      class="seleccion-indicator"
+                      *ngIf="servicioSeleccionado?.id === servicio.id"
+                    >
+                      <mat-icon>check_circle</mat-icon>
+                      <span>Seleccionado</span>
+                    </div>
+                  </mat-card>
+                </div>
+              </div>
+
+              <!-- Mensaje cuando no hay resultados -->
+              <div
+                class="no-resultados"
+                *ngIf="serviciosFiltrados.length === 0 && !loadingBusqueda"
+              >
+                <mat-icon>search_off</mat-icon>
+                <h4>No se encontraron servicios</h4>
+                <p>
+                  Intenta con otros términos de búsqueda o
+                  <a (click)="limpiarBusqueda()">muestra todos los servicios</a>
+                </p>
+              </div>
+            </div>
+
+            <!-- Loading state -->
+            <div class="loading-state" *ngIf="loadingBusqueda">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Buscando servicios...</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Paso 3: Seleccionar Trabajador -->
+      <div *ngIf="pasoActual === 3" class="paso paso-3">
+        <mat-card class="trabajadores-card">
+          <mat-card-header>
+            <mat-card-title>Selecciona un Profesional</mat-card-title>
+            <mat-card-subtitle>
+              {{ servicioSeleccionadoNombre }} - {{ fechaSeleccionadaFormateada }} a las
+              {{ horaSeleccionada }}
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <div class="trabajadores-list">
+              <mat-card
+                *ngFor="let trabajador of trabajadoresDisponibles; trackBy: trackByTrabajador"
+                class="trabajador-card"
+                [class.selected]="trabajadorSeleccionado?.id === trabajador.id"
+                (click)="seleccionarTrabajador(trabajador)"
+              >
+                <div class="trabajador-header">
+                  <div class="trabajador-avatar">
+                    <mat-icon>person</mat-icon>
+                  </div>
+                  <div class="trabajador-info">
+                    <h4>{{ trabajador.nombre }} {{ trabajador.apellidos }}</h4>
+                    <span class="especialidad">{{ trabajador.especialidad }}</span>
+                  </div>
+                </div>
+
+                <div class="trabajador-details">
+                  <div class="detail-item" *ngIf="trabajador.valoracion">
+                    <mat-icon>star</mat-icon>
+                    <span>Valoración: {{ trabajador.valoracion }}/5</span>
+                  </div>
+                  <div class="detail-item">
+                    <mat-icon>workspace_premium</mat-icon>
+                    <span>Especialista en {{ servicioSeleccionado?.categoria }}</span>
+                  </div>
+                </div>
+
+                <div
+                  class="seleccion-indicator"
+                  *ngIf="trabajadorSeleccionado?.id === trabajador.id"
+                >
+                  <mat-icon>check_circle</mat-icon>
+                  <span>Seleccionado</span>
+                </div>
+              </mat-card>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Paso 4: Confirmar Reserva -->
+      <div *ngIf="pasoActual === 4" class="paso paso-4">
+        <mat-card class="confirmacion-card">
+          <mat-card-header>
+            <mat-card-title>Confirmar Reserva</mat-card-title>
+          </mat-card-header>
+
+          <mat-card-content>
+            <div class="resumen-reserva">
+              <h3>Resumen de tu reserva</h3>
+
+              <div class="resumen-item">
+                <mat-icon>event</mat-icon>
+                <div class="resumen-text">
+                  <span class="label">Fecha y Hora</span>
+                  <span class="value">
+                    {{ fechaSeleccionadaFormateada }} a las {{ horaSeleccionada }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="resumen-item">
+                <mat-icon>spa</mat-icon>
+                <div class="resumen-text">
+                  <span class="label">Servicio</span>
+                  <span class="value">{{ servicioSeleccionadoNombre }}</span>
+                </div>
+              </div>
+
+              <div class="resumen-item">
+                <mat-icon>person</mat-icon>
+                <div class="resumen-text">
+                  <span class="label">Profesional</span>
+                  <span class="value">
+                    {{ trabajadorSeleccionadoNombre }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="resumen-item precio">
+                <mat-icon>euro</mat-icon>
+                <div class="resumen-text">
+                  <span class="label">Precio Total</span>
+                  <span class="value">{{ precioFormateado }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notas Adicionales -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Notas adicionales (opcional)</mat-label>
+              <textarea
+                matInput
+                [(ngModel)]="notas"
+                rows="3"
+                placeholder="Ej: Preferencias especiales, alergias, etc."
+              >
+              </textarea>
+            </mat-form-field>
+          </mat-card-content>
+
+          <mat-card-actions>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="confirmarReserva()"
+              [disabled]="loading"
+              class="confirmar-btn"
+            >
+              <mat-icon>event_available</mat-icon>
+              {{ loading ? 'Confirmando...' : 'Confirmar Reserva' }}
+            </button>
+            <button mat-button (click)="pasoActual = 3">
+              <mat-icon>arrow_back</mat-icon>
+              Atrás
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+
+      <!-- Navegación entre pasos -->
+      <div class="navegacion-pasos" *ngIf="pasoActual > 1 && pasoActual < 4">
+        <button mat-button (click)="pasoAnterior()">
+          <mat-icon>arrow_back</mat-icon>
+          Atrás
+        </button>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="siguientePaso()"
+          [disabled]="!puedeAvanzar()"
+          class="siguiente-btn"
+        >
+          Siguiente
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

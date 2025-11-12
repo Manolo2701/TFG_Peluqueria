@@ -1,0 +1,313 @@
+// frontend/src/app/pages/gestion-ausencias/gestion-ausencias.page.scss
+.gestion-ausencias-container {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: #f8f9fa;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    background: var(--white);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+
+    h2 {
+        margin: 0;
+        color: var(--text-dark);
+        font-size: 2rem;
+        font-weight: 600;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+
+        button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 140px;
+            padding: 8px 16px;
+            background-color: var(--secondary) !important;
+            color: var(--white) !important;
+
+            &:hover {
+                background-color: var(--primary-dark) !important;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(255, 109, 177, 0.3) !important;
+            }
+        }
+    }
+}
+
+.loading-state,
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+
+    .spinner-border {
+        color: var(--secondary);
+        width: 3rem;
+        height: 3rem;
+    }
+
+    h3 {
+        margin: 16px 0 8px 0;
+        color: var(--text-dark);
+    }
+
+    p {
+        color: var(--text-medium);
+        margin-bottom: 24px;
+    }
+}
+
+.table-section {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+
+    thead {
+        th {
+            background-color: var(--secondary);
+            color: var(--white);
+            border: none;
+            padding: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+
+            &:first-child {
+                border-top-left-radius: 8px;
+            }
+
+            &:last-child {
+                border-top-right-radius: 8px;
+            }
+        }
+    }
+
+    tbody {
+        tr {
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+
+            &:hover {
+                background-color: rgba(246, 200, 202, 0.1);
+            }
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            td {
+                padding: 16px;
+                vertical-align: middle;
+                border: none;
+
+                .badge {
+                    font-size: 0.75em;
+                    padding: 6px 12px;
+                    border-radius: 20px;
+                    font-weight: 500;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    border: none;
+
+                    // Estados de ausencia
+                    &.bg-warning {
+                        background: #fff3cd !important;
+                        color: #856404 !important;
+                    }
+
+                    &.bg-success {
+                        background: #d4edda !important;
+                        color: #155724 !important;
+                    }
+
+                    &.bg-danger {
+                        background: #f8d7da !important;
+                        color: #721c24 !important;
+                    }
+
+                    // Tipos de ausencia
+                    &.bg-info {
+                        background: #d1edff !important;
+                        color: #0c5460 !important;
+                    }
+
+                    &.bg-secondary {
+                        background: #e2e3e5 !important;
+                        color: #383d41 !important;
+                    }
+                }
+
+                .btn-group {
+                    display: flex;
+                    gap: 8px;
+
+                    .btn {
+                        padding: 6px 12px;
+                        font-size: 0.875rem;
+                        border-radius: 6px;
+                        transition: all 0.3s ease;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        border: none;
+                        font-weight: 500;
+
+                        &:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                        }
+
+                        &.btn-success {
+                            background-color: #28a745 !important;
+                            color: white !important;
+
+                            &:hover {
+                                background-color: #218838 !important;
+                            }
+                        }
+
+                        &.btn-danger {
+                            background-color: #dc3545 !important;
+                            color: white !important;
+
+                            &:hover {
+                                background-color: #c82333 !important;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--accent);
+
+    mat-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+        color: var(--accent);
+    }
+
+    h3 {
+        margin: 16px 0 8px 0;
+        color: var(--text-dark);
+    }
+
+    p {
+        color: var(--text-medium);
+        margin: 0;
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .gestion-ausencias-container {
+        padding: 16px;
+    }
+
+    .header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+
+        .header-actions {
+            width: 100%;
+            flex-direction: column;
+
+            button {
+                width: 100%;
+                margin: 4px 0;
+                justify-content: center;
+            }
+        }
+    }
+
+    .table {
+        min-width: 800px;
+    }
+
+    .btn-group {
+        flex-direction: column;
+        gap: 4px;
+    }
+}
+
+// Mejoras visuales adicionales
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    &.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    &.approved {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    &.rejected {
+        background: #f8d7da;
+        color: #721c24;
+    }
+}

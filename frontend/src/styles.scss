@@ -1,0 +1,344 @@
+/* styles.scss */
+/* Reset y estilos globales */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f8f9fa;
+}
+
+/* ===== PALETA DE COLORES ACTUALIZADA - CLASSIC & FEMININE ===== */
+:root {
+    // Tonos originales
+    --primary-light: #f8d7e3;
+    /* Rosa claro */
+    --primary: #f2a7c3;
+    /* Rosa principal */
+    --primary-dark: #ec769e;
+    /* Rosa oscuro */
+
+    // Nuevos tonos vibrantes
+    --secondary: #ff6db1;
+    /* Rosa vibrante - NUEVO */
+    --accent: #f6c8ca;
+    /* Rosa suave - NUEVO */
+    --white: #ffffff;
+    /* Blanco puro */
+
+    // Colores neutros
+    --light-gray: #f8f9fa;
+    --text-dark: #333333;
+    --text-medium: #666666;
+
+    // Estados
+    --error: #dc3545;
+    --error-bg: #f8d7da;
+    --error-text: #721c24;
+    --success: #28a745;
+    --warning: #ffc107;
+}
+
+/* ===== UTILIDADES ===== */
+.text-center {
+    text-align: center;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.mt-1 {
+    margin-top: 0.5rem;
+}
+
+.mt-2 {
+    margin-top: 1rem;
+}
+
+.mt-3 {
+    margin-top: 1.5rem;
+}
+
+.mb-1 {
+    margin-bottom: 0.5rem;
+}
+
+.mb-2 {
+    margin-bottom: 1rem;
+}
+
+.mb-3 {
+    margin-bottom: 1.5rem;
+}
+
+.ml-1 {
+    margin-left: 0.5rem;
+}
+
+.mr-1 {
+    margin-right: 0.5rem;
+}
+
+.p-1 {
+    padding: 0.5rem;
+}
+
+.p-2 {
+    padding: 1rem;
+}
+
+.p-3 {
+    padding: 1.5rem;
+}
+
+/* ===== COMPONENTES GLOBALES ACTUALIZADOS ===== */
+
+/* Botones con nuevos colores */
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-family: inherit;
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    &.btn-primary {
+        background-color: var(--secondary);
+        /* Usa el rosa vibrante */
+        color: var(--white);
+
+        &:hover:not(:disabled) {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 109, 177, 0.3);
+        }
+    }
+
+    &.btn-secondary {
+        background-color: var(--accent);
+        /* Usa el rosa suave */
+        color: var(--text-dark);
+        border: 2px solid var(--accent);
+
+        &:hover:not(:disabled) {
+            background-color: var(--primary-light);
+            border-color: var(--primary);
+        }
+    }
+
+    &.btn-outline {
+        background-color: transparent;
+        color: var(--text-dark);
+        border: 2px solid var(--text-medium);
+
+        &:hover:not(:disabled) {
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+    }
+
+    &.btn-vibrant {
+        background-color: var(--secondary);
+        color: var(--white);
+
+        &:hover:not(:disabled) {
+            background-color: #e55a9d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 109, 177, 0.4);
+        }
+    }
+
+    &.btn-block {
+        width: 100%;
+    }
+}
+
+/* Formularios actualizados */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--accent);
+    /* Borde rosa suave */
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background-color: var(--white);
+
+    &:focus {
+        outline: none;
+        border-color: var(--secondary);
+        /* Borde rosa vibrante al focus */
+        box-shadow: 0 0 0 3px rgba(255, 109, 177, 0.1);
+    }
+
+    &.is-invalid {
+        border-color: var(--error);
+    }
+
+    &::placeholder {
+        color: #999;
+    }
+}
+
+.invalid-feedback {
+    color: var(--error);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+/* Alertas actualizadas */
+.alert {
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+
+    &.alert-error {
+        background-color: var(--error-bg);
+        color: var(--error-text);
+        border: 1px solid var(--error);
+    }
+
+    &.alert-success {
+        background-color: #d1edff;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+}
+
+/* Tarjetas con nuevos colores */
+.card {
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    /* Sombra rosa suave */
+    overflow: hidden;
+    border-top: 3px solid var(--secondary);
+    /* Línea superior rosa vibrante */
+}
+
+/* Enlaces actualizados */
+a {
+    color: var(--secondary);
+    /* Rosa vibrante para enlaces */
+    text-decoration: none;
+    transition: color 0.3s ease;
+
+    &:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+}
+
+/* Utilidades de color actualizadas */
+.bg-primary-light {
+    background-color: var(--primary-light);
+}
+
+.bg-primary {
+    background-color: var(--primary);
+}
+
+.bg-primary-dark {
+    background-color: var(--primary-dark);
+}
+
+.bg-secondary {
+    background-color: var(--secondary);
+}
+
+.bg-accent {
+    background-color: var(--accent);
+}
+
+.bg-white {
+    background-color: var(--white);
+}
+
+.bg-light-gray {
+    background-color: var(--light-gray);
+}
+
+.text-primary {
+    color: var(--primary);
+}
+
+.text-primary-dark {
+    color: var(--primary-dark);
+}
+
+.text-secondary {
+    color: var(--secondary);
+}
+
+.text-accent {
+    color: var(--accent);
+}
+
+.text-white {
+    color: var(--white);
+}
+
+.text-dark {
+    color: var(--text-dark);
+}
+
+.text-medium {
+    color: var(--text-medium);
+}
+
+.text-error {
+    color: var(--error);
+}
+
+/* Gradientes nuevos */
+.gradient-primary {
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+}
+
+.gradient-soft {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--white) 100%);
+}
+
+.gradient-accent {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary-light) 100%);
+}
+
+.reserva-detalles-modal {
+    .mat-mdc-dialog-container {
+        border-radius: 12px;
+    }
+}

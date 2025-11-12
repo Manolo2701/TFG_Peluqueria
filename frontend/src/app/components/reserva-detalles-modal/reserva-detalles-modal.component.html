@@ -1,0 +1,226 @@
+<div class="modal-header">
+  <h2 mat-dialog-title>Detalles de la Reserva</h2>
+  <button mat-icon-button (click)="cerrar()" class="close-button">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  <div class="reserva-detalles">
+    <mat-card class="info-section">
+      <mat-card-header>
+        <mat-card-title>
+          {{ getNombreServicio() }}
+        </mat-card-title>
+        <mat-card-subtitle>
+          Reserva #{{ data.reserva.id }}
+          <span class="rol-badge {{ getBadgeClass() }}">{{ getBadgeText() }}</span>
+          <span *ngIf="esModoSoloLectura && !mostrarInformacionCliente" class="solo-lectura-badge"
+            >Solo Lectura</span
+          >
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-divider></mat-divider>
+
+      <mat-card-content>
+        <div class="detalle-grid">
+          <!-- Información básica de la reserva -->
+          <div class="detalle-item">
+            <mat-icon>event</mat-icon>
+            <div class="detalle-text">
+              <span class="label">Fecha</span>
+              <span class="value">
+                {{ formatDate(data.reserva.fecha_reserva) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="detalle-item">
+            <mat-icon>schedule</mat-icon>
+            <div class="detalle-text">
+              <span class="label">Hora</span>
+              <span class="value">
+                {{ formatTime(data.reserva.hora_inicio) }}
+                ({{ getDuracionServicio() }} min)
+              </span>
+            </div>
+          </div>
+
+          <!-- Trabajador -->
+          <div class="detalle-item">
+            <mat-icon>badge</mat-icon>
+            <div class="detalle-text">
+              <span class="label">Profesional</span>
+              <span class="value">
+                {{ getNombreTrabajador() }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Especialidades del trabajador (solo si existen) -->
+          <div class="detalle-item" *ngIf="getEspecialidadesTrabajador() !== 'No especificadas'">
+            <mat-icon>workspace_premium</mat-icon>
+            <div class="detalle-text">
+              <span class="label">Especialidades</span>
+              <span class="value">
+                {{ getEspecialidadesTrabajador() }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Precio -->
+          <div class="detalle-item">
+            <mat-icon>euro</mat-icon>
+            <div class="detalle-text">
+              <span class="label">Precio</span>
+              <span class="value">
+                {{ formatCurrency(getPrecioServicio()) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estado y Política (diseño mejorado para clientes) -->
+        <div class="estado-section">
+          <div class="estado-info">
+            <mat-chip [class]="'estado-' + data.reserva.estado" class="estado-chip">
+              <mat-icon>{{ getEstadoIcon(data.reserva.estado) }}</mat-icon>
+              {{ data.reserva.estado | titlecase }}
+            </mat-chip>
+
+            <div class="politica-info" *ngIf="mostrarInformacionCliente">
+              <mat-icon>info</mat-icon>
+              <span class="politica-text">{{ getDescripcionPoliticaCancelacion() }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notas del cliente -->
+        <div class="notas-section" *ngIf="data.reserva.notas">
+          <h4>Tus notas:</h4>
+          <p class="notas-text">{{ data.reserva.notas }}</p>
+        </div>
+
+        <!-- Información adicional (diferente para clientes vs trabajadores/admin) -->
+        <div class="info-adicional" *ngIf="!mostrarInformacionCliente">
+          <h4>Información adicional</h4>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Fecha de creación:</span>
+              <span class="info-value">
+                {{ formatDateTime(getFechaCreacion()) }}
+              </span>
+            </div>
+
+            <!-- Cliente (solo para trabajadores/admin) -->
+            <div class="info-item">
+              <span class="info-label">Cliente:</span>
+              <span class="info-value">{{ getNombreCliente() }}</span>
+            </div>
+
+            <!-- Notas internas (solo para trabajadores/admin) -->
+            <div class="info-item" *ngIf="getNotasInternas()">
+              <span class="info-label">Notas internas:</span>
+              <span class="info-value">{{ getNotasInternas() }}</span>
+            </div>
+
+            <!-- Penalización si existe -->
+            <div class="info-item" *ngIf="data.reserva.penalizacion_aplicada">
+              <span class="info-label">Penalización aplicada:</span>
+              <span class="info-value">{{
+                formatCurrency(data.reserva.penalizacion_aplicada)
+              }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Información específica para clientes -->
+        <div class="info-cliente" *ngIf="mostrarInformacionCliente">
+          <h4>Información de tu reserva</h4>
+          <div class="cliente-grid">
+            <div class="cliente-item">
+              <mat-icon>calendar_today</mat-icon>
+              <div class="cliente-text">
+                <span class="cliente-label">Reservado el</span>
+                <span class="cliente-value">{{ formatDateTime(getFechaCreacion()) }}</span>
+              </div>
+            </div>
+
+            <div class="cliente-item" *ngIf="!esReservaCancelable()">
+              <mat-icon>warning</mat-icon>
+              <div class="cliente-text">
+                <span class="cliente-label">No cancelable</span>
+                <span class="cliente-value">Esta reserva ya ha pasado o está muy próxima</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <!-- BOTONES PARA CLIENTES -->
+  <div *ngIf="mostrarInformacionCliente" class="acciones-cliente">
+    <button mat-button (click)="cerrar()">Cerrar</button>
+
+    <button
+      *ngIf="puedeCancelarComoCliente"
+      mat-raised-button
+      color="warn"
+      (click)="cancelarReserva()"
+      class="cancelar-btn"
+    >
+      <mat-icon>cancel</mat-icon>
+      Cancelar Reserva
+    </button>
+
+    <div *ngIf="!puedeCancelarComoCliente && !esReservaCancelable()" class="no-cancelable-info">
+      <mat-icon>info</mat-icon>
+      <span>Esta reserva no se puede cancelar</span>
+    </div>
+  </div>
+
+  <!-- BOTONES ORIGINALES PARA TRABAJADORES/ADMIN -->
+  <div *ngIf="!mostrarInformacionCliente" class="acciones-staff">
+    <!-- SOLO botón Cerrar en modo solo lectura -->
+    <div *ngIf="esModoSoloLectura" class="solo-lectura-actions">
+      <button mat-raised-button color="primary" (click)="cerrar()">
+        <mat-icon>close</mat-icon>
+        Cerrar
+      </button>
+    </div>
+
+    <!-- Botones de acción si NO es modo solo lectura -->
+    <div *ngIf="!esModoSoloLectura" class="acciones-permitidas">
+      <button mat-button (click)="cerrar()">Cerrar</button>
+
+      <button
+        *ngIf="puedeCancelarReserva"
+        mat-raised-button
+        color="warn"
+        (click)="cancelarReserva()"
+      >
+        <mat-icon>cancel</mat-icon>
+        Cancelar Reserva
+      </button>
+
+      <button
+        *ngIf="puedeAceptarReserva"
+        mat-raised-button
+        color="primary"
+        (click)="aceptarReserva()"
+      >
+        <mat-icon>check_circle</mat-icon>
+        Aceptar Reserva
+      </button>
+
+      <button *ngIf="puedeEditarReserva" mat-raised-button color="accent" (click)="editarReserva()">
+        <mat-icon>edit</mat-icon>
+        Editar Reserva
+      </button>
+    </div>
+  </div>
+</mat-dialog-actions>

@@ -1,0 +1,99 @@
+﻿const Reserva = require('../models/Reserva');
+const Venta = require('../models/Venta');
+const Servicio = require('../models/Servicio');
+const { pool } = require('../config/database');
+
+exports.getEstadisticas = async (req, res) => {
+  try {
+    const hoy = new Date().toISOString().split('T')[0];
+    const usuario = req.usuario;
+    
+    console.log(\[DASHBOARD] Obteniendo estadísticas para: \, usuario: \, rol: \\);
+
+    let estadisticas = {};
+
+    if (usuario.rol === 'administrador' || usuario.rol === 'trabajador') {
+      // DASHBOARD PARA ADMINISTRADORES/TRABAJADORES
+      const todasReservas = await Reserva.listarTodas();
+      const reservasHoy = todasReservas.filter(reserva => reserva.fecha_reserva === hoy);
+
+      // Para admin/trabajador, obtener todas las ventas 
+      let ventasHoy = [];
+      let ingresosHoy = 0;
+      try {
+        // Consulta directa a la base de datos para obtener ventas del día
+        const [ventasResult] = await pool.execute(
+          'SELECT * FROM venta WHERE DATE(fecha_venta) = ?',
+          [hoy]
+        );
+        ventasHoy = ventasResult;
+        ingresosHoy = ventasHoy.reduce((total, venta) => total + (parseFloat(venta.total) || 0), 0);
+      } catch (error) {
+        console.log('[DASHBOARD] No se pudieron obtener ventas:', error.message);
+      }
+
+      const servicios = await Servicio.listarTodos();
+      const serviciosPopulares = servicios.slice(0, 3);
+
+      estadisticas = {
+        // Estadísticas del negocio
+        totalReservasHoy: reservasHoy.length,
+        reservasConfirmadas: reservasHoy.filter(r => r.estado === 'confirmada').length,
+        reservasPendientes: reservasHoy.filter(r => r.estado === 'pendiente').length,
+        ventasDelDia: ventasHoy.length,
+        ingresosHoy: ingresosHoy,
+        proximasReservas: reservasHoy.slice(0, 5).map(r => ({
+          id: r.id,
+          cliente: r.cliente_nombre || 'Cliente',
+          servicio: r.servicio_nombre || 'Servicio',
+          hora: r.hora_inicio,
+          estado: r.estado
+        })),
+        serviciosPopulares: serviciosPopulares.map(s => ({
+          id: s.id,
+          nombre: s.nombre,
+          precio: s.precio,
+          categoria: s.categoria
+        })),
+        rol: usuario.rol,
+        tipo: 'negocio'
+      };
+    } else {
+      // DASHBOARD PARA CLIENTES - SOLO INFORMACIÓN DE RESERVAS
+      const misReservas = await Reserva.buscarPorCliente(usuario.id);
+      const reservasHoy = misReservas.filter(reserva => reserva.fecha_reserva === hoy);
+      
+      // Total de reservas (no solo hoy)
+      const totalReservas = misReservas.length;
+      const reservasConfirmadas = misReservas.filter(r => r.estado === 'confirmada').length;
+      const reservasPendientes = misReservas.filter(r => r.estado === 'pendiente').length;
+
+      estadisticas = {
+        // Estadísticas personales del cliente - SOLO RESERVAS
+        misReservasHoy: reservasHoy.length,
+        misReservasTotal: totalReservas,
+        misReservasConfirmadas: reservasConfirmadas,
+        misReservasPendientes: reservasPendientes,
+        proximasReservas: misReservas.slice(0, 5).map(r => ({
+          id: r.id,
+          servicio: r.servicio_nombre || 'Servicio',
+          hora: r.hora_inicio,
+          fecha: r.fecha_reserva,
+          estado: r.estado,
+          trabajador: r.trabajador_id ? 'Asignado' : 'Por asignar'
+        })),
+        rol: usuario.rol,
+        tipo: 'cliente'
+      };
+    }
+
+    console.log(\[DASHBOARD] Estadísticas calculadas para \:\, estadisticas);
+    res.json(estadisticas);
+  } catch (error) {
+    console.error('[DASHBOARD] Error obteniendo estadísticas:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener estadísticas del dashboard',
+      detalles: error.message 
+    });
+  }
+};

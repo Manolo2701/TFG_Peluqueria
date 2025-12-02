@@ -1,0 +1,153 @@
+<h2 mat-dialog-title>Editar Trabajador</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="trabajadorForm" class="form-container">
+    <!-- Datos de Usuario -->
+    <div class="form-section">
+      <h3>Datos Personales</h3>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" type="email" />
+          <mat-error *ngIf="trabajadorForm.get('email')?.hasError('required')">
+            Email es requerido
+          </mat-error>
+          <mat-error *ngIf="trabajadorForm.get('email')?.hasError('email')">
+            Email no válido
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="nombre" />
+          <mat-error *ngIf="trabajadorForm.get('nombre')?.hasError('required')">
+            Nombre es requerido
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Apellidos</mat-label>
+          <input matInput formControlName="apellidos" />
+          <mat-error *ngIf="trabajadorForm.get('apellidos')?.hasError('required')">
+            Apellidos son requeridos
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Teléfono</mat-label>
+          <input matInput formControlName="telefono" />
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="form-field-full">
+        <mat-label>Dirección</mat-label>
+        <textarea matInput formControlName="direccion" rows="2"></textarea>
+      </mat-form-field>
+    </div>
+
+    <!-- Datos de Trabajador -->
+    <div class="form-section">
+      <h3>Información Profesional</h3>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Categoría</mat-label>
+          <mat-select formControlName="categoria">
+            <mat-option *ngFor="let cat of categorias" [value]="cat">
+              {{ cat }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="trabajadorForm.get('categoria')?.hasError('required')">
+            Categoría es requerida
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Experiencia (años)</mat-label>
+          <input matInput formControlName="experiencia" type="number" min="0" />
+          <mat-error *ngIf="trabajadorForm.get('experiencia')?.hasError('min')">
+            La experiencia no puede ser negativa
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Especialidades con Chips -->
+      <div class="form-field-full">
+        <label class="especialidades-label">Especialidades</label>
+        <div class="chips-container">
+          <mat-chip-listbox>
+            <mat-chip-option
+              *ngFor="let esp of especialidadesList"
+              [selected]="isEspecialidadSelected(esp)"
+              (click)="toggleEspecialidad(esp)"
+            >
+              {{ esp }}
+            </mat-chip-option>
+          </mat-chip-listbox>
+        </div>
+        <div class="selected-count">
+          {{ trabajadorForm.get('especialidades')?.value?.length || 0 }} especialidades
+          seleccionadas
+        </div>
+      </div>
+
+      <mat-form-field appearance="outline" class="form-field-full">
+        <mat-label>Descripción</mat-label>
+        <textarea
+          matInput
+          formControlName="descripcion"
+          rows="3"
+          placeholder="Breve descripción del trabajador..."
+        ></textarea>
+      </mat-form-field>
+    </div>
+
+    <!-- Horario Laboral Visual -->
+    <div class="form-section">
+      <h3>Horario Laboral</h3>
+      <p class="horario-subtitle">Selecciona los días y horarios de trabajo</p>
+
+      <div class="horario-container" [formGroup]="horarioForm">
+        <div *ngFor="let dia of diasSemana" class="horario-dia">
+          <mat-checkbox [formControlName]="dia.dia + '_activo'" class="dia-checkbox">
+            <strong>{{ dia.nombre }}</strong>
+          </mat-checkbox>
+
+          <div class="horario-horas" *ngIf="horarioForm.get(dia.dia + '_activo')?.value">
+            <mat-form-field appearance="outline" class="hora-field">
+              <mat-label>Inicio</mat-label>
+              <input matInput type="time" [formControlName]="dia.dia + '_inicio'" />
+            </mat-form-field>
+
+            <span class="horario-separator">a</span>
+
+            <mat-form-field appearance="outline" class="hora-field">
+              <mat-label>Fin</mat-label>
+              <input matInput type="time" [formControlName]="dia.dia + '_fin'" />
+            </mat-form-field>
+          </div>
+
+          <div class="horario-inactivo" *ngIf="!horarioForm.get(dia.dia + '_activo')?.value">
+            <span class="inactivo-text">No trabaja</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" [disabled]="loading" class="cancel-btn">Cancelar</button>
+  <button
+    mat-raised-button
+    (click)="onSubmit()"
+    [disabled]="loading || trabajadorForm.invalid"
+    class="submit-btn"
+  >
+    <span *ngIf="!loading">Actualizar Trabajador</span>
+    <span *ngIf="loading">Actualizando...</span>
+  </button>
+</mat-dialog-actions>

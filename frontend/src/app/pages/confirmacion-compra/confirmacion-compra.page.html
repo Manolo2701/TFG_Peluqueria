@@ -1,0 +1,129 @@
+<div class="confirmacion-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-actions">
+      <button mat-icon-button (click)="volverAlDashboard()" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>✅ Confirmación de Compra</h1>
+        <p>Resumen de tu pedido</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estados -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando confirmación...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <h3>Error al cargar la confirmación</h3>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="volverAlDashboard()">
+      Volver al Dashboard
+    </button>
+  </div>
+
+  <!-- Contenido Principal -->
+  <div *ngIf="!loading && !error && venta" class="confirmacion-content">
+    <!-- Tarjeta de Confirmación -->
+    <mat-card class="confirmacion-card">
+      <mat-card-header>
+        <div class="header-icon">
+          <mat-icon>check_circle</mat-icon>
+        </div>
+        <mat-card-title>¡Compra Exitosa!</mat-card-title>
+        <mat-card-subtitle>Gracias por tu compra en Peluquería Selene</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Información de la Venta -->
+        <div class="info-section">
+          <h3>Información del Pedido</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">Número de Pedido:</span>
+              <span class="value">{{ venta.transaccion_id || venta.id }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Fecha:</span>
+              <span class="value">{{ formatDate(venta.fecha_venta) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Método de Pago:</span>
+              <span class="value">{{ getMetodoPagoText(venta.metodo_pago) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Estado:</span>
+              <span class="value estado-completada">{{ getEstadoText(venta.estado) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Productos Comprados -->
+        <div class="productos-section">
+          <h3>Productos Comprados</h3>
+          <div class="productos-list">
+            <div *ngFor="let detalle of venta.detalles" class="producto-item">
+              <div class="producto-info">
+                <span class="producto-nombre">{{ detalle.producto?.nombre || 'Producto' }}</span>
+                <span class="producto-cantidad">Cantidad: {{ detalle.cantidad }}</span>
+              </div>
+              <div class="producto-precio">
+                {{ formatCurrency(detalle.precio_unitario) }} x {{ detalle.cantidad }}
+              </div>
+              <div class="producto-subtotal">
+                {{ formatCurrency(detalle.subtotal) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen Total -->
+        <div class="resumen-section">
+          <div class="resumen-item">
+            <span>Subtotal:</span>
+            <span>{{ formatCurrency(venta.total) }}</span>
+          </div>
+          <div class="resumen-item">
+            <span>Envío:</span>
+            <span
+              [class.envio-gratuito]="getCostoEnvio() === 0"
+              [class.envio-pago]="getCostoEnvio() > 0"
+            >
+              {{ calcularEnvio() }}
+            </span>
+          </div>
+          <div *ngIf="venta.total < 30" class="info-envio">
+            <mat-icon>local_shipping</mat-icon>
+            <span>Envío gratuito en compras superiores a 30€</span>
+          </div>
+          <div class="resumen-item total">
+            <span><strong>Total:</strong></span>
+            <span
+              ><strong>{{ formatCurrency(getTotalConEnvio()) }}</strong></span
+            >
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions>
+        <button mat-raised-button color="primary" (click)="volverAlDashboard()" class="action-btn">
+          <mat-icon>dashboard</mat-icon>
+          Volver al Dashboard
+        </button>
+        <button mat-raised-button color="primary" (click)="irAMisCompras()" class="action-btn">
+          <mat-icon>shopping_bag</mat-icon>
+          Historial de Compras
+        </button>
+        <button mat-stroked-button color="basic" (click)="imprimirRecibo()" class="action-btn">
+          <mat-icon>print</mat-icon>
+          Imprimir Recibo
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

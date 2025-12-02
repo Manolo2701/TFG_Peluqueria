@@ -1,0 +1,150 @@
+<div class="mis-compras-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-actions">
+      <button mat-icon-button routerLink="/dashboard" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>📦 Mis Compras</h1>
+        <p>Historial de todos tus pedidos realizados</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estados -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando tus compras...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <h3>Error al cargar tus compras</h3>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="cargarMisCompras()">
+      <mat-icon>refresh</mat-icon>
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Contenido Principal -->
+  <div *ngIf="!loading && !error" class="mis-compras-content">
+    <!-- Sin Compras -->
+    <div *ngIf="ventas.length === 0" class="empty-state">
+      <mat-icon>shopping_bag</mat-icon>
+      <h3>No tienes compras realizadas</h3>
+      <p>¡Descubre nuestros productos y realiza tu primera compra!</p>
+      <button
+        mat-raised-button
+        color="primary"
+        routerLink="/catalogo-productos"
+        class="comprar-btn"
+      >
+        <mat-icon>store</mat-icon>
+        Ir al Catálogo
+      </button>
+    </div>
+
+    <!-- Lista de Compras -->
+    <div *ngIf="ventas.length > 0" class="compras-list">
+      <!-- En mis-compras.page.html -->
+      <div class="stats-header">
+        <mat-card class="stats-card">
+          <mat-card-content>
+            <div class="stats-grid" style="grid-template-columns: 1fr 1fr">
+              <div class="stat-item">
+                <mat-icon>receipt</mat-icon>
+                <div class="stat-info">
+                  <span class="stat-number">{{ ventas.length }}</span>
+                  <span class="stat-label">Total de Compras</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <mat-icon>euro</mat-icon>
+                <div class="stat-info">
+                  <span class="stat-number">{{ formatCurrency(getTotalGastado()) }}</span>
+                  <span class="stat-label">Total Gastado</span>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <div class="compras-grid">
+        <mat-card *ngFor="let venta of ventas" class="compra-item">
+          <mat-card-header>
+            <mat-icon mat-card-avatar [class]="getEstadoIconClass(venta.estado)">{{
+              getEstadoIcon(venta.estado)
+            }}</mat-icon>
+            <mat-card-title>Pedido #{{ venta.transaccion_id || venta.id }}</mat-card-title>
+            <mat-card-subtitle>
+              {{ formatDate(venta.fecha_venta) }}
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <div class="compra-info">
+              <div class="info-row">
+                <div class="info-item">
+                  <span class="label">Estado:</span>
+                  <span class="value" [class]="'estado-' + venta.estado">
+                    {{ getEstadoText(venta.estado) }}
+                  </span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Método de Pago:</span>
+                  <span class="value">{{ getMetodoPagoText(venta.metodo_pago) }}</span>
+                </div>
+              </div>
+
+              <div class="info-row">
+                <div class="info-item">
+                  <span class="label">Total:</span>
+                  <span class="value total">{{ formatCurrency(venta.total) }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Productos:</span>
+                  <span class="value">{{ venta.total_productos || 1 }}</span>
+                </div>
+              </div>
+
+              <!-- Detalles de productos (si están disponibles) -->
+              <div *ngIf="venta.detalles && venta.detalles.length > 0" class="productos-resumen">
+                <h4>Productos:</h4>
+                <div class="productos-list">
+                  <div *ngFor="let detalle of venta.detalles.slice(0, 3)" class="producto-resumen">
+                    <span class="producto-nombre">{{ detalle.producto_nombre || 'Producto' }}</span>
+                    <span class="producto-cantidad">x{{ detalle.cantidad }}</span>
+                    <span class="producto-precio">{{ formatCurrency(detalle.subtotal) }}</span>
+                  </div>
+                  <div *ngIf="venta.detalles.length > 3" class="mas-productos">
+                    +{{ venta.detalles.length - 3 }} más...
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+
+          <mat-card-actions>
+            <button mat-stroked-button color="primary" (click)="verDetalles(venta)">
+              <mat-icon>visibility</mat-icon>
+              Ver Detalles
+            </button>
+            <button
+              *ngIf="venta.estado === 'completada'"
+              mat-stroked-button
+              color="basic"
+              (click)="descargarFactura(venta)"
+              disabled
+            >
+              <mat-icon>download</mat-icon>
+              Descargar Factura
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+  </div>
+</div>

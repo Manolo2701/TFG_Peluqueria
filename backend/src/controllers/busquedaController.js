@@ -3,52 +3,72 @@
 console.log('[BUSQUEDA] Modulo de busqueda cargado');
 
 const busquedaController = {
-  // NOTA: Estos nombres deben coincidir con las rutas
+  // Búsqueda global (servicios + productos)
   buscarGlobal: async (req, res) => {
     try {
       const { q, categoria, precioMin, precioMax } = req.query;
 
       console.log('[BUSQUEDA] Busqueda global:', { q, categoria, precioMin, precioMax });
 
-      let query = `
-        SELECT 'servicio' as tipo, id, nombre, descripcion, precio, categoria, NULL as stock
+      // Si no hay término de búsqueda, devolver vacío
+      if (!q || q.trim() === '') {
+        return res.json({
+          success: true,
+          total: 0,
+          resultados: []
+        });
+      }
+
+      const searchTerm = `%${q}%`;
+
+      // Búsqueda en servicios (mantenemos categoría aquí)
+      let queryServicios = `
+        SELECT 
+          id,
+          nombre,
+          descripcion,
+          precio,
+          duracion,
+          categoria,
+          'servicio' as tipo,
+          activo
         FROM servicio 
         WHERE activo = 1 AND nombre LIKE ?
-        UNION ALL
-        SELECT 'producto' as tipo, id, nombre, descripcion, precio, categoria, stock
+      `;
+      let paramsServicios = [searchTerm];
+
+      if (categoria) {
+        queryServicios += ' AND categoria = ?';
+        paramsServicios.push(categoria);
+      }
+
+      // Búsqueda en productos (sin categoría)
+      let queryProductos = `
+        SELECT 
+          id,
+          nombre,
+          precio,
+          stock,
+          'producto' as tipo,
+          activo
         FROM producto 
         WHERE activo = 1 AND nombre LIKE ?
       `;
-      
-      const searchTerm = `%${q}%`;
-      const params = [searchTerm, searchTerm];
+      let paramsProductos = [searchTerm];
 
-      if (categoria) {
-        query = query.replace('WHERE activo = 1', 'WHERE activo = 1 AND categoria = ?');
-        params.push(categoria);
-        params.push(categoria);
-      }
+      // Ejecutar ambas consultas
+      const [servicios] = await db.pool.execute(queryServicios, paramsServicios);
+      const [productos] = await db.pool.execute(queryProductos, paramsProductos);
 
-      if (precioMin) {
-        query += ' AND precio >= ?';
-        params.push(precioMin);
-        params.push(precioMin);
-      }
+      // Combinar resultados
+      const resultados = [...servicios, ...productos];
 
-      if (precioMax) {
-        query += ' AND precio <= ?';
-        params.push(precioMax);
-        params.push(precioMax);
-      }
+      console.log(`[BUSQUEDA] Encontrados ${resultados.length} resultados para: ${q}`);
 
-      const [results] = await db.pool.execute(query, params);
-      
-      console.log(`[BUSQUEDA] Encontrados ${results.length} resultados para: ${q}`);
-      
       res.json({
         success: true,
-        total: results.length,
-        resultados: results
+        total: resultados.length,
+        resultados: resultados
       });
 
     } catch (error) {
@@ -61,10 +81,19 @@ const busquedaController = {
     }
   },
 
+  // Búsqueda solo en servicios
   buscarServicios: async (req, res) => {
     try {
       const { q } = req.query;
       console.log('[BUSQUEDA] Busqueda de servicios:', q);
+
+      if (!q || q.trim() === '') {
+        return res.json({
+          success: true,
+          total: 0,
+          servicios: []
+        });
+      }
 
       const [results] = await db.pool.execute(
         'SELECT * FROM servicio WHERE activo = 1 AND nombre LIKE ?',
@@ -72,7 +101,7 @@ const busquedaController = {
       );
 
       console.log(`[BUSQUEDA] Encontrados ${results.length} servicios para: ${q}`);
-      
+
       res.json({
         success: true,
         total: results.length,
@@ -89,18 +118,28 @@ const busquedaController = {
     }
   },
 
+  // Búsqueda solo en productos (CORREGIDO - sin categoría)
   buscarProductos: async (req, res) => {
     try {
       const { q } = req.query;
       console.log('[BUSQUEDA] Busqueda de productos:', q);
 
+      if (!q || q.trim() === '') {
+        return res.json({
+          success: true,
+          total: 0,
+          productos: []
+        });
+      }
+
+      // ✅ CORRECCIÓN: Consulta sin referencia a categoría
       const [results] = await db.pool.execute(
-        'SELECT * FROM producto WHERE activo = 1 AND nombre LIKE ?',
+        'SELECT id, nombre, precio, stock, activo FROM producto WHERE activo = 1 AND nombre LIKE ?',
         [`%${q}%`]
       );
 
       console.log(`[BUSQUEDA] Encontrados ${results.length} productos para: ${q}`);
-      
+
       res.json({
         success: true,
         total: results.length,
@@ -117,19 +156,31 @@ const busquedaController = {
     }
   },
 
+  // Búsqueda optimizada para sugerencias (CORREGIDO)
   buscarSugerencias: async (req, res) => {
     try {
       const { q } = req.query;
       console.log('[BUSQUEDA] Generando sugerencias para:', q);
 
+      if (!q || q.trim() === '' || q.length < 2) {
+        return res.json({
+          success: true,
+          total: 0,
+          sugerencias: []
+        });
+      }
+
+      const searchTerm = `%${q}%`;
+
+      // Solo nombres de servicios y productos
       const [servicios] = await db.pool.execute(
         'SELECT nombre FROM servicio WHERE activo = 1 AND nombre LIKE ? LIMIT 5',
-        [`%${q}%`]
+        [searchTerm]
       );
 
       const [productos] = await db.pool.execute(
         'SELECT nombre FROM producto WHERE activo = 1 AND nombre LIKE ? LIMIT 5',
-        [`%${q}%`]
+        [searchTerm]
       );
 
       const sugerencias = [
@@ -138,7 +189,7 @@ const busquedaController = {
       ].slice(0, 8);
 
       console.log(`[BUSQUEDA] ${sugerencias.length} sugerencias para: ${q}`);
-      
+
       res.json({
         success: true,
         total: sugerencias.length,
@@ -155,27 +206,20 @@ const busquedaController = {
     }
   },
 
+  // Obtener categorías (CORREGIDO - solo de servicios)
   obtenerCategorias: async (req, res) => {
     try {
       console.log('[BUSQUEDA] Solicitando categorias');
 
-      const [serviciosCat] = await db.pool.execute(
-        'SELECT DISTINCT categoria FROM servicio WHERE activo = 1'
-      );
-      
-      const [productosCat] = await db.pool.execute(
-        'SELECT DISTINCT categoria FROM producto WHERE activo = 1'
+      // ✅ CORRECCIÓN: Solo categorías de servicios (los productos ya no tienen categoría)
+      const [categoriasServicios] = await db.pool.execute(
+        'SELECT DISTINCT categoria FROM servicio WHERE activo = 1 AND categoria IS NOT NULL ORDER BY categoria'
       );
 
-      const categorias = [
-        ...new Set([
-          ...serviciosCat.map(s => s.categoria),
-          ...productosCat.map(p => p.categoria)
-        ])
-      ].filter(Boolean);
+      const categorias = categoriasServicios.map(cat => cat.categoria).filter(Boolean);
 
       console.log(`[BUSQUEDA] ${categorias.length} categorias encontradas`);
-      
+
       res.json({
         success: true,
         categorias: categorias

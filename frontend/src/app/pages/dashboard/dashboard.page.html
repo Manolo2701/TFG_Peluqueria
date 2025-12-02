@@ -1,5 +1,4 @@
-﻿<!-- frontend/src/app/pages/dashboard/dashboard.page.html -->
-<div class="dashboard-container">
+﻿<div class="dashboard-container">
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-state">
     <mat-spinner diameter="50"></mat-spinner>
@@ -32,7 +31,8 @@
         <div class="welcome-section">
           <h1>Bienvenido, {{ usuario?.nombre }} {{ usuario?.apellidos }}</h1>
           <div class="role-info">
-            <p class="role-badge administrador">{{ statsParaMostrar.rol | titlecase }}</p>
+            <!-- ✅ CORREGIDO: Siempre mostrar "Administrador" en el badge -->
+            <p class="role-badge administrador">Administrador</p>
             <span class="vista-indicator">Vista Administrador</span>
           </div>
         </div>
@@ -46,10 +46,17 @@
             <mat-icon>switch_account</mat-icon>
             {{ vistaTrabajadorActiva ? 'Volver a Admin' : 'Vista Trabajador' }}
           </button>
-          <button mat-raised-button color="primary" routerLink="/calendario">
+
+          <button mat-raised-button color="primary" (click)="abrirCalendarioGeneral()">
             <mat-icon>calendar_today</mat-icon>
             Calendario General
           </button>
+
+          <button mat-raised-button color="primary" routerLink="/mi-perfil" class="profile-btn">
+            <mat-icon>account_circle</mat-icon>
+            Mi Perfil
+          </button>
+
           <button mat-raised-button color="warn" (click)="logout()" class="logout-btn">
             <mat-icon>logout</mat-icon>
             Cerrar Sesión
@@ -59,7 +66,7 @@
 
       <!-- Estadísticas del Negocio -->
       <section class="section">
-        <h2>📈 Estadísticas del Negocio</h2>
+        <h2>Estadísticas del Negocio</h2>
         <div class="stats-grid">
           <mat-card class="stat-card">
             <mat-card-header>
@@ -120,7 +127,7 @@
 
       <!-- Servicios Populares -->
       <section class="section" *ngIf="statsParaMostrar.serviciosPopulares.length > 0">
-        <h2>💎 Servicios Más Populares</h2>
+        <h2>Servicios Más Populares</h2>
         <div class="servicios-grid">
           <mat-card
             *ngFor="let servicio of statsParaMostrar.serviciosPopulares"
@@ -140,25 +147,59 @@
         </div>
       </section>
 
-      <!-- Acciones Rápidas Admin -->
+      <!-- Panel de Administración -->
       <section class="section">
-        <h2>🚀 Acciones Rápidas</h2>
+        <h2>Panel de Administración</h2>
         <div class="quick-actions">
-          <button mat-raised-button color="primary" routerLink="/calendario" class="action-btn">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="abrirCalendarioGeneral()"
+            class="action-btn"
+          >
             <mat-icon>calendar_today</mat-icon>
             Calendario General
           </button>
-          <button mat-raised-button color="accent" routerLink="/admin/ausencias" class="action-btn">
+
+          <button
+            mat-raised-button
+            color="accent"
+            (click)="gestionarTrabajadores()"
+            class="action-btn"
+          >
+            <mat-icon>groups</mat-icon>
+            Gestionar Trabajadores
+          </button>
+
+          <!-- ✅ NUEVO BOTÓN: Ver Clientes Registrados -->
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="verClientesRegistrados()"
+            class="action-btn"
+          >
+            <mat-icon>people</mat-icon>
+            Ver Clientes Registrados
+          </button>
+
+          <button
+            mat-raised-button
+            color="accent"
+            (click)="abrirConfiguracionCompleta()"
+            class="action-btn"
+          >
+            <mat-icon>settings</mat-icon>
+            Configuración del Establecimiento
+          </button>
+
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="gestionarAusencias()"
+            class="action-btn"
+          >
             <mat-icon>event_busy</mat-icon>
             Gestionar Ausencias
-          </button>
-          <button mat-raised-button color="primary" class="action-btn" disabled>
-            <mat-icon>analytics</mat-icon>
-            Reportes (Próximamente)
-          </button>
-          <button mat-raised-button color="accent" class="action-btn" disabled>
-            <mat-icon>settings</mat-icon>
-            Configuración (Próximamente)
           </button>
         </div>
       </section>
@@ -173,7 +214,8 @@
         <div class="welcome-section">
           <h1>Bienvenido, {{ usuario?.nombre }} {{ usuario?.apellidos }}</h1>
           <div class="role-info">
-            <p class="role-badge trabajador">{{ statsParaMostrar.rol | titlecase }}</p>
+            <!-- ✅ CORREGIDO: Siempre mostrar "Trabajador" en el badge -->
+            <p class="role-badge trabajador">Trabajador</p>
             <span class="vista-indicator" *ngIf="vistaTrabajadorActiva"
               >Vista Trabajador (Admin)</span
             >
@@ -203,7 +245,7 @@
 
       <!-- Mi Actividad Hoy -->
       <section class="section">
-        <h2>📈 Mi Actividad Hoy</h2>
+        <h2>Mi Actividad Hoy</h2>
         <div class="stats-grid">
           <mat-card class="stat-card">
             <mat-card-header>
@@ -237,28 +279,6 @@
               <div class="stat-label">Por confirmar</div>
             </mat-card-content>
           </mat-card>
-
-          <mat-card class="stat-card">
-            <mat-card-header>
-              <mat-icon mat-card-avatar>shopping_cart</mat-icon>
-              <mat-card-title>Mis Ventas</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="stat-number">{{ statsParaMostrar.totalVentasHoy }}</div>
-              <div class="stat-label">Ventas realizadas</div>
-            </mat-card-content>
-          </mat-card>
-
-          <mat-card class="stat-card">
-            <mat-card-header>
-              <mat-icon mat-card-avatar>euro</mat-icon>
-              <mat-card-title>Mis Ingresos</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="stat-number">{{ formatCurrency(statsParaMostrar.ingresosHoy) }}</div>
-              <div class="stat-label">Por ventas hoy</div>
-            </mat-card-content>
-          </mat-card>
         </div>
       </section>
 
@@ -286,7 +306,7 @@
 
       <!-- Próximas Reservas -->
       <section class="section" *ngIf="statsParaMostrar.proximasReservas.length > 0">
-        <h2>📅 Mis Próximas Reservas</h2>
+        <h2>Mis Próximas Reservas</h2>
         <div class="reservas-list">
           <mat-card *ngFor="let reserva of statsParaMostrar.proximasReservas" class="reserva-card">
             <mat-card-header>
@@ -314,19 +334,16 @@
 
       <!-- Acciones Rápidas Trabajador -->
       <section class="section">
-        <h2>🚀 Acciones Rápidas</h2>
+        <h2>Acciones Rápidas</h2>
         <div class="quick-actions">
           <button mat-raised-button color="primary" routerLink="/mi-calendario" class="action-btn">
             <mat-icon>calendar_today</mat-icon>
             Mi Calendario
           </button>
-          <button mat-raised-button color="accent" class="action-btn" disabled>
+
+          <button mat-raised-button color="accent" routerLink="/mis-clientes" class="action-btn">
             <mat-icon>groups</mat-icon>
-            Mis Clientes (Próximamente)
-          </button>
-          <button mat-raised-button color="primary" class="action-btn" disabled>
-            <mat-icon>spa</mat-icon>
-            Gestión Servicios (Próximamente)
+            Mis Clientes
           </button>
         </div>
       </section>
@@ -340,13 +357,20 @@
       <header class="dashboard-header">
         <div class="welcome-section">
           <h1>Bienvenido, {{ usuario?.nombre }} {{ usuario?.apellidos }}</h1>
-          <p class="role-badge cliente">{{ statsParaMostrar.rol | titlecase }}</p>
+          <!-- ✅ CORREGIDO: Siempre mostrar "Cliente" en el badge -->
+          <p class="role-badge cliente">Cliente</p>
         </div>
         <div class="header-actions">
-          <button mat-raised-button color="primary" routerLink="/servicios" class="action-btn">
+          <button mat-raised-button color="primary" routerLink="/reservar" class="action-btn">
             <mat-icon>event_available</mat-icon>
             Nueva Reserva
           </button>
+
+          <button mat-raised-button color="primary" routerLink="/mi-perfil" class="profile-btn">
+            <mat-icon>account_circle</mat-icon>
+            Mi Perfil
+          </button>
+
           <button mat-raised-button color="warn" (click)="logout()" class="logout-btn">
             <mat-icon>logout</mat-icon>
             Cerrar Sesión
@@ -356,7 +380,7 @@
 
       <!-- Mis Estadísticas -->
       <section class="section">
-        <h2>📈 Mis Estadísticas</h2>
+        <h2>Mis Estadísticas</h2>
         <div class="stats-grid">
           <mat-card class="stat-card">
             <mat-card-header>
@@ -406,7 +430,7 @@
 
       <!-- Próximas Reservas -->
       <section class="section" *ngIf="statsParaMostrar.proximasReservas.length > 0">
-        <h2>📅 Mis Próximas Reservas</h2>
+        <h2>Mis Próximas Reservas</h2>
         <div class="reservas-list">
           <mat-card *ngFor="let reserva of statsParaMostrar.proximasReservas" class="reserva-card">
             <mat-card-header>
@@ -434,21 +458,31 @@
 
       <!-- Acciones Rápidas Cliente -->
       <section class="section">
-        <h2>🚀 Acciones Rápidas</h2>
+        <h2>Acciones Rápidas</h2>
         <div class="quick-actions">
-          <!-- Este va directamente a reservar -->
           <button mat-raised-button color="primary" (click)="irAReservar()" class="action-btn">
             <mat-icon>event_available</mat-icon>
             Reservar Cita
           </button>
-          <!-- Este va al catálogo de servicios -->
-          <button mat-raised-button color="accent" routerLink="/servicios" class="action-btn">
-            <mat-icon>spa</mat-icon>
-            Ver Servicios
-          </button>
+
           <button mat-raised-button color="primary" routerLink="/mis-reservas" class="action-btn">
             <mat-icon>list_alt</mat-icon>
             Mis Reservas
+          </button>
+
+          <button
+            mat-raised-button
+            color="accent"
+            routerLink="/catalogo-productos"
+            class="action-btn"
+          >
+            <mat-icon>store</mat-icon>
+            Catálogo de Productos
+          </button>
+
+          <button mat-raised-button color="primary" routerLink="/mis-compras" class="action-btn">
+            <mat-icon>history</mat-icon>
+            Historial de Compras
           </button>
         </div>
       </section>

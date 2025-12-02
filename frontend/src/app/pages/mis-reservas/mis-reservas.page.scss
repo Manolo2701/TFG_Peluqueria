@@ -1,342 +1,444 @@
+// Variables CSS
+:root {
+  --primary: #ff6db1;
+  /* Rosa fucsia principal */
+  --primary-light: #ffcce6;
+  /* Rosa claro */
+  --primary-dark: #e0559c;
+  /* Rosa oscuro */
+  --secondary: #ff6db1;
+  /* Mismo rosa fucsia para consistencia */
+  --accent: #ff6db1;
+  /* Mismo rosa fucsia para consistencia */
+  --white: #ffffff;
+  --text-dark: #333333;
+  --text-medium: #666666;
+  --border-light: #e0e0e0;
+  --error: #f44336;
+  --success: #4caf50;
+  --warning: #ff9800;
+  --info: #2196f3;
+}
+
 .mis-reservas-page {
-    padding: 24px;
-    max-width: 1000px;
-    margin: 0 auto;
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+  background: #f8f9fa;
+  min-height: 100vh;
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  background: var(--white);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+  border-top: 3px solid var(--secondary);
+
+  .header-actions {
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 24px;
     gap: 16px;
+    flex: 1;
 
-    .header-actions {
-        display: flex;
-        align-items: flex-start;
-        gap: 16px;
-        flex: 1;
+    .back-button {
+      margin-top: 8px;
+      color: var(--secondary);
 
-        .back-button {
-            margin-top: 8px;
-        }
-
-        .header-text {
-            flex: 1;
-
-            h1 {
-                margin: 0 0 4px 0;
-                color: var(--text-dark);
-                font-size: 2rem;
-                font-weight: 600;
-            }
-
-            p {
-                margin: 0;
-                color: #666;
-                font-size: 14px;
-            }
-        }
+      &:hover {
+        background-color: var(--primary-light);
+      }
     }
 
+    .header-text {
+      flex: 1;
+
+      h1 {
+        margin: 0 0 4px 0;
+        color: var(--text-dark);
+        font-size: 2rem;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0;
+        color: #666;
+        font-size: 14px;
+      }
+    }
+  }
+
+  .header-actions-right {
     .nueva-reserva-btn {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--secondary) !important;
+      color: var(--white) !important;
+
+      &:hover {
+        background-color: var(--primary-dark) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 109, 177, 0.3) !important;
+      }
     }
+  }
 }
 
 .loading-state,
 .error-state,
 .no-data-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 24px;
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+  border-top: 3px solid var(--secondary);
 
-    mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        margin-bottom: 16px;
-        opacity: 0.6;
-    }
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    opacity: 0.6;
+  }
 
-    h3 {
-        margin: 16px 0 8px 0;
-        color: var(--text-dark);
-    }
+  h3 {
+    margin: 16px 0 8px 0;
+    color: var(--text-dark);
+  }
 
-    p {
-        color: var(--text-medium);
-        margin-bottom: 24px;
-    }
-
-    .link-btn {
-        padding: 0;
-        min-width: auto;
-        text-decoration: underline;
-    }
-}
-
-.stats-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+  p {
+    color: var(--text-medium);
     margin-bottom: 24px;
+  }
 
-    .stat-card {
-        text-align: center;
-        border-left: 4px solid var(--primary);
-
-        &.confirmadas {
-            border-left-color: #4caf50;
-        }
-
-        &.pendientes {
-            border-left-color: #ff9800;
-        }
-
-        &.completadas {
-            border-left-color: #2196f3;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 8px;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: var(--text-medium);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-    }
+  .link-btn {
+    padding: 0;
+    min-width: auto;
+    text-decoration: underline;
+  }
 }
 
 .filtros-card {
-    margin-bottom: 24px;
+  background: var(--white);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+  border-top: 3px solid var(--secondary);
+  margin-bottom: 24px;
 
-    .filtros-container {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
+  .filtros-container {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
 
-        .filtro-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+    .filtro-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
 
-            &.active {
-                background-color: var(--primary-light);
-                color: var(--secondary);
-                border-color: var(--secondary);
-            }
-        }
+      &.active {
+        background-color: var(--primary-light);
+        color: var(--secondary);
+        border-color: var(--secondary);
+      }
     }
+  }
 }
 
 .reservas-container {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .reserva-card {
-    transition: all 0.3s ease;
-    border-left: 4px solid var(--primary);
+  background: var(--white);
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+  transition: all 0.3s ease;
+  border-top: 3px solid var(--accent);
 
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 109, 177, 0.2);
+  }
 }
 
 .reserva-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 20px 0;
+  margin-bottom: 16px;
+
+  .reserva-info {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 20px 20px 0;
-    margin-bottom: 16px;
+    flex-direction: column;
+    gap: 8px;
 
-    .reserva-info {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+    .reserva-fecha,
+    .reserva-hora {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: var(--text-dark);
 
-        .reserva-fecha,
-        .reserva-hora {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            color: var(--text-dark);
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: var(--secondary);
+      }
 
-            mat-icon {
-                font-size: 18px;
-                width: 18px;
-                height: 18px;
-                color: var(--secondary);
-            }
-
-            .duracion {
-                color: var(--text-medium);
-                font-size: 0.8rem;
-            }
-        }
-    }
-
-    .reserva-estado {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 16px;
+      .duracion {
+        color: var(--text-medium);
         font-size: 0.8rem;
-        font-weight: 500;
-        text-transform: uppercase;
-
-        mat-icon {
-            font-size: 16px;
-            width: 16px;
-            height: 16px;
-        }
-
-        &.estado-pendiente {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        &.estado-confirmada {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        &.estado-completada {
-            background: #d1edff;
-            color: #0c5460;
-        }
-
-        &.estado-cancelada {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        &.estado-desconocido {
-            background: #e2e3e5;
-            color: #383d41;
-        }
+      }
     }
+  }
+
+  .reserva-estado {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &.estado-pendiente {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    &.estado-confirmada {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    &.estado-completada {
+      background: #d1edff;
+      color: #0c5460;
+    }
+
+    &.estado-cancelada {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    &.estado-rechazada {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    &.estado-desconocido {
+      background: #e2e3e5;
+      color: #383d41;
+    }
+  }
 }
 
 .reserva-content {
-    padding: 0 20px 20px;
+  padding: 0 20px 20px;
 
-    .servicio-info {
-        margin-bottom: 16px;
+  .servicio-info {
+    margin-bottom: 16px;
 
-        h3 {
-            margin: 0 0 8px 0;
-            color: var(--text-dark);
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
-
-        .precio {
-            font-weight: 600;
-            color: var(--secondary);
-            font-size: 1.1rem;
-        }
+    h3 {
+      margin: 0 0 8px 0;
+      color: var(--text-dark);
+      font-size: 1.2rem;
+      font-weight: 600;
     }
 
-    .reserva-detalles {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-bottom: 16px;
+    .precio {
+      font-weight: 600;
+      color: var(--secondary);
+      font-size: 1.1rem;
+    }
+  }
 
-        .detalle-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            color: var(--text-medium);
+  .reserva-detalles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
 
-            mat-icon {
-                font-size: 18px;
-                width: 18px;
-                height: 18px;
-                color: var(--secondary);
-            }
-        }
+    .detalle-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: var(--text-medium);
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: var(--secondary);
+      }
+    }
+  }
+
+  .reserva-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-light);
+    align-items: center;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .reserva-actions {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-        padding-top: 16px;
-        border-top: 1px solid var(--border-light);
+    // BOTÓN DE CANCELAR CORREGIDO - IDÉNTICO AL MODAL
+    .cancelar-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
 
-        button {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
+      // Angular Material se encargará del color con "warn"
+      // Solo añadimos efectos de hover consistentes
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3) !important;
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-right: 4px;
+      }
     }
+
+    .cancelacion-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--error);
+      font-size: 0.9rem;
+      font-style: italic;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+// Animaciones
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reservas-content {
+  animation: fadeIn 0.5s ease;
 }
 
 // Responsive
 @media (max-width: 768px) {
-    .mis-reservas-page {
-        padding: 16px;
+  .mis-reservas-page {
+    padding: 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+
+    .header-actions {
+      .header-text {
+        text-align: center;
+      }
     }
 
-    .page-header {
-        flex-direction: column;
-        gap: 16px;
-
-        .nueva-reserva-btn {
-            width: 100%;
-            justify-content: center;
-        }
+    .header-actions-right {
+      width: 100%;
+      justify-content: center;
     }
+  }
 
-    .stats-cards {
-        grid-template-columns: repeat(2, 1fr);
+  .filtros-container {
+    justify-content: center;
+
+    .filtro-btn {
+      flex: 1;
+      min-width: 140px;
+      justify-content: center;
     }
+  }
 
-    .filtros-container {
-        justify-content: center;
+  .reserva-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
 
-        .filtro-btn {
-            flex: 1;
-            min-width: 140px;
-            justify-content: center;
-        }
+    .reserva-estado {
+      align-self: flex-start;
     }
+  }
 
-    .reserva-header {
-        flex-direction: column;
-        gap: 12px;
-        align-items: stretch;
+  .reserva-actions {
+    flex-direction: column;
+    align-items: stretch;
 
-        .reserva-estado {
-            align-self: flex-start;
-        }
+    button {
+      justify-content: center;
     }
+  }
+}
 
-    .reserva-actions {
-        flex-direction: column;
-        align-items: stretch;
+// Agregar junto a los otros estilos
+.rechazada-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c62828;
+  font-size: 0.9rem;
+  font-style: italic;
+  padding: 8px 12px;
+  background: #ffebee;
+  border-radius: 4px;
 
-        button {
-            justify-content: center;
-        }
-    }
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 }

@@ -6,7 +6,7 @@ export interface Reserva {
     fecha_reserva: string;
     hora_inicio: string;
     duracion: number;
-    estado: 'pendiente' | 'confirmada' | 'cancelada' | 'completada' | 'pendiente_asignacion';
+    estado: 'pendiente' | 'confirmada' | 'cancelada' | 'completada' | 'rechazada' | 'pendiente_asignacion';
     notas?: string;
     notas_internas?: string;
     politica_cancelacion?: 'flexible' | 'moderada' | 'estricta';

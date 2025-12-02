@@ -14,11 +14,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatChipsModule } from '@angular/material/chips';
 
 import { ReservaService, Reserva } from '../../core/services/reserva.service';
 import { CalendarioService } from '../../core/services/calendario.service';
 import { Ausencia } from '../../interfaces/calendario.interface';
 import { ReservaDetallesModalComponent } from '../../components/reserva-detalles-modal/reserva-detalles-modal.component';
+import { ConfirmacionAccionReservaComponent } from '../../components/confirmacion-accion-reserva/confirmacion-accion-reserva.component';
+import { Observable } from 'rxjs';
+
+import { SolicitarAusenciaModalComponent } from '../../components/solicitar-ausencia-modal/solicitar-ausencia-modal.component';
 
 interface ReservaCalendario extends Reserva {
     cliente_nombre?: string;
@@ -28,6 +33,7 @@ interface ReservaCalendario extends Reserva {
     trabajador_apellidos?: string;
     duracion: number;
     precio?: number;
+    motivo_cancelacion?: string;
 }
 
 @Component({
@@ -46,7 +52,8 @@ interface ReservaCalendario extends Reserva {
         MatInputModule,
         FormsModule,
         MatProgressSpinnerModule,
-        MatTabsModule
+        MatTabsModule,
+        MatChipsModule
     ],
     templateUrl: './mi-calendario.page.html',
     styleUrls: ['./mi-calendario.page.scss']
@@ -65,6 +72,9 @@ export class MiCalendarioPage implements OnInit {
     loading = true;
     error: string | null = null;
     activeTab: number = 0; // 0: Reservas, 1: Ausencias
+
+    // Filtros de estado
+    filtroEstado: string = 'todas'; // 'todas', 'pendientes', 'confirmadas', 'completadas', 'canceladas', 'rechazadas'
 
     displayedColumns: string[] = ['hora', 'cliente', 'servicio', 'estado', 'acciones'];
 
@@ -167,23 +177,47 @@ export class MiCalendarioPage implements OnInit {
             return;
         }
 
-        // Si estamos en modo "ver todas", no filtramos por fecha
-        if (this.mostrandoTodasLasReservas) {
-            this.reservasFiltradas = [...this.reservas];
-            return;
+        let reservasFiltradas = [...this.reservas];
+
+        // Aplicar filtro por estado
+        switch (this.filtroEstado) {
+            case 'pendientes':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'pendiente');
+                break;
+            case 'confirmadas':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'confirmada');
+                break;
+            case 'completadas':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'completada');
+                break;
+            case 'canceladas':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'cancelada');
+                break;
+            case 'rechazadas':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'rechazada');
+                break;
+            case 'todas':
+            default:
+                // No filtrar por estado - mostrar todas
+                break;
         }
 
-        if (!this.fechaSeleccionada) {
-            this.reservasFiltradas = [...this.reservas];
-            return;
+        // SIEMPRE filtrar por fecha a menos que esté en modo "ver todas"
+        if (!this.mostrandoTodasLasReservas && this.fechaSeleccionada) {
+            const fechaStr = this.formatDateToLocal(this.fechaSeleccionada);
+            reservasFiltradas = reservasFiltradas.filter(
+                reserva => reserva.fecha_reserva === fechaStr
+            );
         }
 
-        const fechaStr = this.formatDateToLocal(this.fechaSeleccionada);
-        this.reservasFiltradas = this.reservas.filter(
-            reserva => reserva.fecha_reserva === fechaStr
-        );
+        this.reservasFiltradas = reservasFiltradas;
+        console.log(`📊 Filtradas ${this.reservasFiltradas.length} reservas (estado: ${this.filtroEstado})`);
+    }
 
-        console.log(`📊 Filtradas ${this.reservasFiltradas.length} reservas para ${fechaStr}`);
+    // Cambiar filtro de estado
+    onFiltroEstadoChange(filtro: string) {
+        this.filtroEstado = filtro;
+        this.filtrarReservas();
     }
 
     // ACCIONES DE RESERVAS
@@ -213,29 +247,86 @@ export class MiCalendarioPage implements OnInit {
     }
 
     aceptarReserva(reserva: ReservaCalendario) {
-        this.reservaService.aceptarReserva(reserva.id).subscribe({
-            next: () => {
-                this.mostrarExito('Reserva aceptada exitosamente');
-                this.cargarReservas();
-            },
-            error: (err) => {
-                console.error('Error al aceptar reserva:', err);
-                this.mostrarError('Error al aceptar la reserva');
+        const dialogRef = this.dialog.open(ConfirmacionAccionReservaComponent, {
+            width: '550px',
+            data: {
+                tipo: 'aceptar',
+                reserva: reserva,
+                titulo: 'Confirmar Aceptación de Reserva',
+                mensaje: '¿Estás seguro de que quieres ACEPTAR esta reserva? Esta acción confirmará que realizarás el servicio.',
+                requiereMotivo: false
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(resultado => {
+            if (resultado?.confirmado) {
+                this.ejecutarAceptarReserva(reserva.id);
             }
         });
     }
 
     rechazarReserva(reserva: ReservaCalendario) {
-        this.reservaService.rechazarReserva(reserva.id).subscribe({
+        const dialogRef = this.dialog.open(ConfirmacionAccionReservaComponent, {
+            width: '550px',
+            data: {
+                tipo: 'rechazar',
+                reserva: reserva,
+                titulo: 'Confirmar Rechazo de Reserva',
+                mensaje: '¿Estás seguro de que quieres RECHAZAR esta reserva? Esta acción notificará al cliente y liberará el horario.',
+                requiereMotivo: true
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(resultado => {
+            if (resultado?.confirmado) {
+                this.ejecutarRechazarReserva(reserva.id, resultado.motivo);
+            }
+        });
+    }
+
+    private ejecutarAceptarReserva(reservaId: number) {
+        this.reservaService.aceptarReserva(reservaId).subscribe({
             next: () => {
-                this.mostrarExito('Reserva rechazada exitosamente');
+                this.mostrarExito('✅ Reserva aceptada exitosamente');
                 this.cargarReservas();
             },
             error: (err) => {
-                console.error('Error al rechazar reserva:', err);
-                this.mostrarError('Error al rechazar la reserva');
+                console.error('❌ Error al aceptar reserva:', err);
+                const errorMsg = this.obtenerMensajeError(err);
+                this.mostrarError(`Error al aceptar la reserva: ${errorMsg}`);
             }
         });
+    }
+
+    private ejecutarRechazarReserva(reservaId: number, motivo: string) {
+        this.reservaService.rechazarReserva(reservaId, motivo).subscribe({
+            next: () => {
+                this.mostrarExito('✅ Reserva rechazada exitosamente');
+                this.cargarReservas();
+            },
+            error: (err) => {
+                console.error('❌ Error al rechazar reserva:', err);
+                const errorMsg = this.obtenerMensajeError(err);
+                this.mostrarError(`Error al rechazar la reserva: ${errorMsg}`);
+            }
+        });
+    }
+
+    // Método para obtener mensajes de error más legibles
+    private obtenerMensajeError(err: any): string {
+        if (err.error?.error) {
+            return err.error.error;
+        }
+        if (err.status === 400) {
+            return 'Solicitud incorrecta. Verifica los datos.';
+        }
+        if (err.status === 403) {
+            return 'No tienes permisos para esta acción.';
+        }
+        if (err.status === 404) {
+            return 'Reserva no encontrada.';
+        }
+        return 'Error del servidor. Intenta nuevamente.';
     }
 
     procesarAccionReserva(accion: string, reserva: any) {
@@ -253,9 +344,24 @@ export class MiCalendarioPage implements OnInit {
 
     // ACCIONES DE AUSENCIAS
     solicitarAusencia() {
-        // Aquí podrías abrir un modal para solicitar ausencia
-        console.log('Solicitar nueva ausencia');
-        this.mostrarInfo('Funcionalidad de solicitud de ausencia en desarrollo');
+        const dialogRef = this.dialog.open(SolicitarAusenciaModalComponent, {
+            width: '500px'
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result) {
+                this.calendarioService.solicitarAusencia(result).subscribe({
+                    next: (response) => {
+                        this.mostrarExito('Ausencia solicitada correctamente');
+                        this.cargarAusencias();
+                    },
+                    error: (error) => {
+                        console.error('Error al solicitar ausencia:', error);
+                        this.mostrarError('Error al solicitar la ausencia');
+                    }
+                });
+            }
+        });
     }
 
     // MÉTODOS DE UTILIDAD
@@ -301,11 +407,38 @@ export class MiCalendarioPage implements OnInit {
         this.snackBar.open(mensaje, 'Cerrar', { duration: 3000 });
     }
 
-    contarReservasPendientes(): number {
+    // Contadores para filtros
+    contarReservasPorEstado(estado: string): number {
         if (!this.reservas || !Array.isArray(this.reservas)) {
             return 0;
         }
-        return this.reservas.filter(reserva => reserva.estado === 'pendiente').length;
+
+        let reservasFiltradas = [...this.reservas];
+
+        // Aplicar filtro de fecha para los contadores
+        if (!this.mostrandoTodasLasReservas && this.fechaSeleccionada) {
+            const fechaStr = this.formatDateToLocal(this.fechaSeleccionada);
+            reservasFiltradas = reservasFiltradas.filter(
+                reserva => reserva.fecha_reserva === fechaStr
+            );
+        }
+
+        switch (estado) {
+            case 'pendientes':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'pendiente').length;
+            case 'confirmadas':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'confirmada').length;
+            case 'completadas':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'completada').length;
+            case 'canceladas':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'cancelada').length;
+            case 'rechazadas':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'rechazada').length;
+            case 'todas':
+                return reservasFiltradas.length;
+            default:
+                return 0;
+        }
     }
 
     // Método para obtener iconos de ausencias
@@ -324,7 +457,17 @@ export class MiCalendarioPage implements OnInit {
 
     verTodasLasReservas() {
         this.mostrandoTodasLasReservas = true;
-        this.reservasFiltradas = [...this.reservas];
+        this.filtrarReservas();
         console.log('📋 Mostrando todas mis reservas:', this.reservasFiltradas.length);
+    }
+
+    // Método para mostrar motivo de cancelación
+    getMotivoCancelacion(reserva: ReservaCalendario): string {
+        return reserva.motivo_cancelacion || 'Motivo no especificado';
+    }
+
+    // Verificar si una reserva puede ser aceptada/rechazada
+    puedeGestionarReserva(reserva: ReservaCalendario): boolean {
+        return reserva.estado === 'pendiente';
     }
 }

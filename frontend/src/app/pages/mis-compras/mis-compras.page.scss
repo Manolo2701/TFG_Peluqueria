@@ -1,0 +1,500 @@
+.mis-compras-container {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+// Header consistente
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    background: var(--white);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        width: 100%;
+
+        .back-button {
+            color: var(--text-dark);
+            background: var(--primary-light);
+
+            &:hover {
+                background: var(--accent);
+            }
+        }
+
+        .header-text {
+            flex: 1;
+
+            h1 {
+                margin: 0 0 8px 0;
+                color: var(--text-dark);
+                font-size: 2rem;
+                font-weight: 600;
+            }
+
+            p {
+                margin: 0;
+                color: var(--text-medium);
+                font-size: 1.1rem;
+            }
+        }
+    }
+}
+
+// Estados de carga y error
+.loading-state,
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+
+    mat-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 24px;
+    }
+
+    h3 {
+        margin: 0 0 12px 0;
+        color: var(--text-dark);
+    }
+
+    p {
+        color: var(--text-medium);
+        margin: 0 0 24px 0;
+    }
+}
+
+.error-state mat-icon {
+    color: var(--error);
+}
+
+// Estado vacío - ACTUALIZADO con los mismos estilos del carrito
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px 100px 24px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+    max-width: 600px;
+    margin: 0 auto;
+
+    mat-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 24px;
+        color: var(--secondary);
+    }
+
+    h3 {
+        margin: 0 0 12px 0;
+        color: var(--text-dark);
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    p {
+        color: var(--text-medium);
+        margin: 0 0 40px 0;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        max-width: 400px;
+    }
+
+    .comprar-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background-color: var(--secondary) !important;
+        color: var(--white) !important;
+        margin-top: 20px;
+        padding: 12px 32px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+
+        // ✅ ARREGLAR EL ICONO - igual que en el carrito
+        mat-icon {
+            font-size: 20px !important;
+            width: 20px !important;
+            height: 20px !important;
+            margin: 0 !important;
+            color: var(--white) !important;
+        }
+
+        &:hover {
+            background-color: var(--primary-dark) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 109, 177, 0.3) !important;
+        }
+    }
+}
+
+// Estadísticas - MODIFICADO: 2 columnas
+.stats-header {
+    margin-bottom: 24px;
+
+    .stats-card {
+        background: linear-gradient(135deg, var(--secondary) 0%, var(--primary-dark) 100%);
+        color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(255, 109, 177, 0.3);
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; // 2 columnas en lugar de 3
+            gap: 20px;
+            padding: 20px;
+
+            .stat-item {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                justify-content: center; // Centrar horizontalmente
+
+                mat-icon {
+                    font-size: 32px;
+                    width: 32px;
+                    height: 32px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 50%;
+                    padding: 8px;
+                }
+
+                .stat-info {
+                    display: flex;
+                    flex-direction: column;
+
+                    .stat-number {
+                        font-size: 1.5rem;
+                        font-weight: 700;
+                        line-height: 1.2;
+                    }
+
+                    .stat-label {
+                        font-size: 0.9rem;
+                        opacity: 0.9;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Lista de compras
+.compras-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.compra-item {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+    transition: all 0.3s ease;
+    overflow: hidden;
+
+    &:hover {
+        box-shadow: 0 6px 20px rgba(246, 200, 202, 0.3);
+        transform: translateY(-2px);
+    }
+
+    mat-card-header {
+        padding: 24px 24px 16px;
+        border-bottom: 1px solid var(--primary-light);
+
+        .estado-icon {
+            border-radius: 50%;
+            padding: 8px;
+            color: white;
+
+            &.estado-completada {
+                background: #4CAF50;
+            }
+
+            &.estado-pendiente {
+                background: #FF9800;
+            }
+
+            &.estado-cancelada {
+                background: #F44336;
+            }
+        }
+
+        mat-card-title {
+            color: var(--text-dark);
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        mat-card-subtitle {
+            color: var(--text-medium);
+            font-size: 0.95rem;
+        }
+    }
+
+    mat-card-content {
+        padding: 20px 24px;
+
+        .compra-info {
+            .info-row {
+                display: flex;
+                gap: 40px;
+                margin-bottom: 16px;
+
+                @media (max-width: 768px) {
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .info-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    flex: 1;
+                    padding: 8px 0;
+
+                    .label {
+                        color: var(--text-medium);
+                        font-weight: 500;
+                        font-size: 0.95rem;
+                    }
+
+                    .value {
+                        color: var(--text-dark);
+                        font-weight: 600;
+                        font-size: 0.95rem;
+
+                        &.total {
+                            color: var(--secondary);
+                            font-size: 1.1rem;
+                        }
+
+                        // Estados
+                        &.estado-completada {
+                            color: #4CAF50;
+                            font-weight: 600;
+                        }
+
+                        &.estado-pendiente {
+                            color: #FF9800;
+                            font-weight: 600;
+                        }
+
+                        &.estado-cancelada {
+                            color: #F44336;
+                            font-weight: 600;
+                        }
+                    }
+                }
+            }
+
+            .productos-resumen {
+                margin-top: 16px;
+                padding: 16px;
+                background: var(--primary-light);
+                border-radius: 8px;
+                border-left: 3px solid var(--secondary);
+
+                h4 {
+                    margin: 0 0 12px 0;
+                    color: var(--text-dark);
+                    font-size: 1rem;
+                    font-weight: 600;
+                }
+
+                .productos-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+
+                    .producto-resumen {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 4px 0;
+
+                        .producto-nombre {
+                            color: var(--text-dark);
+                            font-size: 0.9rem;
+                            flex: 1;
+                        }
+
+                        .producto-cantidad {
+                            color: var(--text-medium);
+                            font-size: 0.85rem;
+                            margin: 0 12px;
+                        }
+
+                        .producto-precio {
+                            color: var(--secondary);
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                        }
+                    }
+
+                    .mas-productos {
+                        text-align: center;
+                        color: var(--text-medium);
+                        font-size: 0.85rem;
+                        font-style: italic;
+                        margin-top: 8px;
+                        padding-top: 8px;
+                        border-top: 1px solid var(--accent);
+                    }
+                }
+            }
+        }
+    }
+
+    mat-card-actions {
+        display: flex;
+        gap: 12px;
+        padding: 16px 24px 24px;
+        margin: 0;
+        border-top: 1px solid var(--primary-light);
+
+        button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+
+            @media (max-width: 768px) {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            flex-direction: column;
+            gap: 8px;
+        }
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .mis-compras-container {
+        padding: 16px;
+    }
+
+    .page-header {
+        padding: 20px;
+
+        .header-actions {
+            flex-direction: column;
+            text-align: center;
+            gap: 16px;
+        }
+    }
+
+    // MODIFICADO: Para móviles, una columna en las estadísticas
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+
+        .stat-item {
+            justify-content: flex-start !important; // Alinear a la izquierda en móviles
+        }
+    }
+
+    .empty-state {
+        padding: 40px 20px 80px 20px;
+
+        .comprar-btn {
+            padding: 14px 24px;
+            width: 100%;
+            max-width: 280px;
+        }
+    }
+
+    .compra-item {
+        mat-card-header {
+            padding: 20px 20px 12px;
+        }
+
+        mat-card-content {
+            padding: 16px 20px;
+        }
+
+        mat-card-actions {
+            padding: 12px 20px 20px;
+        }
+    }
+}
+
+// Snackbar styles
+::ng-deep {
+    .snackbar-success {
+        background: #4CAF50 !important;
+        color: white !important;
+    }
+
+    .snackbar-error {
+        background: var(--error) !important;
+        color: white !important;
+    }
+}
+
+// Asegurar que los botones de Material usen tu paleta
+.mat-raised-button {
+    &.mat-primary {
+        background-color: var(--secondary) !important;
+
+        &:hover {
+            background-color: var(--primary-dark) !important;
+        }
+    }
+}
+
+// Animaciones mejoradas
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.compras-list {
+    animation: fadeIn 0.5s ease;
+}
+
+.compra-item {
+    animation: fadeIn 0.5s ease;
+}

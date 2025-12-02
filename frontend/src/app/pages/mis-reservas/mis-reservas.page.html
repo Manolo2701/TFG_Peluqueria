@@ -2,7 +2,7 @@
   <!-- Header -->
   <div class="page-header">
     <div class="header-actions">
-      <button mat-icon-button routerLink="/dashboard" class="back-button">
+      <button mat-icon-button (click)="volver()" class="back-button">
         <mat-icon>arrow_back</mat-icon>
       </button>
       <div class="header-text">
@@ -10,10 +10,12 @@
         <p>Gestiona y revisa tu historial de reservas</p>
       </div>
     </div>
-    <button mat-raised-button color="primary" (click)="nuevaReserva()" class="nueva-reserva-btn">
-      <mat-icon>add</mat-icon>
-      Nueva Reserva
-    </button>
+    <div class="header-actions-right">
+      <button mat-raised-button color="primary" (click)="nuevaReserva()" class="nueva-reserva-btn">
+        <mat-icon>add</mat-icon>
+        Nueva Reserva
+      </button>
+    </div>
   </div>
 
   <!-- Loading State -->
@@ -35,82 +37,69 @@
 
   <!-- Content -->
   <div *ngIf="!loading && !error" class="reservas-content">
-    <!-- Estadísticas Rápidas -->
-    <div class="stats-cards">
-      <mat-card class="stat-card">
-        <mat-card-content>
-          <div class="stat-number">{{ reservas.length }}</div>
-          <div class="stat-label">Total Reservas</div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="stat-card confirmadas">
-        <mat-card-content>
-          <div class="stat-number">{{ contarReservasPorEstado('confirmada') }}</div>
-          <div class="stat-label">Confirmadas</div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="stat-card pendientes">
-        <mat-card-content>
-          <div class="stat-number">{{ contarReservasPorEstado('pendiente') }}</div>
-          <div class="stat-label">Pendientes</div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="stat-card completadas">
-        <mat-card-content>
-          <div class="stat-number">{{ contarReservasPorEstado('completada') }}</div>
-          <div class="stat-label">Completadas</div>
-        </mat-card-content>
-      </mat-card>
-    </div>
-
     <!-- Filtros -->
     <mat-card class="filtros-card">
-      <mat-card-content>
-        <div class="filtros-container">
-          <button
-            mat-stroked-button
-            [class.active]="filtroActivo === 'todas'"
-            (click)="onFiltroChange('todas')"
-            class="filtro-btn"
-          >
-            <mat-icon>list</mat-icon>
-            Todas ({{ reservas.length }})
-          </button>
+      <div class="filtros-container">
+        <button
+          mat-stroked-button
+          [class.active]="filtroActivo === 'todas'"
+          (click)="onFiltroChange('todas')"
+          class="filtro-btn"
+        >
+          <mat-icon>list</mat-icon>
+          Todas ({{ reservas.length }})
+        </button>
 
-          <button
-            mat-stroked-button
-            [class.active]="filtroActivo === 'pendiente'"
-            (click)="onFiltroChange('pendiente')"
-            class="filtro-btn"
-          >
-            <mat-icon>schedule</mat-icon>
-            Pendientes ({{ contarReservasPorEstado('pendiente') }})
-          </button>
+        <button
+          mat-stroked-button
+          [class.active]="filtroActivo === 'pendiente'"
+          (click)="onFiltroChange('pendiente')"
+          class="filtro-btn"
+        >
+          <mat-icon>schedule</mat-icon>
+          Pendientes ({{ contarReservasPorEstado('pendiente') }})
+        </button>
 
-          <button
-            mat-stroked-button
-            [class.active]="filtroActivo === 'confirmada'"
-            (click)="onFiltroChange('confirmada')"
-            class="filtro-btn"
-          >
-            <mat-icon>check_circle</mat-icon>
-            Confirmadas ({{ contarReservasPorEstado('confirmada') }})
-          </button>
+        <button
+          mat-stroked-button
+          [class.active]="filtroActivo === 'confirmada'"
+          (click)="onFiltroChange('confirmada')"
+          class="filtro-btn"
+        >
+          <mat-icon>check_circle</mat-icon>
+          Confirmadas ({{ contarReservasPorEstado('confirmada') }})
+        </button>
 
-          <button
-            mat-stroked-button
-            [class.active]="filtroActivo === 'completada'"
-            (click)="onFiltroChange('completada')"
-            class="filtro-btn"
-          >
-            <mat-icon>done_all</mat-icon>
-            Completadas ({{ contarReservasPorEstado('completada') }})
-          </button>
-        </div>
-      </mat-card-content>
+        <button
+          mat-stroked-button
+          [class.active]="filtroActivo === 'completada'"
+          (click)="onFiltroChange('completada')"
+          class="filtro-btn"
+        >
+          <mat-icon>done_all</mat-icon>
+          Completadas ({{ contarReservasPorEstado('completada') }})
+        </button>
+
+        <button
+          mat-stroked-button
+          [class.active]="filtroActivo === 'cancelada'"
+          (click)="onFiltroChange('cancelada')"
+          class="filtro-btn"
+        >
+          <mat-icon>cancel</mat-icon>
+          Canceladas ({{ contarReservasPorEstado('cancelada') }})
+        </button>
+
+        <button
+          mat-stroked-button
+          [class.active]="filtroActivo === 'rechazada'"
+          (click)="onFiltroChange('rechazada')"
+          class="filtro-btn"
+        >
+          <mat-icon>block</mat-icon>
+          Rechazadas ({{ contarReservasPorEstado('rechazada') }})
+        </button>
+      </div>
     </mat-card>
 
     <!-- Lista de Reservas -->
@@ -171,6 +160,30 @@
               <mat-icon>visibility</mat-icon>
               Ver Detalles
             </button>
+
+            <!-- BOTÓN DE CANCELAR CORREGIDO - IDÉNTICO AL MODAL -->
+            <button
+              *ngIf="puedeCancelar(reserva)"
+              mat-raised-button
+              color="warn"
+              (click)="cancelarReserva(reserva)"
+              class="cancelar-btn"
+            >
+              <mat-icon>cancel</mat-icon>
+              Cancelar Reserva
+            </button>
+
+            <!-- Estado cancelado -->
+            <div *ngIf="reserva.estado === 'cancelada'" class="cancelacion-info">
+              <mat-icon color="warn">info</mat-icon>
+              <span>Cancelada</span>
+            </div>
+
+            <!-- ✅ ESTADO RECHAZADO - AGREGADO AQUÍ -->
+            <div *ngIf="reserva.estado === 'rechazada'" class="cancelacion-info rechazada-info">
+              <mat-icon color="warn">block</mat-icon>
+              <span>Rechazada por el profesional</span>
+            </div>
           </div>
         </div>
       </mat-card>

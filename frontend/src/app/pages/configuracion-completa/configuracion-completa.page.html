@@ -1,0 +1,408 @@
+<div class="configuracion-completa-container">
+  <!-- Header idéntico al catálogo -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-main">
+        <button mat-icon-button routerLink="/dashboard" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="header-text">
+          <h1>Configuración Completa</h1>
+          <p>Gestiona todos los servicios y productos de tu negocio</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button mat-raised-button color="primary" routerLink="/dashboard" class="primary-btn">
+          <mat-icon>dashboard</mat-icon>
+          Volver al Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs Principal -->
+  <mat-tab-group animationDuration="300ms">
+    <!-- ==================== -->
+    <!-- PESTAÑA DE SERVICIOS -->
+    <!-- ==================== -->
+    <mat-tab label="Servicios">
+      <div class="tab-content">
+        <!-- Header de Servicios -->
+        <div class="tab-header">
+          <h2>
+            <mat-icon class="tab-icon">spa</mat-icon>
+            Gestión de Servicios
+          </h2>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="crearServicio()"
+            [disabled]="!isAdministrador"
+          >
+            <mat-icon>add</mat-icon>
+            Nuevo Servicio
+          </button>
+        </div>
+
+        <!-- Buscador de Servicios con sugerencias -->
+        <div class="search-section">
+          <div class="search-field-container">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Buscar servicios</mat-label>
+              <input
+                matInput
+                [(ngModel)]="terminoBusquedaServicios"
+                (input)="onBuscarServiciosChange()"
+                (keyup.enter)="buscarServicios()"
+                placeholder="Buscar por nombre, descripción o categoría..."
+              />
+              <mat-icon matSuffix>search</mat-icon>
+              <button
+                mat-icon-button
+                matSuffix
+                *ngIf="terminoBusquedaServicios"
+                (click)="limpiarBusquedaServicios()"
+                class="clear-button"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-form-field>
+
+            <!-- Sugerencias de servicios -->
+            <div
+              class="sugerencias-container"
+              *ngIf="mostrarSugerenciasServicios && sugerenciasServicios.length > 0"
+            >
+              <div
+                class="sugerencia-item"
+                *ngFor="let sugerencia of sugerenciasServicios"
+                (click)="seleccionarSugerenciaServicios(sugerencia)"
+              >
+                <mat-icon>search</mat-icon>
+                <span>{{ sugerencia }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información de resultados -->
+          <div class="search-info" *ngIf="terminoBusquedaServicios">
+            <span class="results-count">
+              Mostrando {{ serviciosFiltrados.length }} de {{ servicios.length }} servicios
+            </span>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="serviciosLoading" class="loading-state">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>Cargando servicios...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="serviciosError && !serviciosLoading" class="error-state">
+          <mat-icon color="warn">error_outline</mat-icon>
+          <h3>Error al cargar servicios</h3>
+          <p>{{ serviciosError }}</p>
+          <button mat-raised-button color="primary" (click)="cargarServicios()">
+            <mat-icon>refresh</mat-icon>
+            Reintentar
+          </button>
+        </div>
+
+        <!-- Lista de Servicios -->
+        <div *ngIf="!serviciosLoading && !serviciosError" class="content">
+          <!-- Estadísticas Rápidas -->
+          <div class="section" *ngIf="serviciosFiltrados.length > 0">
+            <h2>📊 Estadísticas</h2>
+            <div class="stats-grid">
+              <mat-card class="stat-card">
+                <mat-card-content>
+                  <div class="stat-number">{{ serviciosFiltrados.length }}</div>
+                  <div class="stat-label">Servicios encontrados</div>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="stat-card">
+                <mat-card-content>
+                  <div class="stat-number">{{ getCategoriasUnicas().length }}</div>
+                  <div class="stat-label">Categorías</div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </div>
+
+          <!-- Grid de Servicios -->
+          <div class="section">
+            <h2>💎 Lista de Servicios</h2>
+            <div class="services-grid" *ngIf="serviciosFiltrados.length > 0">
+              <mat-card *ngFor="let servicio of serviciosFiltrados" class="service-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar class="service-icon">spa</mat-icon>
+                  <mat-card-title>{{ servicio.nombre }}</mat-card-title>
+                  <mat-card-subtitle>
+                    <mat-chip [color]="getCategoriaColor(servicio.categoria)" selected>
+                      {{ servicio.categoria | titlecase }}
+                    </mat-chip>
+                  </mat-card-subtitle>
+                </mat-card-header>
+
+                <mat-card-content>
+                  <p class="service-description" *ngIf="servicio.descripcion">
+                    {{ servicio.descripcion }}
+                  </p>
+
+                  <div class="service-details">
+                    <div class="detail-item">
+                      <mat-icon>schedule</mat-icon>
+                      <span>{{ servicio.duracion }} min</span>
+                    </div>
+                    <div class="detail-item">
+                      <mat-icon>euro</mat-icon>
+                      <span>{{ formatCurrency(servicio.precio) }}</span>
+                    </div>
+                  </div>
+                </mat-card-content>
+
+                <mat-card-actions align="end">
+                  <button
+                    mat-button
+                    color="primary"
+                    (click)="editarServicio(servicio)"
+                    [disabled]="!isAdministrador"
+                  >
+                    <mat-icon>edit</mat-icon>
+                    Editar
+                  </button>
+                  <button
+                    mat-button
+                    color="warn"
+                    (click)="eliminarServicio(servicio)"
+                    [disabled]="!isAdministrador"
+                  >
+                    <mat-icon>delete</mat-icon>
+                    Eliminar
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="serviciosFiltrados.length === 0" class="empty-state">
+              <mat-icon>spa</mat-icon>
+              <h3 *ngIf="!terminoBusquedaServicios">No hay servicios registrados</h3>
+              <h3 *ngIf="terminoBusquedaServicios">No se encontraron servicios</h3>
+              <p *ngIf="!terminoBusquedaServicios">
+                Comienza agregando tu primer servicio al catálogo.
+              </p>
+              <p *ngIf="terminoBusquedaServicios">
+                No hay servicios que coincidan con "{{ terminoBusquedaServicios }}"
+              </p>
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="crearServicio()"
+                [disabled]="!isAdministrador"
+              >
+                <mat-icon>add</mat-icon>
+                Crear Primer Servicio
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ==================== -->
+    <!-- PESTAÑA DE PRODUCTOS -->
+    <!-- ==================== -->
+    <mat-tab label="Productos">
+      <div class="tab-content">
+        <!-- Header de Productos -->
+        <div class="tab-header">
+          <h2>
+            <mat-icon class="tab-icon">shopping_bag</mat-icon>
+            Gestión de Productos
+          </h2>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="crearProducto()"
+            [disabled]="!isAdministrador"
+          >
+            <mat-icon>add</mat-icon>
+            Nuevo Producto
+          </button>
+        </div>
+
+        <!-- Buscador de Productos con sugerencias -->
+        <div class="search-section">
+          <div class="search-field-container">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Buscar productos</mat-label>
+              <input
+                matInput
+                [(ngModel)]="terminoBusquedaProductos"
+                (input)="onBuscarProductosChange()"
+                (keyup.enter)="buscarProductos()"
+                placeholder="Buscar por nombre..."
+              />
+              <mat-icon matSuffix>search</mat-icon>
+              <button
+                mat-icon-button
+                matSuffix
+                *ngIf="terminoBusquedaProductos"
+                (click)="limpiarBusquedaProductos()"
+                class="clear-button"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-form-field>
+
+            <!-- Sugerencias de productos -->
+            <div
+              class="sugerencias-container"
+              *ngIf="mostrarSugerenciasProductos && sugerenciasProductos.length > 0"
+            >
+              <div
+                class="sugerencia-item"
+                *ngFor="let sugerencia of sugerenciasProductos"
+                (click)="seleccionarSugerenciaProductos(sugerencia)"
+              >
+                <mat-icon>search</mat-icon>
+                <span>{{ sugerencia }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información de resultados -->
+          <div class="search-info" *ngIf="terminoBusquedaProductos">
+            <span class="results-count">
+              Mostrando {{ productosFiltrados.length }} de {{ productos.length }} productos
+            </span>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="productosLoading" class="loading-state">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>Cargando productos...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="productosError && !productosLoading" class="error-state">
+          <mat-icon color="warn">error_outline</mat-icon>
+          <h3>Error al cargar productos</h3>
+          <p>{{ productosError }}</p>
+          <button mat-raised-button color="primary" (click)="cargarProductos()">
+            <mat-icon>refresh</mat-icon>
+            Reintentar
+          </button>
+        </div>
+
+        <!-- Lista de Productos -->
+        <div *ngIf="!productosLoading && !productosError" class="content">
+          <!-- Estadísticas Rápidas -->
+          <div class="section" *ngIf="productosFiltrados.length > 0">
+            <h2>📊 Estadísticas</h2>
+            <div class="stats-grid">
+              <mat-card class="stat-card">
+                <mat-card-content>
+                  <div class="stat-number">{{ productosFiltrados.length }}</div>
+                  <div class="stat-label">Productos encontrados</div>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="stat-card">
+                <mat-card-content>
+                  <div class="stat-number">{{ getTotalStock() }}</div>
+                  <div class="stat-label">Stock Total</div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </div>
+
+          <!-- Grid de Productos -->
+          <div class="section">
+            <h2>🛍️ Lista de Productos</h2>
+            <div class="products-grid" *ngIf="productosFiltrados.length > 0">
+              <mat-card *ngFor="let producto of productosFiltrados" class="product-card">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar class="product-icon">shopping_bag</mat-icon>
+                  <mat-card-title>{{ producto.nombre }}</mat-card-title>
+                  <mat-card-subtitle>
+                    <mat-chip [color]="producto.stock > 0 ? 'primary' : 'warn'" selected>
+                      {{ producto.stock > 0 ? 'En stock' : 'Sin stock' }}
+                    </mat-chip>
+                  </mat-card-subtitle>
+                </mat-card-header>
+
+                <mat-card-content>
+                  <div class="product-details">
+                    <div class="detail-item">
+                      <mat-icon>euro</mat-icon>
+                      <span>{{ formatCurrency(producto.precio) }}</span>
+                    </div>
+                    <div class="detail-item" [class.low-stock]="producto.stock <= 5">
+                      <mat-icon>inventory_2</mat-icon>
+                      <span>{{ producto.stock }} unidades</span>
+                    </div>
+                  </div>
+                </mat-card-content>
+
+                <mat-card-actions align="end">
+                  <button
+                    mat-button
+                    color="primary"
+                    (click)="editarProducto(producto)"
+                    [disabled]="!isAdministrador"
+                  >
+                    <mat-icon>edit</mat-icon>
+                    Editar
+                  </button>
+                  <button
+                    mat-button
+                    color="warn"
+                    (click)="eliminarProducto(producto)"
+                    [disabled]="!isAdministrador"
+                  >
+                    <mat-icon>delete</mat-icon>
+                    Eliminar
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="productosFiltrados.length === 0" class="empty-state">
+              <mat-icon>shopping_bag</mat-icon>
+              <h3 *ngIf="!terminoBusquedaProductos">No hay productos registrados</h3>
+              <h3 *ngIf="terminoBusquedaProductos">No se encontraron productos</h3>
+              <p *ngIf="!terminoBusquedaProductos">
+                Comienza agregando tu primer producto al catálogo.
+              </p>
+              <p *ngIf="terminoBusquedaProductos">
+                No hay productos que coincidan con "{{ terminoBusquedaProductos }}"
+              </p>
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="crearProducto()"
+                [disabled]="!isAdministrador"
+              >
+                <mat-icon>add</mat-icon>
+                Crear Primer Producto
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+
+  <!-- Footer idéntico al catálogo -->
+  <footer class="configuracion-footer">
+    <div class="footer-content">
+      <p>&copy; 2025 Peluquería y Estética Selene. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+</div>

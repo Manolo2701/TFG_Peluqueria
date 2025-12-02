@@ -1,0 +1,253 @@
+<div class="mi-perfil-container">
+  <!-- Header idéntico al catálogo y admin-trabajadores -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-main">
+        <button mat-icon-button routerLink="/dashboard" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="header-text">
+          <h1>Mi Perfil</h1>
+          <p>Administra tu información personal</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="cargarPerfil()"
+          class="refresh-btn"
+          [disabled]="loading"
+        >
+          <mat-icon>refresh</mat-icon>
+          Recargar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando datos del perfil...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <h3>Error al cargar el perfil</h3>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="cargarPerfil()">
+      <mat-icon>refresh</mat-icon>
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error" class="content">
+    <!-- Estadísticas -->
+    <section class="section" *ngIf="perfilData">
+      <h2>📊 Mis Datos</h2>
+      <div class="stats-cards">
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-number">{{ primerNombre }}</div>
+            <div class="stat-label">Nombre</div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-number">{{ perfilData.email }}</div>
+            <div class="stat-label">Email</div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-number">
+              <span class="role-badge" [class]="perfilData.rol">{{ perfilData.rol }}</span>
+            </div>
+            <div class="stat-label">Rol</div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </section>
+
+    <!-- Formulario de Perfil -->
+    <section class="section">
+      <h2>📝 Editar Información Personal</h2>
+      <form [formGroup]="perfilForm" (ngSubmit)="onSubmit()" class="perfil-form">
+        <!-- Información Personal -->
+        <mat-card class="section-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>person</mat-icon>
+            <mat-card-title>Información Personal</mat-card-title>
+            <mat-card-subtitle>Datos básicos de tu cuenta</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Nombre *</mat-label>
+                <input matInput formControlName="nombre" placeholder="Tu nombre" />
+                <mat-error *ngIf="nombreControl?.hasError('required')">
+                  El nombre es obligatorio
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Apellidos</mat-label>
+                <input matInput formControlName="apellidos" placeholder="Tus apellidos" />
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Email *</mat-label>
+                <input matInput formControlName="email" type="email" placeholder="tu@email.com" />
+                <mat-error *ngIf="emailControl?.hasError('required')">
+                  El email es obligatorio
+                </mat-error>
+                <mat-error *ngIf="emailControl?.hasError('email')">
+                  Introduce un email válido
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Teléfono</mat-label>
+                <input matInput formControlName="telefono" placeholder="Número de teléfono" />
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="form-field-full">
+              <mat-label>Dirección</mat-label>
+              <textarea
+                matInput
+                formControlName="direccion"
+                rows="2"
+                placeholder="Tu dirección completa"
+              ></textarea>
+            </mat-form-field>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Cambio de Contraseña -->
+        <mat-card class="section-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>lock</mat-icon>
+            <mat-card-title>Seguridad</mat-card-title>
+            <mat-card-subtitle>Cambia tu contraseña si lo deseas</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="password-toggle">
+              <button type="button" mat-button (click)="toggleCambioPassword()" class="toggle-btn">
+                <mat-icon>{{ mostrarCambioPassword ? 'remove' : 'add' }}</mat-icon>
+                {{ mostrarCambioPassword ? 'Ocultar cambio de contraseña' : 'Cambiar contraseña' }}
+              </button>
+            </div>
+
+            <div *ngIf="mostrarCambioPassword" class="password-fields">
+              <mat-form-field appearance="outline" class="form-field-full">
+                <mat-label>Contraseña actual *</mat-label>
+                <input
+                  matInput
+                  formControlName="currentPassword"
+                  type="password"
+                  placeholder="Tu contraseña actual"
+                />
+                <mat-error *ngIf="currentPasswordControl?.hasError('required')">
+                  Para cambiar la contraseña, debes introducir la actual
+                </mat-error>
+              </mat-form-field>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Nueva contraseña</mat-label>
+                  <input
+                    matInput
+                    formControlName="newPassword"
+                    type="password"
+                    placeholder="Nueva contraseña"
+                  />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Confirmar contraseña</mat-label>
+                  <input
+                    matInput
+                    formControlName="confirmPassword"
+                    type="password"
+                    placeholder="Repite la nueva contraseña"
+                  />
+                  <mat-error *ngIf="perfilForm.hasError('passwordMismatch')">
+                    Las contraseñas no coinciden
+                  </mat-error>
+                </mat-form-field>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Información de la Cuenta -->
+        <mat-card class="section-card" *ngIf="perfilData">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>info</mat-icon>
+            <mat-card-title>Información de la Cuenta</mat-card-title>
+            <mat-card-subtitle>Datos del sistema</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Rol:</span>
+                <span class="info-value">
+                  <span class="role-badge" [class]="perfilData.rol">{{ perfilData.rol }}</span>
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">ID de usuario:</span>
+                <span class="info-value">{{ perfilData.id }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Fecha de registro:</span>
+                <span class="info-value">{{ formatearFecha(perfilData.fecha_registro) }}</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Acciones -->
+        <div class="form-actions">
+          <button
+            type="button"
+            mat-stroked-button
+            (click)="volverAlDashboard()"
+            class="cancel-btn"
+            [disabled]="guardando"
+          >
+            Volver al Dashboard
+          </button>
+          <button
+            type="submit"
+            mat-raised-button
+            color="primary"
+            [disabled]="perfilForm.invalid || guardando"
+            class="submit-btn"
+          >
+            <span *ngIf="!guardando">Guardar Cambios</span>
+            <span *ngIf="guardando" class="saving-text">
+              <mat-spinner diameter="20"></mat-spinner>
+              Guardando...
+            </span>
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <!-- Footer idéntico al catálogo y admin-trabajadores -->
+  <footer class="mi-perfil-footer">
+    <div class="footer-content">
+      <p>&copy; 2025 Peluquería y Estética Selene. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+</div>

@@ -62,6 +62,39 @@ class Servicio {
       throw error;
     }
   }
+
+  // ✅ MÉTODO NUEVO: Actualizar servicio
+  static async actualizar(id, servicioData) {
+    try {
+      const { nombre, descripcion, duracion, precio, categoria, activo } = servicioData;
+
+      const [result] = await pool.execute(
+        `UPDATE servicio 
+         SET nombre = ?, descripcion = ?, duracion = ?, precio = ?, categoria = ?, activo = ?
+         WHERE id = ?`,
+        [nombre, descripcion, duracion, precio, categoria, activo, id]
+      );
+
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error actualizando servicio:', error);
+      throw error;
+    }
+  }
+
+  // ✅ MÉTODO NUEVO: Eliminar servicio (borrado lógico)
+  static async eliminar(id) {
+    try {
+      const [result] = await pool.execute(
+        'UPDATE servicio SET activo = false WHERE id = ?',
+        [id]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error eliminando servicio:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = Servicio;

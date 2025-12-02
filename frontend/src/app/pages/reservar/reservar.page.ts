@@ -11,9 +11,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 
-import { ServicioService, Servicio } from '../../core/services/servicio.service';
+import { ServicioService } from '../../core/services/servicio.service';
+import { Servicio } from '../../interfaces/servicio.interface'; // ✅ CORREGIDO: Importar desde la interfaz
 import { ReservaService } from '../../core/services/reserva.service';
 import { ConfiguracionService, ConfiguracionNegocio, Festivo } from '../../core/services/configuracion.service';
+import { BusquedaService } from '../../core/services/busqueda.service';
 
 interface DiaSemana {
     fecha: Date;
@@ -74,12 +76,21 @@ export class ReservarPage implements OnInit {
     semanaActual: Semana | null = null;
     serviciosDisponibles: Servicio[] = [];
     trabajadoresDisponibles: TrabajadorDisponible[] = [];
-    configuracion: ConfiguracionNegocio | null = null;
+    configuracion: ConfiguracionNegocio = {
+        id: 1,
+        nombre_negocio: 'Peluquería Selene',
+        horario_apertura: '09:30',
+        horario_cierre: '20:00',
+        dias_apertura: ['martes', 'miercoles', 'jueves', 'viernes', 'sabado'],
+        tiempo_minimo_entre_reservas: 15,
+        maximo_reservas_por_dia: 50,
+        politica_cancelacion_default: 'flexible'
+    };
     festivos: Festivo[] = [];
 
-    // Horarios por defecto
-    horariosManana: string[] = ['09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30'];
-    horariosTarde: string[] = ['17:00', '17:30', '18:00', '18:30', '19:00', '19:30'];
+    // Horarios por defecto (ahora se generan dinámicamente)
+    horariosManana: string[] = [];
+    horariosTarde: string[] = [];
 
     // Búsqueda
     searchTerm: string = '';
@@ -95,6 +106,7 @@ export class ReservarPage implements OnInit {
     private servicioService = inject(ServicioService);
     private reservaService = inject(ReservaService);
     private configuracionService = inject(ConfiguracionService);
+    private busquedaService = inject(BusquedaService);
     private snackBar = inject(MatSnackBar);
     private cdr = inject(ChangeDetectorRef);
 
@@ -127,23 +139,27 @@ export class ReservarPage implements OnInit {
         return this.servicioSeleccionado ? this.formatCurrency(this.servicioSeleccionado.precio) : '';
     }
 
+    get horarioMananaTexto(): string {
+        if (!this.horariosManana.length) return 'Mañana (No disponible)';
+        const inicio = this.horariosManana[0];
+        const fin = '12:30';
+        return `Mañana (${inicio} - ${fin})`;
+    }
+
+    get horarioTardeTexto(): string {
+        if (!this.horariosTarde.length) return 'Tarde (No disponible)';
+        const inicio = this.horariosTarde[0];
+        const fin = '19:30';
+        return `Tarde (${inicio} - ${fin})`;
+    }
+
     // ====================
     // INICIALIZACIÓN
     // ====================
 
     private inicializarConValoresPorDefecto() {
-        this.configuracion = {
-            id: 1,
-            nombre_negocio: 'Peluquería Selene',
-            horario_apertura: '09:30',
-            horario_cierre: '20:00',
-            dias_apertura: ['martes', 'miercoles', 'jueves', 'viernes', 'sabado'],
-            tiempo_minimo_entre_reservas: 15,
-            maximo_reservas_por_dia: 50,
-            politica_cancelacion_default: 'flexible'
-        };
-
         this.festivos = [];
+        this.actualizarHorariosDesdeConfiguracion();
         this.semanaActual = this.generarSemana(new Date());
     }
 
@@ -151,7 +167,15 @@ export class ReservarPage implements OnInit {
         this.configuracionService.getConfiguracion().subscribe({
             next: (config) => {
                 console.log('✅ Configuración cargada:', config);
-                this.configuracion = config;
+                if (config) {
+                    this.configuracion = {
+                        ...this.configuracion,
+                        ...config,
+                        dias_apertura: config.dias_apertura && Array.isArray(config.dias_apertura)
+                            ? config.dias_apertura
+                            : this.configuracion.dias_apertura
+                    };
+                }
                 this.actualizarHorariosDesdeConfiguracion();
             },
             error: (error) => {
@@ -166,31 +190,49 @@ export class ReservarPage implements OnInit {
     // ====================
 
     private actualizarHorariosDesdeConfiguracion() {
-        if (this.configuracion && this.configuracion.horario_apertura && this.configuracion.horario_cierre) {
-            this.horariosManana = this.generarHorarios(this.configuracion.horario_apertura, '13:00', 30);
-            this.horariosTarde = this.generarHorarios('17:00', this.configuracion.horario_cierre, 30);
+        if (this.configuracion.horario_apertura && this.configuracion.horario_cierre) {
+            this.horariosManana = this.generarHorariosConIntervalo(
+                this.configuracion.horario_apertura,
+                '12:30',
+                10
+            );
+            this.horariosTarde = this.generarHorariosConIntervalo(
+                '17:00',
+                '19:30',
+                10
+            );
+            this.regenerarSemana();
+        } else {
+            this.horariosManana = this.generarHorariosConIntervalo('09:30', '12:30', 10);
+            this.horariosTarde = this.generarHorariosConIntervalo('17:00', '19:30', 10);
             this.regenerarSemana();
         }
     }
 
-    private generarHorarios(inicio: string, fin: string, intervaloMinutos: number): string[] {
+    private generarHorariosConIntervalo(inicio: string, fin: string, intervaloMinutos: number): string[] {
         const horarios: string[] = [];
         const [horaInicio, minutoInicio] = inicio.split(':').map(Number);
         const [horaFin, minutoFin] = fin.split(':').map(Number);
 
-        let horaActual = horaInicio;
-        let minutoActual = minutoInicio;
+        const totalMinutosInicio = horaInicio * 60 + minutoInicio;
+        const totalMinutosFin = horaFin * 60 + minutoFin;
 
-        while (horaActual < horaFin || (horaActual === horaFin && minutoActual <= minutoFin)) {
-            const horaStr = horaActual.toString().padStart(2, '0');
-            const minutoStr = minutoActual.toString().padStart(2, '0');
-            horarios.push(`${horaStr}:${minutoStr}`);
+        if (totalMinutosFin <= totalMinutosInicio) {
+            console.warn('Horario de fin debe ser después del horario de inicio');
+            return horarios;
+        }
 
-            minutoActual += intervaloMinutos;
-            if (minutoActual >= 60) {
-                horaActual += Math.floor(minutoActual / 60);
-                minutoActual = minutoActual % 60;
+        for (let minutos = totalMinutosInicio; minutos <= totalMinutosFin; minutos += intervaloMinutos) {
+            const horas = Math.floor(minutos / 60);
+            const mins = minutos % 60;
+
+            if (horas > horaFin || (horas === horaFin && mins > minutoFin)) {
+                break;
             }
+
+            const horaStr = horas.toString().padStart(2, '0');
+            const minutoStr = mins.toString().padStart(2, '0');
+            horarios.push(`${horaStr}:${minutoStr}`);
         }
 
         return horarios;
@@ -278,8 +320,19 @@ export class ReservarPage implements OnInit {
     private getHorarioComercialParaDia(nombreDia: string): { manana: string[], tarde: string[] } {
         const diaLowerCase = this.convertirNombreDia(nombreDia);
 
-        if (!this.configuracion) {
-            return { manana: this.horariosManana, tarde: this.horariosTarde };
+        if (!Array.isArray(this.configuracion.dias_apertura)) {
+            const diasAperturaDefault = ['martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+            const estaAbierto = diasAperturaDefault.includes(diaLowerCase);
+
+            if (!estaAbierto) return { manana: [], tarde: [] };
+
+            const diasConTarde = ['miercoles', 'viernes'];
+            const tieneTarde = diasConTarde.includes(diaLowerCase);
+
+            return {
+                manana: this.horariosManana,
+                tarde: tieneTarde ? this.horariosTarde : []
+            };
         }
 
         const estaAbierto = this.configuracion.dias_apertura.includes(diaLowerCase);
@@ -316,11 +369,13 @@ export class ReservarPage implements OnInit {
         const nombreDia = this.getNombreDia(diaSemana);
         const horarioDia = this.getHorarioComercialParaDia(nombreDia);
 
+        if (!horarioDia) return false;
+
         return horarioDia.manana.length > 0 || horarioDia.tarde.length > 0;
     }
 
     // ====================
-    // SERVICIOS
+    // SERVICIOS - REFACTORIZADO PARA USAR BusquedaService
     // ====================
 
     cargarServiciosDisponibles() {
@@ -341,7 +396,65 @@ export class ReservarPage implements OnInit {
         });
     }
 
-    filtrarServicios() {
+    // ✅ REFACTORIZADO: Usar BusquedaService para búsquedas
+    buscarServicios() {
+        this.mostrarSugerencias = false;
+
+        if (!this.searchTerm.trim()) {
+            this.filtrarServicios();
+            return;
+        }
+
+        this.loadingBusqueda = true;
+
+        this.busquedaService.buscarServicios(this.searchTerm).subscribe({
+            next: (response) => {
+                this.loadingBusqueda = false;
+                console.log('✅ Resultados búsqueda:', response);
+
+                if (response && response.servicios) {
+                    this.serviciosFiltrados = response.servicios;
+                    this.separarServiciosPorCategoria();
+                } else {
+                    this.serviciosFiltrados = [];
+                    this.separarServiciosPorCategoria();
+                }
+                this.cdr.detectChanges();
+            },
+            error: (err) => {
+                this.loadingBusqueda = false;
+                console.error('❌ Error en búsqueda:', err);
+                this.filtrarServicios();
+                this.snackBar.open('Error en la búsqueda, mostrando resultados locales', 'Cerrar', { duration: 3000 });
+                this.cdr.detectChanges();
+            }
+        });
+    }
+
+    // ✅ REFACTORIZADO: Usar BusquedaService para sugerencias
+    obtenerSugerencias() {
+        if (this.searchTerm.trim().length < 2) {
+            this.sugerencias = [];
+            this.mostrarSugerencias = false;
+            return;
+        }
+
+        this.busquedaService.obtenerSugerencias(this.searchTerm).subscribe({
+            next: (response) => {
+                this.sugerencias = response.sugerencias || [];
+                this.mostrarSugerencias = this.sugerencias.length > 0;
+                this.cdr.detectChanges();
+            },
+            error: (error) => {
+                console.error('Error al obtener sugerencias:', error);
+                this.sugerencias = [];
+                this.mostrarSugerencias = false;
+            }
+        });
+    }
+
+    // ✅ MANTENIDO: Filtrado local para cuando no hay búsqueda
+    private filtrarServicios() {
         let servicios = this.serviciosDisponibles;
 
         if (this.searchTerm.trim()) {
@@ -356,7 +469,8 @@ export class ReservarPage implements OnInit {
         this.separarServiciosPorCategoria();
     }
 
-    separarServiciosPorCategoria() {
+    // ✅ MANTENIDO: Separación por categoría
+    private separarServiciosPorCategoria() {
         this.serviciosPeluqueria = this.serviciosFiltrados.filter(s =>
             s.categoria.toLowerCase().includes('peluquería') ||
             s.categoria.toLowerCase().includes('peluqueria')
@@ -366,32 +480,6 @@ export class ReservarPage implements OnInit {
             s.categoria.toLowerCase().includes('estética') ||
             s.categoria.toLowerCase().includes('estetica')
         );
-    }
-
-    buscarServicios() {
-        this.mostrarSugerencias = false;
-        this.filtrarServicios();
-    }
-
-    obtenerSugerencias() {
-        if (this.searchTerm.trim().length < 2) {
-            this.sugerencias = [];
-            this.mostrarSugerencias = false;
-            return;
-        }
-
-        this.servicioService.obtenerSugerencias(this.searchTerm).subscribe({
-            next: (sugerencias) => {
-                this.sugerencias = sugerencias;
-                this.mostrarSugerencias = this.sugerencias.length > 0;
-                this.cdr.detectChanges();
-            },
-            error: (error) => {
-                console.error('Error al obtener sugerencias:', error);
-                this.sugerencias = [];
-                this.mostrarSugerencias = false;
-            }
-        });
     }
 
     seleccionarSugerencia(sugerencia: string) {
@@ -415,6 +503,7 @@ export class ReservarPage implements OnInit {
         if (!this.fechaSeleccionada || !this.horaSeleccionada || !this.servicioSeleccionado) return;
 
         this.loading = true;
+        this.trabajadoresDisponibles = []; // Limpiar lista anterior
 
         const fechaStr = this.formatDate(this.fechaSeleccionada);
 
@@ -425,11 +514,46 @@ export class ReservarPage implements OnInit {
         ).subscribe({
             next: (response) => {
                 this.loading = false;
-                console.log('✅ Trabajadores disponibles recibidos:', response);
+                console.log('✅ Respuesta recibida en componente:', response);
 
+                // ✅ VERIFICAR SI ES UN CONFLICTO DE HORARIO (409 convertido a next)
+                if (response.codigo === 'CONFLICTO_HORARIO_CLIENTE') {
+                    console.log('ℹ️ Conflicto de horario detectado (manejado como next):', response);
+
+                    this.snackBar.open(response.error, 'Cerrar', {
+                        duration: 5000,
+                        panelClass: ['snackbar-warning'] // Cambiar a warning en lugar de error
+                    });
+
+                    // Limpiar selección y volver al paso 1
+                    this.fechaSeleccionada = null;
+                    this.horaSeleccionada = '';
+                    this.pasoActual = 1;
+                    this.trabajadoresDisponibles = [];
+                    this.cdr.detectChanges();
+                    return;
+                }
+
+                // ✅ VERIFICAR SI ES UN ERROR DE DOBLE RESERVA (para compatibilidad)
+                if (response.error && response.error.includes('Ya tienes una reserva en ese horario')) {
+                    console.log('ℹ️ Error de doble reserva (estructura antigua):', response);
+
+                    this.snackBar.open(response.detalles?.mensaje || response.error, 'Cerrar', {
+                        duration: 5000,
+                        panelClass: ['snackbar-warning']
+                    });
+
+                    this.fechaSeleccionada = null;
+                    this.horaSeleccionada = '';
+                    this.pasoActual = 1;
+                    this.trabajadoresDisponibles = [];
+                    this.cdr.detectChanges();
+                    return;
+                }
+
+                // ✅ CASO NORMAL: CARGAR TRABAJADORES DISPONIBLES
                 if (response && response.trabajadores) {
                     this.trabajadoresDisponibles = response.trabajadores.map((t: any) => {
-                        // ✅ CORREGIR: Parsear especialidades si es string
                         let especialidadesArray: string[] = [];
 
                         if (Array.isArray(t.especialidades)) {
@@ -453,6 +577,8 @@ export class ReservarPage implements OnInit {
                             valoracion: t.valoracion || 4.5
                         };
                     });
+
+                    console.log(`✅ ${this.trabajadoresDisponibles.length} trabajadores cargados`);
                 } else {
                     this.trabajadoresDisponibles = [];
                     console.warn('⚠️ No se recibieron trabajadores en la respuesta');
@@ -462,8 +588,22 @@ export class ReservarPage implements OnInit {
             },
             error: (err) => {
                 this.loading = false;
-                console.error('❌ Error al cargar trabajadores disponibles:', err);
-                this.snackBar.open('Error al cargar trabajadores disponibles', 'Cerrar', { duration: 3000 });
+                // ✅ Esto solo captura errores REALES (500, network, timeout, etc.)
+                console.error('❌ Error REAL al cargar trabajadores disponibles:', err);
+
+                let errorMessage = 'Error del sistema al cargar disponibilidad';
+
+                if (err.status === 0) {
+                    errorMessage = 'Error de conexión - Verifica tu internet';
+                } else if (err.status >= 500) {
+                    errorMessage = 'Error del servidor - Intenta más tarde';
+                }
+
+                this.snackBar.open(errorMessage, 'Cerrar', {
+                    duration: 5000,
+                    panelClass: ['snackbar-error']
+                });
+
                 this.trabajadoresDisponibles = [];
                 this.cdr.detectChanges();
             }
@@ -484,6 +624,13 @@ export class ReservarPage implements OnInit {
     }
 
     seleccionarServicio(servicio: Servicio) {
+        console.log('🔍 Servicio seleccionado:', {
+            id: servicio.id,
+            nombre: servicio.nombre,
+            duracion: servicio.duracion, // ✅ Verificar que esto tiene valor
+            precio: servicio.precio
+        });
+
         this.servicioSeleccionado = servicio;
         this.cdr.detectChanges();
     }
@@ -573,11 +720,12 @@ export class ReservarPage implements OnInit {
 
         console.log('🔍 Datos que se enviarán a la reserva:', {
             servicio_id: this.servicioSeleccionado!.id,
-            trabajador_id: this.trabajadorSeleccionado!.id, // ← VERIFICA ESTE VALOR
+            trabajador_id: this.trabajadorSeleccionado!.id,
             fecha_reserva: this.formatDate(this.fechaSeleccionada!),
             hora_inicio: this.horaSeleccionada,
             notas: this.notas,
-            trabajador_seleccionado: this.trabajadorSeleccionado // ← Para ver el objeto completo
+            servicio_nombre: this.servicioSeleccionado!.nombre,
+            servicio_duracion: this.servicioSeleccionado!.duracion
         });
 
         this.loading = true;
@@ -602,16 +750,35 @@ export class ReservarPage implements OnInit {
             error: (err) => {
                 this.loading = false;
                 console.error('Error creando reserva:', err);
-                const errorMsg = err.error?.error || 'Error al crear la reserva';
-                this.snackBar.open(errorMsg, 'Cerrar', {
-                    duration: 5000,
-                    panelClass: ['snackbar-error']
-                });
+
+                let errorMsg = err.error?.error || 'Error al crear la reserva';
+
+                // ✅ Manejo específico para conflictos de horario en la creación
+                if (err.status === 409 || err.error?.error?.includes('Ya tienes una reserva en ese horario')) {
+                    errorMsg = err.error.detalles?.mensaje || 'Ya tienes una reserva en ese horario';
+
+                    this.snackBar.open(errorMsg, 'Cerrar', {
+                        duration: 5000,
+                        panelClass: ['snackbar-warning'] // Cambiar a warning
+                    });
+
+                    // Opcional: Limpiar selección para que el usuario elija otro horario
+                    this.fechaSeleccionada = null;
+                    this.horaSeleccionada = '';
+                    this.pasoActual = 1;
+                } else {
+                    // ✅ Error real del sistema
+                    this.snackBar.open(errorMsg, 'Cerrar', {
+                        duration: 5000,
+                        panelClass: ['snackbar-error']
+                    });
+                }
+
                 this.cdr.detectChanges();
             }
         });
     }
-
+    
     validarReservaCompleta(): boolean {
         return !!this.fechaSeleccionada &&
             !!this.horaSeleccionada &&

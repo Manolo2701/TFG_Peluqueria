@@ -96,9 +96,9 @@
               <!-- Horarios -->
               <div class="horarios-container">
                 <!-- Turno de Mañana -->
-                <div class="turno">
-                  <h4 class="turno-titulo">⏰ Mañana (9:30 - 13:00)</h4>
-                  <div class="horarios-grid">
+                <div class="turno" *ngIf="horariosManana.length > 0">
+                  <h4 class="turno-titulo">☀️ {{ horarioMananaTexto }}</h4>
+                  <div class="horarios-grid compacto">
                     <div
                       *ngFor="let dia of semanaActual.dias; trackBy: trackByDia"
                       class="dia-horarios"
@@ -109,7 +109,7 @@
                         [class]="getClaseHorarioPrecalculada(dia, hora)"
                         (click)="seleccionarHorario(dia, hora)"
                         [disabled]="!esHorarioDisponible(dia, hora)"
-                        class="horario-btn"
+                        class="horario-btn compacto"
                       >
                         {{ hora }}
                       </button>
@@ -118,14 +118,17 @@
                 </div>
 
                 <!-- Separador -->
-                <div class="separador-turnos">
+                <div
+                  class="separador-turnos"
+                  *ngIf="horariosManana.length > 0 && horariosTarde.length > 0"
+                >
                   <mat-divider></mat-divider>
                 </div>
 
                 <!-- Turno de Tarde -->
-                <div class="turno">
-                  <h4 class="turno-titulo">🌙 Tarde (17:00 - 20:00)</h4>
-                  <div class="horarios-grid">
+                <div class="turno" *ngIf="horariosTarde.length > 0">
+                  <h4 class="turno-titulo">🌙 {{ horarioTardeTexto }}</h4>
+                  <div class="horarios-grid compacto">
                     <div
                       *ngFor="let dia of semanaActual.dias; trackBy: trackByDia"
                       class="dia-horarios"
@@ -136,7 +139,7 @@
                         [class]="getClaseHorarioPrecalculada(dia, hora)"
                         (click)="seleccionarHorario(dia, hora)"
                         [disabled]="!esHorarioDisponible(dia, hora)"
-                        class="horario-btn"
+                        class="horario-btn compacto"
                       >
                         {{ hora }}
                       </button>

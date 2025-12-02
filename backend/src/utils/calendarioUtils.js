@@ -16,7 +16,7 @@
             if (categoriaTrabajador === 'ambas') {
                 resultado = true;
                 console.log('   ✅ Trabajador con categoría "Ambas" - PUEDE realizar cualquier servicio');
-            } 
+            }
             else if (categoriaTrabajador === categoriaServicio) {
                 resultado = true;
                 console.log('   ✅ Categorías coinciden - PUEDE realizar el servicio');
@@ -59,7 +59,6 @@
         return trabajadoresFiltrados;
     }
 
-
     static normalizarHorarioLaboral(horarioLaboral) {
         try {
             if (typeof horarioLaboral === 'string') {
@@ -93,33 +92,68 @@
 
     static obtenerHorarioParaDia(horarioLaboral, diaSemana) {
         try {
-            if (!horarioLaboral) return null;
+            if (!horarioLaboral) {
+                console.log(`❌ [HORARIO] No hay horario laboral definido`);
+                return null;
+            }
 
             const horarioNormalizado = this.normalizarHorarioLaboral(horarioLaboral);
             const diaNormalizado = diaSemana.toLowerCase();
 
-            return horarioNormalizado[diaNormalizado] || null;
+            console.log(`🔍 [HORARIO] Buscando horario para ${diaNormalizado} en:`, Object.keys(horarioNormalizado));
+
+            const horarioDia = horarioNormalizado[diaNormalizado];
+
+            if (!horarioDia) {
+                console.log(`❌ [HORARIO] No existe horario definido para el día ${diaNormalizado}`);
+                return null;
+            }
+
+            console.log(`✅ [HORARIO] Horario encontrado para ${diaNormalizado}:`, horarioDia);
+            return horarioDia;
+
         } catch (error) {
-            console.error('Error obteniendo horario para día:', error);
+            console.error('❌ Error obteniendo horario para día:', error);
             return null;
         }
     }
 
+    // ✅ FUNCIÓN CORREGIDA - CAMBIO MÍNIMO PERO CRÍTICO
     static generarSlotsDisponibles(horarioLaboral, reservasExistentes, duracionServicio) {
         const slotsDisponibles = [];
         const duracionMinutos = parseInt(duracionServicio);
 
-        if (!horarioLaboral || !horarioLaboral.inicio || !horarioLaboral.fin) {
+        console.log('🔍 [DEBUG] Horario laboral recibido:', horarioLaboral);
+
+        // ✅ CORRECCIÓN: Usar nombres de campos compatibles con ambas versiones
+        const horaInicio = horarioLaboral?.hora_inicio || horarioLaboral?.inicio;
+        const horaFin = horarioLaboral?.hora_fin || horarioLaboral?.fin;
+
+        if (!horarioLaboral || !horaInicio || !horaFin) {
+            console.log('❌ Horario laboral incompleto o inválido:', {
+                tieneHorario: !!horarioLaboral,
+                hora_inicio: horaInicio,
+                hora_fin: horaFin
+            });
             return slotsDisponibles;
         }
 
-        const [horaInicio, minutoInicio] = horarioLaboral.inicio.split(':').map(Number);
-        const [horaFin, minutoFin] = horarioLaboral.fin.split(':').map(Number);
+        console.log(`✅ Horario válido: ${horaInicio} - ${horaFin}`);
 
-        const inicioTotalMinutos = horaInicio * 60 + minutoInicio;
-        const finTotalMinutos = horaFin * 60 + minutoFin;
+        const [horaInicioNum, minutoInicio] = horaInicio.split(':').map(Number);
+        const [horaFinNum, minutoFin] = horaFin.split(':').map(Number);
 
-        //  CORRECCIÓN: Cambiar inicioTotalMinicios por inicioTotalMinutos
+        const inicioTotalMinutos = horaInicioNum * 60 + minutoInicio;
+        const finTotalMinutos = horaFinNum * 60 + minutoFin;
+
+        console.log(`⏰ Rango en minutos: ${inicioTotalMinutos} - ${finTotalMinutos}`);
+
+        // ✅ CORRECCIÓN: Asegurar que haya suficiente tiempo para el servicio
+        if (finTotalMinutos - inicioTotalMinutos < duracionMinutos) {
+            console.log(`❌ No hay suficiente tiempo para el servicio de ${duracionMinutos}min`);
+            return slotsDisponibles;
+        }
+
         for (let minutosActual = inicioTotalMinutos; minutosActual <= finTotalMinutos - duracionMinutos; minutosActual += 15) {
             const horaSlot = Math.floor(minutosActual / 60);
             const minutoSlot = minutosActual % 60;
@@ -142,6 +176,7 @@
             }
         }
 
+        console.log(`📅 Slots generados: ${slotsDisponibles.length}`);
         return slotsDisponibles;
     }
 
@@ -181,15 +216,19 @@
         const slotsDisponibles = [];
         const duracionMinutos = parseInt(duracionServicio);
 
-        if (!horarioLaboral || !horarioLaboral.inicio || !horarioLaboral.fin) {
+        // ✅ CORRECCIÓN: Usar nombres de campos compatibles con ambas versiones
+        const horaInicio = horarioLaboral?.hora_inicio || horarioLaboral?.inicio;
+        const horaFin = horarioLaboral?.hora_fin || horarioLaboral?.fin;
+
+        if (!horarioLaboral || !horaInicio || !horaFin) {
             return slotsDisponibles;
         }
 
-        const [horaInicio, minutoInicio] = horarioLaboral.inicio.split(':').map(Number);
-        const [horaFin, minutoFin] = horarioLaboral.fin.split(':').map(Number);
+        const [horaInicioNum, minutoInicio] = horaInicio.split(':').map(Number);
+        const [horaFinNum, minutoFin] = horaFin.split(':').map(Number);
 
-        const inicioTotalMinutos = horaInicio * 60 + minutoInicio;
-        const finTotalMinutos = horaFin * 60 + minutoFin;
+        const inicioTotalMinutos = horaInicioNum * 60 + minutoInicio;
+        const finTotalMinutos = horaFinNum * 60 + minutoFin;
 
         for (let minutosActual = inicioTotalMinutos; minutosActual <= finTotalMinutos - duracionMinutos; minutosActual += 15) {
             const horaSlot = Math.floor(minutosActual / 60);
@@ -221,16 +260,24 @@
         return slotsDisponibles;
     }
 
+    // ✅ FUNCIÓN CORREGIDA - ELIMINAR ERROR LÓGICO
     static haySolapamiento(inicio1, duracion1, inicio2, duracion2) {
         const [horaInicio1, minutoInicio1] = inicio1.split(':').map(Number);
         const [horaInicio2, minutoInicio2] = inicio2.split(':').map(Number);
 
         const minutosInicio1 = horaInicio1 * 60 + minutoInicio1;
-        const minutosFin1 = minutosInicio1 + parseInt(duracion1);
-        const minutosInicio2 = horaInicio2 * 60 + minutoInicio2;
-        const minutosFin2 = minutosInicio2 + parseInt(duracion2);
+        const minutosFin1 = minutosInicio1 + parseInt(duracion1); // ✅ CORREGIDO: Sin restar 1
 
-        return minutosInicio1 < minutosFin2 && minutosFin1 > minutosInicio2;
+        const minutosInicio2 = horaInicio2 * 60 + minutoInicio2;
+        const minutosFin2 = minutosInicio2 + parseInt(duracion2); // ✅ CORREGIDO: Sin restar 1
+
+        // ✅ LÓGICA CORREGIDA: Un slot solapa si:
+        // - Comienza antes de que termine el otro Y termina después de que comience el otro
+        const seSolapan = minutosInicio1 < minutosFin2 && minutosFin1 > minutosInicio2;
+
+        console.log(`🔍 [SOLAPAMIENTO] ${inicio1} (${duracion1}min) vs ${inicio2} (${duracion2}min) → ${seSolapan ? '❌ SOLAPA' : '✅ NO SOLAPA'}`);
+
+        return seSolapan;
     }
 
     static obtenerDiaSemana(fecha) {

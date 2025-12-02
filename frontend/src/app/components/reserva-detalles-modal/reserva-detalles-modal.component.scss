@@ -1,360 +1,336 @@
+// Estilos para la nueva sección de motivo de cancelación
+.motivo-cancelacion-section {
+    margin-top: 16px;
+    padding: 16px;
+    background: #fff3e0;
+    border-radius: 8px;
+    border-left: 4px solid #ff9800;
+
+    h4 {
+        margin: 0 0 12px 0;
+        color: #e65100;
+        font-size: 1.1rem;
+    }
+
+    .motivo-cancelacion-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+
+        mat-icon {
+            color: #ff9800;
+            margin-top: 2px;
+        }
+
+        .motivo-text {
+            flex: 1;
+
+            p {
+                margin: 4px 0;
+                color: #5d4037;
+
+                &.fecha-cancelacion,
+                &.politica-cancelacion,
+                &.penalizacion {
+                    font-size: 0.9rem;
+                    opacity: 0.8;
+                }
+            }
+        }
+    }
+}
+
+// Asegurar que las secciones de motivo tengan buen espaciado
+.motivo-rechazo-section+.motivo-cancelacion-section {
+    margin-top: 16px;
+}
+
+// Estilos existentes (mantener estos)
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px 0;
+    margin-bottom: 16px;
 
     h2 {
         margin: 0;
-        color: var(--text-dark);
+        color: #333;
     }
 
     .close-button {
-        margin: -8px -8px 0 0;
+        color: #666;
     }
 }
 
 .reserva-detalles {
     min-width: 500px;
-    max-width: 600px;
+    max-width: 700px;
 
     .info-section {
         margin-bottom: 16px;
-    }
 
-    // Badges de rol y vista
-    .rol-badge {
-        font-size: 10px;
-        padding: 2px 8px;
-        border-radius: 12px;
-        margin-left: 8px;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        .detalle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
 
-        &.badge-admin {
-            background-color: var(--primary);
-            color: white;
-        }
+            .detalle-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
 
-        &.badge-worker {
-            background-color: #2196f3;
-            color: white;
-        }
+                mat-icon {
+                    color: #666;
+                }
 
-        &.badge-client {
-            background-color: #4caf50;
-            color: white;
-        }
+                .detalle-text {
+                    display: flex;
+                    flex-direction: column;
 
-        &.badge-admin-worker {
-            background: linear-gradient(45deg, var(--primary) 0%, #2196f3 100%);
-            color: white;
-        }
+                    .label {
+                        font-size: 0.8rem;
+                        color: #666;
+                    }
 
-        &.badge-readonly {
-            background-color: #757575;
-            color: white;
-        }
-    }
-
-    .solo-lectura-badge {
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 8px;
-        margin-left: 4px;
-        background-color: #ff9800;
-        color: white;
-        font-weight: 500;
-    }
-
-    .detalle-grid {
-        display: grid;
-        gap: 16px;
-        margin: 16px 0;
-    }
-
-    .detalle-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        mat-icon {
-            color: var(--primary);
-            flex-shrink: 0;
-        }
-
-        .detalle-text {
-            display: flex;
-            flex-direction: column;
-
-            .label {
-                font-size: 12px;
-                color: #666;
-                margin-bottom: 2px;
-            }
-
-            .value {
-                font-weight: 500;
-                color: var(--text-dark);
+                    .value {
+                        font-weight: 500;
+                        color: #333;
+                    }
+                }
             }
         }
     }
 
     .estado-section {
-        margin: 20px 0;
-        padding: 16px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        border-left: 4px solid var(--primary);
+        margin: 16px 0;
 
         .estado-info {
             display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .estado-chip {
-            display: flex;
             align-items: center;
-            gap: 6px;
-            font-weight: 500;
+            gap: 12px;
 
-            &.estado-confirmada {
-                background-color: #4caf50;
-                color: white;
+            .estado-chip {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+
+                &.estado-pendiente {
+                    background-color: #fff3cd;
+                    color: #856404;
+                }
+
+                &.estado-confirmada {
+                    background-color: #d4edda;
+                    color: #155724;
+                }
+
+                &.estado-cancelada {
+                    background-color: #f8d7da;
+                    color: #721c24;
+                }
+
+                &.estado-rechazada {
+                    background-color: #ffebee;
+                    color: #c62828;
+                }
             }
 
-            &.estado-pendiente {
-                background-color: #ff9800;
-                color: white;
-            }
-
-            &.estado-cancelada {
-                background-color: #f44336;
-                color: white;
-            }
-
-            &.estado-completada {
-                background-color: #2196f3;
-                color: white;
+            .politica-info {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                color: #666;
+                font-size: 0.9rem;
             }
         }
+    }
 
-        .politica-info {
+    .motivo-rechazo-section {
+        margin-top: 16px;
+        padding: 16px;
+        background: #ffebee;
+        border-radius: 8px;
+        border-left: 4px solid #f44336;
+
+        h4 {
+            margin: 0 0 12px 0;
+            color: #c62828;
+        }
+
+        .motivo-rechazo-content {
             display: flex;
             align-items: flex-start;
-            gap: 8px;
-            padding: 8px;
-            background-color: #e3f2fd;
-            border-radius: 4px;
+            gap: 12px;
 
             mat-icon {
-                color: #1976d2;
-                font-size: 18px;
-                margin-top: 2px;
+                color: #f44336;
             }
 
-            .politica-text {
-                font-size: 14px;
-                color: #1976d2;
-                line-height: 1.4;
+            .motivo-text {
+                p {
+                    margin: 4px 0;
+                    color: #5d4037;
+
+                    .sugerencia {
+                        font-style: italic;
+                        opacity: 0.8;
+                    }
+                }
             }
         }
     }
 
     .notas-section {
-        margin: 16px 0;
+        margin-top: 16px;
         padding: 12px;
-        background-color: #f5f5f5;
+        background: #f8f9fa;
         border-radius: 4px;
 
         h4 {
             margin: 0 0 8px 0;
-            color: var(--text-dark);
-            font-size: 14px;
-            font-weight: 500;
+            color: #333;
         }
 
         .notas-text {
             margin: 0;
             color: #666;
             line-height: 1.4;
-            font-size: 14px;
         }
     }
 
     .info-adicional,
     .info-cliente {
-        margin-top: 20px;
-        padding-top: 16px;
-        border-top: 1px solid #e0e0e0;
+        margin-top: 16px;
 
         h4 {
             margin: 0 0 12px 0;
-            color: var(--text-dark);
-            font-size: 14px;
-            font-weight: 500;
+            color: #333;
         }
 
         .info-grid,
         .cliente-grid {
-            display: grid;
-            gap: 8px;
-        }
-
-        .info-item,
-        .cliente-item {
             display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
+            flex-direction: column;
+            gap: 8px;
 
-            .info-label,
-            .cliente-label {
-                color: #666;
-                font-size: 14px;
-            }
-
-            .info-value,
-            .cliente-value {
-                color: var(--text-dark);
-                font-weight: 500;
-                font-size: 14px;
-            }
-        }
-
-        .cliente-item {
-            align-items: flex-start;
-            gap: 12px;
-            justify-content: flex-start;
-
-            mat-icon {
-                color: var(--primary);
-                flex-shrink: 0;
-                margin-top: 2px;
-            }
-
-            .cliente-text {
+            .info-item,
+            .cliente-item {
                 display: flex;
-                flex-direction: column;
+                align-items: center;
+                gap: 8px;
 
+                .info-label,
                 .cliente-label {
-                    font-size: 12px;
-                    margin-bottom: 2px;
+                    font-weight: 500;
+                    color: #333;
+                    min-width: 120px;
                 }
 
+                .info-value,
                 .cliente-value {
-                    font-size: 14px;
-                    font-weight: normal;
+                    color: #666;
+                }
+
+                mat-icon {
+                    color: #666;
+                    font-size: 18px;
+                    width: 18px;
+                    height: 18px;
                 }
             }
         }
     }
+}
+
+.acciones-cliente,
+.acciones-staff {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
     .no-cancelable-info {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 4px;
-        color: #856404;
-        font-size: 14px;
-
-        mat-icon {
-            font-size: 18px;
-            width: 18px;
-            height: 18px;
-        }
-    }
-}
-
-// Estilos para los botones de acción
-.mat-mdc-dialog-actions {
-    padding: 16px 24px;
-    gap: 8px;
-
-    // Acciones para clientes
-    .acciones-cliente {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-
-        .cancelar-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .no-cancelable-info {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: center;
-            color: #666;
-            font-size: 14px;
-        }
+        gap: 4px;
+        color: #666;
+        font-size: 0.9rem;
     }
 
-    // Acciones en modo solo lectura (solo botón Cerrar)
-    .solo-lectura-actions {
-        width: 100%;
-        display: flex;
-        justify-content: flex-end;
-
-        button {
-            min-width: 120px;
-        }
-    }
-
-    // Acciones cuando hay permisos
+    .solo-lectura-actions,
     .acciones-permitidas {
-        width: 100%;
         display: flex;
-        justify-content: flex-end;
+        align-items: center;
         gap: 8px;
-
-        button {
-            min-width: auto;
-        }
     }
 }
 
-// Estilos responsivos
-@media (max-width: 600px) {
+// Badges de rol
+.rol-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: 8px;
+
+    &.badge-client {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    &.badge-worker {
+        background: #e8f5e8;
+        color: #2e7d32;
+    }
+
+    &.badge-admin {
+        background: #fce4ec;
+        color: #c2185b;
+    }
+
+    &.badge-admin-worker {
+        background: #fff3e0;
+        color: #ef6c00;
+    }
+
+    &.badge-readonly {
+        background: #f5f5f5;
+        color: #757575;
+    }
+}
+
+.solo-lectura-badge {
+    padding: 2px 6px;
+    background: #ffecb3;
+    color: #7d6608;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    margin-left: 8px;
+}
+
+// Responsive
+@media (max-width: 768px) {
     .reserva-detalles {
-        min-width: auto;
+        min-width: unset;
+        max-width: unset;
 
         .detalle-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr !important;
         }
-    }
 
-    .modal-header {
-        padding: 16px 16px 0;
-    }
-
-    .mat-mdc-dialog-actions {
-        .acciones-cliente {
+        .estado-info {
             flex-direction: column;
-            gap: 12px;
+            align-items: flex-start !important;
+        }
+
+        .acciones-cliente,
+        .acciones-staff {
+            flex-direction: column;
             align-items: stretch;
 
-            .no-cancelable-info {
-                order: -1;
-            }
-        }
-
-        .acciones-permitidas {
-            flex-wrap: wrap;
-            justify-content: flex-end;
-
             button {
-                flex: 1;
-                min-width: 120px;
+                width: 100%;
+                justify-content: center;
             }
         }
     }

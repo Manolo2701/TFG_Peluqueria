@@ -8,7 +8,13 @@ exports.cancelarReserva = async (req, res) => {
         const usuarioId = req.usuario.id;
         const usuarioRol = req.usuario.rol;
 
-        console.log('🚨 Iniciando cancelación de reserva:', { id, motivo, politica, usuarioId, usuarioRol });
+        console.log('🚨 INICIANDO CANCELACIÓN DE RESERVA:', {
+            id,
+            motivo,
+            politica,
+            usuarioId,
+            usuarioRol
+        });
 
         // Obtener la reserva para verificar permisos
         const reserva = await Reserva.buscarPorId(id);
@@ -16,19 +22,32 @@ exports.cancelarReserva = async (req, res) => {
             return res.status(404).json({ error: 'Reserva no encontrada' });
         }
 
+        console.log('📋 Reserva encontrada:', {
+            id: reserva.id,
+            estado: reserva.estado,
+            cliente_id: reserva.cliente_id,
+            trabajador_id: reserva.trabajador_id
+        });
+
         // Verificar permisos: cliente solo puede cancelar sus propias reservas
         // administradores y trabajadores pueden cancelar cualquier reserva
         if (usuarioRol === 'cliente' && reserva.cliente_id !== usuarioId) {
             return res.status(403).json({ error: 'No tienes permisos para cancelar esta reserva' });
         }
 
-        // Verificar que la reserva no esté ya cancelada o completada
+        // ✅ CORRECCIÓN: Verificar que la reserva no esté ya cancelada, completada O RECHAZADA
         if (reserva.estado === 'cancelada') {
             return res.status(400).json({ error: 'La reserva ya está cancelada' });
         }
 
         if (reserva.estado === 'completada') {
             return res.status(400).json({ error: 'No se puede cancelar una reserva completada' });
+        }
+
+        if (reserva.estado === 'rechazada') {
+            return res.status(400).json({
+                error: 'No se puede cancelar una reserva que ha sido rechazada por el profesional'
+            });
         }
 
         // Validar política de cancelación
@@ -47,8 +66,11 @@ exports.cancelarReserva = async (req, res) => {
             return res.status(400).json({ error: 'El motivo de cancelación es obligatorio' });
         }
 
+        const motivoLimpio = motivo.trim();
+        console.log('✅ Motivo de cancelación validado:', motivoLimpio);
+
         // Realizar la cancelación con la política seleccionada
-        const cancelacionExitosa = await Reserva.cancelarConPolitica(id, motivo.trim(), politicaElegida);
+        const cancelacionExitosa = await Reserva.cancelarConPolitica(id, motivoLimpio, politicaElegida);
 
         if (!cancelacionExitosa) {
             return res.status(500).json({ error: 'Error al cancelar la reserva' });
@@ -56,6 +78,14 @@ exports.cancelarReserva = async (req, res) => {
 
         // Obtener la reserva actualizada para la respuesta
         const reservaActualizada = await Reserva.buscarPorId(id);
+
+        console.log('✅ Reserva cancelada exitosamente:', {
+            id: reservaActualizada.id,
+            estado: reservaActualizada.estado,
+            motivo_cancelacion: reservaActualizada.motivo_cancelacion,
+            politica_cancelacion: reservaActualizada.politica_cancelacion,
+            penalizacion_aplicada: reservaActualizada.penalizacion_aplicada
+        });
 
         res.json({
             mensaje: 'Reserva cancelada exitosamente',
@@ -101,6 +131,11 @@ exports.obtenerDetallesCancelacion = async (req, res) => {
             return res.status(403).json({ error: 'No tienes permisos para ver esta reserva' });
         }
 
+        // ✅ CORRECCIÓN: También considerar estado "rechazada" como no cancelable
+        const puedeCancelar = reserva.estado !== 'cancelada' &&
+            reserva.estado !== 'completada' &&
+            reserva.estado !== 'rechazada';
+
         // Si la reserva no está cancelada, calcular penalización potencial
         let detallesCancelacion = {};
 
@@ -111,6 +146,12 @@ exports.obtenerDetallesCancelacion = async (req, res) => {
                 motivo_cancelacion: reserva.motivo_cancelacion,
                 politica_aplicada: reserva.politica_cancelacion,
                 penalizacion_aplicada: reserva.penalizacion_aplicada
+            };
+        } else if (reserva.estado === 'rechazada') {
+            detallesCancelacion = {
+                cancelada: false,
+                puede_cancelar: false,
+                mensaje: 'Esta reserva fue rechazada por el profesional y no puede ser cancelada.'
             };
         } else {
             // Calcular penalizaciones potenciales para cada política

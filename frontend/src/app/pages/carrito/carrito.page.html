@@ -1,0 +1,217 @@
+<div class="carrito-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-actions">
+      <button mat-icon-button routerLink="/catalogo-productos" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>🛒 Mi Carrito</h1>
+        <p>Revisa y gestiona tus productos antes de comprar</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estados -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando carrito...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <h3>Error al cargar el carrito</h3>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="cargarCarrito()">
+      <mat-icon>refresh</mat-icon>
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Contenido Principal -->
+  <div *ngIf="!loading && !error" class="carrito-content">
+    <!-- Carrito Vacío -->
+    <div *ngIf="carrito.length === 0" class="empty-state">
+      <mat-icon>shopping_cart</mat-icon>
+      <h3>Tu carrito está vacío</h3>
+      <p>¡Descubre nuestros productos y añade algunos a tu carrito!</p>
+      <button mat-raised-button color="primary" (click)="seguirComprando()" class="comprar-btn">
+        <mat-icon>store</mat-icon>
+        Ir al Catálogo
+      </button>
+    </div>
+
+    <!-- Carrito con Productos -->
+    <div *ngIf="carrito.length > 0" class="carrito-con-productos">
+      <!-- Información de Pago -->
+      <mat-card class="info-pago-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>credit_card</mat-icon>
+          <mat-card-title>Información de Pago</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="info-pago">
+            <div class="metodo-pago">
+              <img
+                src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_111x69.jpg"
+                width="40"
+                alt="PayPal"
+              />
+              <span><strong>Método de pago:</strong> PayPal</span>
+            </div>
+            <div class="seguridad">
+              <mat-icon>security</mat-icon>
+              <span>Pago 100% seguro mediante PayPal</span>
+            </div>
+            <!-- Información sobre PayPal real -->
+            <div class="paypal-info">
+              <mat-icon>info</mat-icon>
+              <span>Serás redirigido a PayPal para completar el pago de forma segura</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Lista de Productos -->
+      <div class="productos-section">
+        <h2>Tus Productos ({{ carrito.length }})</h2>
+        <div class="productos-list">
+          <mat-card *ngFor="let item of carrito" class="producto-item">
+            <div class="producto-content">
+              <div class="producto-image">
+                <mat-icon>spa</mat-icon>
+              </div>
+              <div class="producto-info">
+                <div class="producto-header">
+                  <h3>{{ item.producto?.nombre }}</h3>
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="eliminarDelCarrito(item)"
+                    class="eliminar-btn"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+
+                <div class="producto-details">
+                  <div class="precio-info">
+                    <span class="precio-unitario"
+                      >{{ formatCurrency(item.producto?.precio || 0) }} c/u</span
+                    >
+                    <span class="subtotal">{{ formatCurrency(item.subtotal || 0) }}</span>
+                  </div>
+
+                  <div class="stock-info" *ngIf="item.producto">
+                    <mat-icon>inventory_2</mat-icon>
+                    <span>Stock: {{ item.producto.stock }} unidades</span>
+                  </div>
+
+                  <div class="cantidad-controls">
+                    <label>Cantidad:</label>
+                    <div class="cantidad-wrapper">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        (click)="actualizarCantidad(item, item.cantidad - 1)"
+                        [disabled]="item.cantidad <= 1"
+                        class="cantidad-btn"
+                      >
+                        <mat-icon>remove</mat-icon>
+                      </button>
+
+                      <input
+                        type="number"
+                        [value]="item.cantidad"
+                        (change)="onCantidadChange(item, $event)"
+                        (blur)="validarCantidad(item)"
+                        min="1"
+                        [max]="item.producto?.stock || 0"
+                        class="cantidad-input"
+                      />
+
+                      <button
+                        mat-icon-button
+                        type="button"
+                        (click)="actualizarCantidad(item, item.cantidad + 1)"
+                        [disabled]="item.cantidad >= (item.producto?.stock || 0)"
+                        class="cantidad-btn"
+                      >
+                        <mat-icon>add</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-card>
+        </div>
+      </div>
+
+      <!-- Resumen del Pedido -->
+      <div class="resumen-section">
+        <mat-card class="resumen-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>receipt</mat-icon>
+            <mat-card-title>Resumen del Pedido</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="resumen-info">
+              <div class="resumen-item">
+                <span>Productos:</span>
+                <span class="valor">{{ cantidadTotal }}</span>
+              </div>
+              <div class="resumen-item">
+                <span>Subtotal:</span>
+                <span class="valor">{{ formatCurrency(totalCarrito) }}</span>
+              </div>
+              <div class="resumen-item">
+                <span>Envío:</span>
+                <span class="valor" [class.envio-gratuito]="getCostoEnvio() === 0" 
+                      [class.envio-pago]="getCostoEnvio() > 0">
+                  {{ calcularEnvio() }}
+                </span>
+              </div>
+              <!-- Información sobre envío gratuito -->
+              <div *ngIf="totalCarrito < 30" class="info-envio-carrito">
+                <mat-icon>local_shipping</mat-icon>
+                <span>Envío gratuito en compras superiores a 30€</span>
+              </div>
+              <div class="resumen-item total">
+                <span><strong>Total:</strong></span>
+                <span class="valor total"
+                  ><strong>{{ formatCurrency(getTotalConEnvio()) }}</strong></span
+                >
+              </div>
+            </div>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-raised-button color="warn" (click)="vaciarCarrito()" class="vaciar-btn">
+              <mat-icon>delete_sweep</mat-icon>
+              Vaciar Carrito
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="procesarVentaPaypal()"
+              class="paypal-btn"
+              [disabled]="carrito.length === 0"
+            >
+              <img
+                src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/checkout-logo-medium.png"
+                alt="PayPal"
+                width="120"
+              />
+              Pagar {{ formatCurrency(getTotalConEnvio()) }}
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="carrito-footer">
+    <p>&copy; 2025 Peluquería y Estética Selene. Todos los derechos reservados.</p>
+  </footer>
+</div>

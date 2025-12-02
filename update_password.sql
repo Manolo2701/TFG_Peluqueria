@@ -1,1 +1,0 @@
-UPDATE usuario SET password = '$2a$12$T4CGNfLrQgYrUPAl315YDeiLGHqSD4mk1WSIt6FgO2R76w8XMSlbW' WHERE email = 'pelu.selene@gmail.com';

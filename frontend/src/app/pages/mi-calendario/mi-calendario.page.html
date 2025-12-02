@@ -1,19 +1,28 @@
 <div class="mi-calendario-container">
-  <!-- Header -->
+  <!-- Header idéntico al catálogo -->
   <div class="page-header">
     <div class="header-content">
-      <h1>Mi Calendario</h1>
-      <p>Gestiona tus reservas y disponibilidad</p>
-    </div>
-    <div class="header-actions">
-      <button mat-raised-button color="primary" routerLink="/dashboard">
-        <mat-icon>arrow_back</mat-icon>
-        Volver al Dashboard
-      </button>
-      <button mat-raised-button color="accent" (click)="recargar()" [disabled]="loading">
-        <mat-icon>refresh</mat-icon>
-        Actualizar
-      </button>
+      <div class="header-main">
+        <button mat-icon-button routerLink="/dashboard" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="header-text">
+          <h1>Mi Calendario</h1>
+          <p>Gestiona tus reservas y disponibilidad</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="recargar()"
+          [disabled]="loading"
+          class="refresh-btn"
+        >
+          <mat-icon>refresh</mat-icon>
+          Actualizar
+        </button>
+      </div>
     </div>
   </div>
 
@@ -25,6 +34,7 @@
         <!-- Filtros -->
         <div class="filters-card">
           <div class="filters-container">
+            <!-- Filtro por fecha -->
             <mat-form-field appearance="outline">
               <mat-label>Seleccionar fecha</mat-label>
               <input
@@ -67,9 +77,72 @@
                 {{ mostrandoTodasLasReservas ? 'reservas totales' : 'reservas hoy' }}
               </span>
               <span class="stat-item">
-                <strong>{{ contarReservasPendientes() }}</strong> pendientes
+                <strong>{{ contarReservasPorEstado('pendientes') }}</strong> pendientes
               </span>
             </div>
+          </div>
+
+          <!-- Filtros de Estado SIMPLIFICADOS -->
+          <div class="estado-filters-container">
+            <button
+              mat-stroked-button
+              [class.active]="filtroEstado === 'todas'"
+              (click)="onFiltroEstadoChange('todas')"
+              class="estado-filtro-btn"
+            >
+              <mat-icon>list</mat-icon>
+              Todas ({{ contarReservasPorEstado('todas') }})
+            </button>
+
+            <button
+              mat-stroked-button
+              [class.active]="filtroEstado === 'pendientes'"
+              (click)="onFiltroEstadoChange('pendientes')"
+              class="estado-filtro-btn"
+            >
+              <mat-icon>schedule</mat-icon>
+              Pendientes ({{ contarReservasPorEstado('pendientes') }})
+            </button>
+
+            <button
+              mat-stroked-button
+              [class.active]="filtroEstado === 'confirmadas'"
+              (click)="onFiltroEstadoChange('confirmadas')"
+              class="estado-filtro-btn"
+            >
+              <mat-icon>check_circle</mat-icon>
+              Confirmadas ({{ contarReservasPorEstado('confirmadas') }})
+            </button>
+
+            <button
+              mat-stroked-button
+              [class.active]="filtroEstado === 'completadas'"
+              (click)="onFiltroEstadoChange('completadas')"
+              class="estado-filtro-btn"
+            >
+              <mat-icon>done_all</mat-icon>
+              Completadas ({{ contarReservasPorEstado('completadas') }})
+            </button>
+
+            <button
+              mat-stroked-button
+              [class.active]="filtroEstado === 'canceladas'"
+              (click)="onFiltroEstadoChange('canceladas')"
+              class="estado-filtro-btn"
+            >
+              <mat-icon>cancel</mat-icon>
+              Canceladas ({{ contarReservasPorEstado('canceladas') }})
+            </button>
+
+            <button
+              mat-stroked-button
+              [class.active]="filtroEstado === 'rechazadas'"
+              (click)="onFiltroEstadoChange('rechazadas')"
+              class="estado-filtro-btn"
+            >
+              <mat-icon>block</mat-icon>
+              Rechazadas ({{ contarReservasPorEstado('rechazadas') }})
+            </button>
           </div>
         </div>
 
@@ -89,7 +162,7 @@
           </button>
         </div>
 
-        <!-- Lista de reservas -->
+        <!-- Lista de Reservas Principal -->
         <div *ngIf="!loading && !error">
           <div
             *ngIf="reservasFiltradas.length === 0 && !mostrandoTodasLasReservas"
@@ -110,7 +183,11 @@
           </div>
 
           <div *ngIf="reservasFiltradas.length > 0" class="reservas-container">
-            <mat-card *ngFor="let reserva of reservasFiltradas" class="reserva-card">
+            <mat-card
+              *ngFor="let reserva of reservasFiltradas"
+              class="reserva-card"
+              [class]="'reserva-' + reserva.estado"
+            >
               <div class="reserva-header">
                 <div class="reserva-time">
                   <mat-icon>schedule</mat-icon>
@@ -120,6 +197,19 @@
                   >
                 </div>
                 <div class="reserva-status" [class]="'status-' + reserva.estado">
+                  <mat-icon>{{
+                    reserva.estado === 'pendiente'
+                      ? 'schedule'
+                      : reserva.estado === 'confirmada'
+                      ? 'check_circle'
+                      : reserva.estado === 'completada'
+                      ? 'done_all'
+                      : reserva.estado === 'cancelada'
+                      ? 'cancel'
+                      : reserva.estado === 'rechazada'
+                      ? 'block'
+                      : 'help'
+                  }}</mat-icon>
                   {{ reserva.estado | titlecase }}
                 </div>
               </div>
@@ -138,6 +228,30 @@
                     <mat-icon>euro</mat-icon>
                     <span>{{ formatCurrency(reserva.precio) }}</span>
                   </div>
+
+                  <!-- Motivo de cancelación para reservas canceladas -->
+                  <div
+                    class="info-item motivo-item"
+                    *ngIf="reserva.estado === 'cancelada' && reserva.motivo_cancelacion"
+                  >
+                    <mat-icon>chat</mat-icon>
+                    <div class="motivo-content">
+                      <span class="motivo-label">Motivo:</span>
+                      <span class="motivo-text">{{ getMotivoCancelacion(reserva) }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Motivo de rechazo para reservas rechazadas -->
+                  <div
+                    class="info-item motivo-item"
+                    *ngIf="reserva.estado === 'rechazada' && reserva.motivo_cancelacion"
+                  >
+                    <mat-icon>block</mat-icon>
+                    <div class="motivo-content">
+                      <span class="motivo-label">Motivo del rechazo:</span>
+                      <span class="motivo-text">{{ getMotivoCancelacion(reserva) }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -148,7 +262,7 @@
                 </button>
 
                 <button
-                  *ngIf="reserva.estado === 'pendiente'"
+                  *ngIf="puedeGestionarReserva(reserva)"
                   mat-raised-button
                   color="primary"
                   (click)="aceptarReserva(reserva)"
@@ -158,7 +272,7 @@
                 </button>
 
                 <button
-                  *ngIf="reserva.estado === 'pendiente'"
+                  *ngIf="puedeGestionarReserva(reserva)"
                   mat-button
                   color="warn"
                   (click)="rechazarReserva(reserva)"
@@ -166,6 +280,19 @@
                   <mat-icon>cancel</mat-icon>
                   Rechazar
                 </button>
+
+                <!-- Estados no gestionables -->
+                <div *ngIf="!puedeGestionarReserva(reserva)" class="estado-info">
+                  <mat-icon *ngIf="reserva.estado === 'confirmada'" color="primary"
+                    >check_circle</mat-icon
+                  >
+                  <mat-icon *ngIf="reserva.estado === 'completada'" color="primary"
+                    >done_all</mat-icon
+                  >
+                  <mat-icon *ngIf="reserva.estado === 'cancelada'" color="warn">cancel</mat-icon>
+                  <mat-icon *ngIf="reserva.estado === 'rechazada'" color="warn">block</mat-icon>
+                  <span>{{ reserva.estado | titlecase }}</span>
+                </div>
               </div>
             </mat-card>
           </div>
@@ -174,53 +301,47 @@
     </mat-tab>
 
     <!-- TAB 2: MIS AUSENCIAS -->
-    <mat-tab label="Mis Ausencias">
+    <mat-tab label="Ausencias">
       <div class="tab-content">
-        <div class="ausencias-header">
-          <h2>Gestión de Ausencias</h2>
+        <div class="header-actions">
+          <h3>Mis Ausencias</h3>
           <button mat-raised-button color="primary" (click)="solicitarAusencia()">
             <mat-icon>add</mat-icon>
             Solicitar Ausencia
           </button>
         </div>
 
-        <div *ngIf="ausencias.length === 0" class="no-data-card">
-          <mat-icon>beach_access</mat-icon>
-          <h3>No tienes ausencias programadas</h3>
-          <p>Puedes solicitar una ausencia cuando lo necesites</p>
+        <!-- Lista de ausencias -->
+        <div *ngIf="ausencias.length === 0" class="empty-state">
+          <mat-icon>event_busy</mat-icon>
+          <p>No tienes ausencias solicitadas.</p>
         </div>
 
-        <div *ngIf="ausencias.length > 0" class="ausencias-container">
-          <mat-card *ngFor="let ausencia of ausencias" class="ausencia-card">
+        <mat-card *ngFor="let ausencia of ausencias" class="ausencia-card">
+          <mat-card-content>
             <div class="ausencia-header">
-              <div class="ausencia-type">
-                <mat-icon>{{ getAusenciaIcon(ausencia.tipo) }}</mat-icon>
+              <div class="ausencia-info">
                 <span class="tipo">{{ ausencia.tipo | titlecase }}</span>
+                <span class="fechas">
+                  {{ ausencia.fecha_inicio | date : 'dd/MM/yyyy' }} -
+                  {{ ausencia.fecha_fin | date : 'dd/MM/yyyy' }}
+                </span>
               </div>
-              <div class="ausencia-status" [class]="'status-' + ausencia.estado">
-                {{ ausencia.estado | titlecase }}
-              </div>
+              <span class="estado" [class]="'estado-' + ausencia.estado">
+                {{ ausencia.estado }}
+              </span>
             </div>
-
-            <div class="ausencia-content">
-              <div class="ausencia-dates">
-                <div class="date-item">
-                  <mat-icon>event</mat-icon>
-                  <span>Inicio: {{ ausencia.fecha_inicio | date : 'mediumDate' }}</span>
-                </div>
-                <div class="date-item">
-                  <mat-icon>event</mat-icon>
-                  <span>Fin: {{ ausencia.fecha_fin | date : 'mediumDate' }}</span>
-                </div>
-              </div>
-
-              <div class="ausencia-motivo" *ngIf="ausencia.motivo">
-                <p><strong>Motivo:</strong> {{ ausencia.motivo }}</p>
-              </div>
-            </div>
-          </mat-card>
-        </div>
+            <p class="motivo">{{ ausencia.motivo }}</p>
+          </mat-card-content>
+        </mat-card>
       </div>
     </mat-tab>
   </mat-tab-group>
+
+  <!-- Footer idéntico al catálogo -->
+  <footer class="mi-calendario-footer">
+    <div class="footer-content">
+      <p>&copy; 2025 Peluquería y Estética Selene. Todos los derechos reservados.</p>
+    </div>
+  </footer>
 </div>

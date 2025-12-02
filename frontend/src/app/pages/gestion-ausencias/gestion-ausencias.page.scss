@@ -1,4 +1,3 @@
-// frontend/src/app/pages/gestion-ausencias/gestion-ausencias.page.scss
 .gestion-ausencias-container {
     padding: 24px;
     max-width: 1400px;
@@ -9,7 +8,8 @@
     flex-direction: column;
 }
 
-.header {
+// Header idéntico al catálogo y mi-calendario
+.page-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -20,26 +20,52 @@
     box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
     border-top: 3px solid var(--secondary);
 
-    h2 {
-        margin: 0;
-        color: var(--text-dark);
-        font-size: 2rem;
-        font-weight: 600;
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .header-main {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex: 1;
+
+        .back-button {
+            color: var(--text-dark);
+            background: var(--primary-light);
+
+            &:hover {
+                background: var(--accent);
+            }
+        }
+
+        .header-text {
+            h1 {
+                margin: 0 0 8px 0;
+                color: var(--text-dark);
+                font-size: 2rem;
+                font-weight: 600;
+            }
+
+            p {
+                margin: 0;
+                color: var(--text-medium);
+                font-size: 1.1rem;
+            }
+        }
     }
 
     .header-actions {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        flex-wrap: wrap;
-
-        button {
+        .refresh-btn {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            min-width: 140px;
-            padding: 8px 16px;
             background-color: var(--secondary) !important;
             color: var(--white) !important;
 
@@ -52,23 +78,30 @@
     }
 }
 
-.loading-state,
-.error-state {
+.content-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+// Tarjeta de error de permisos
+.error-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 80px 24px;
+    padding: 60px 24px;
     text-align: center;
     background: var(--white);
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
-    border-top: 3px solid var(--secondary);
+    border-top: 3px solid var(--warn);
 
-    .spinner-border {
-        color: var(--secondary);
-        width: 3rem;
-        height: 3rem;
+    mat-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
     }
 
     h3 {
@@ -82,139 +115,289 @@
     }
 }
 
-.table-section {
+// Estados de carga y error
+.loading-state,
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+
+    mat-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+    }
+
+    h3 {
+        margin: 16px 0 8px 0;
+        color: var(--text-dark);
+    }
+
+    p {
+        color: var(--text-medium);
+        margin-bottom: 24px;
+    }
+}
+
+.error-state {
+    border-top: 3px solid var(--warn);
+}
+
+// Estadísticas
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+
+    .stat-card {
+        background: var(--white);
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+        border-top: 3px solid var(--secondary);
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(246, 200, 202, 0.3);
+        }
+
+        .stat-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+
+            mat-icon {
+                font-size: 2.5rem;
+                width: 2.5rem;
+                height: 2.5rem;
+                color: var(--secondary);
+            }
+
+            .stat-text {
+                display: flex;
+                flex-direction: column;
+
+                .stat-number {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    color: var(--text-dark);
+                    line-height: 1;
+                }
+
+                .stat-label {
+                    font-size: 0.9rem;
+                    color: var(--text-medium);
+                    margin-top: 4px;
+                }
+            }
+        }
+    }
+}
+
+// Filtros
+.filters-card {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+    margin-bottom: 24px;
+
+    .filters-content {
+        padding: 20px;
+
+        .filter-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+
+            .filter-field {
+                min-width: 200px;
+                flex: 1;
+            }
+        }
+
+        .filter-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+
+            .filter-count {
+                color: var(--text-medium);
+                font-size: 0.9rem;
+            }
+        }
+    }
+}
+
+// Tabla
+.table-card {
     background: var(--white);
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
     border-top: 3px solid var(--secondary);
     margin-bottom: 24px;
     overflow: hidden;
+
+    .table-container {
+        overflow-x: auto;
+    }
 }
 
-.table-container {
-    overflow-x: auto;
-}
-
-.table {
+// Estilos de la tabla
+table {
     width: 100%;
-    margin: 0;
-    border-collapse: collapse;
+    background: var(--white);
 
-    thead {
-        th {
-            background-color: var(--secondary);
-            color: var(--white);
-            border: none;
-            padding: 16px;
+    .mat-header-row {
+        background: var(--primary-light);
+
+        .mat-header-cell {
+            color: var(--text-dark);
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            text-align: left;
-            position: sticky;
-            top: 0;
+            font-size: 0.9rem;
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--border-light);
 
-            &:first-child {
-                border-top-left-radius: 8px;
-            }
-
-            &:last-child {
-                border-top-right-radius: 8px;
+            &.acciones-header {
+                text-align: center;
             }
         }
     }
 
-    tbody {
-        tr {
-            transition: all 0.3s ease;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    .mat-row {
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid var(--border-light);
 
-            &:hover {
-                background-color: rgba(246, 200, 202, 0.1);
+        &:hover {
+            background-color: rgba(246, 200, 202, 0.1);
+        }
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        .mat-cell {
+            padding: 16px 20px;
+            vertical-align: middle;
+            border: none;
+
+            // Celda de trabajador
+            &.trabajador-cell {
+                .trabajador-info {
+                    .nombre {
+                        font-weight: 600;
+                        color: var(--text-dark);
+                        display: block;
+                    }
+
+                    .id {
+                        font-size: 0.8rem;
+                        color: var(--text-medium);
+                    }
+                }
             }
 
-            &:last-child {
-                border-bottom: none;
-            }
+            // Celda de fechas
+            &.fechas-cell {
 
-            td {
-                padding: 16px;
-                vertical-align: middle;
-                border: none;
+                .fecha-inicio,
+                .fecha-fin {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 0.9rem;
 
-                .badge {
-                    font-size: 0.75em;
-                    padding: 6px 12px;
-                    border-radius: 20px;
-                    font-weight: 500;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    border: none;
-
-                    // Estados de ausencia
-                    &.bg-warning {
-                        background: #fff3cd !important;
-                        color: #856404 !important;
-                    }
-
-                    &.bg-success {
-                        background: #d4edda !important;
-                        color: #155724 !important;
-                    }
-
-                    &.bg-danger {
-                        background: #f8d7da !important;
-                        color: #721c24 !important;
-                    }
-
-                    // Tipos de ausencia
-                    &.bg-info {
-                        background: #d1edff !important;
-                        color: #0c5460 !important;
-                    }
-
-                    &.bg-secondary {
-                        background: #e2e3e5 !important;
-                        color: #383d41 !important;
+                    mat-icon {
+                        font-size: 18px;
+                        width: 18px;
+                        height: 18px;
+                        color: var(--secondary);
                     }
                 }
 
-                .btn-group {
+                .fecha-inicio {
+                    margin-bottom: 4px;
+                }
+            }
+
+            // Celda de motivo
+            &.motivo-cell {
+                .motivo-text {
+                    max-width: 200px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    display: block;
+                    color: var(--text-dark);
+
+                    &:hover {
+                        overflow: visible;
+                        white-space: normal;
+                        background: var(--white);
+                        position: absolute;
+                        z-index: 10;
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                        max-width: 300px;
+                        border: 1px solid var(--border-light);
+                    }
+                }
+            }
+
+            // Celda de acciones
+            &.acciones-cell {
+                .acciones-buttons {
                     display: flex;
                     gap: 8px;
+                    justify-content: center;
 
-                    .btn {
-                        padding: 6px 12px;
-                        font-size: 0.875rem;
-                        border-radius: 6px;
-                        transition: all 0.3s ease;
+                    .action-btn {
                         display: flex;
                         align-items: center;
                         gap: 4px;
-                        border: none;
-                        font-weight: 500;
+                        font-size: 0.8rem;
+                        padding: 0 12px;
+                        min-width: auto;
 
-                        &:hover {
-                            transform: translateY(-2px);
-                            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                        &.approve-btn {
+                            background: linear-gradient(135deg, #28a745, #20c997);
+                            color: white;
                         }
 
-                        &.btn-success {
-                            background-color: #28a745 !important;
-                            color: white !important;
-
-                            &:hover {
-                                background-color: #218838 !important;
-                            }
+                        &.reject-btn {
+                            border-color: #dc3545;
+                            color: #dc3545;
                         }
+                    }
+                }
 
-                        &.btn-danger {
-                            background-color: #dc3545 !important;
-                            color: white !important;
+                .estado-gestionado {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: var(--text-medium);
+                    font-size: 0.85rem;
+                    justify-content: center;
 
-                            &:hover {
-                                background-color: #c82333 !important;
-                            }
-                        }
+                    mat-icon {
+                        color: var(--secondary);
+                        font-size: 18px;
+                        width: 18px;
+                        height: 18px;
                     }
                 }
             }
@@ -222,6 +405,73 @@
     }
 }
 
+// Badges
+.tipo-badge,
+.estado-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    border: none;
+
+    mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+    }
+}
+
+// Tipos de ausencia
+.tipo-badge {
+    &.vacaciones {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+        color: white;
+    }
+
+    &.enfermedad {
+        background: linear-gradient(135deg, #ffc107, #ffb300);
+        color: #212529;
+    }
+
+    &.personal {
+        background: linear-gradient(135deg, var(--secondary), var(--primary-dark));
+        color: white;
+    }
+
+    &.formacion {
+        background: linear-gradient(135deg, #6c757d, #5a6268);
+        color: white;
+    }
+
+    &.otro {
+        background: linear-gradient(135deg, #343a40, #23272b);
+        color: white;
+    }
+}
+
+// Estados
+.estado-badge {
+    &.pendiente {
+        background: linear-gradient(135deg, #ffc107, #ffb300);
+        color: #212529;
+    }
+
+    &.aprobado {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+    }
+
+    &.rechazado {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+    }
+}
+
+// Estado vacío
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -249,7 +499,26 @@
 
     p {
         color: var(--text-medium);
-        margin: 0;
+        margin-bottom: 24px;
+    }
+}
+
+// Footer idéntico al catálogo y mi-calendario
+.gestion-ausencias-footer {
+    margin-top: auto;
+    padding: 20px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+    color: var(--text-medium);
+
+    .footer-content {
+        p {
+            margin: 0;
+            opacity: 0.8;
+        }
     }
 }
 
@@ -259,55 +528,88 @@
         padding: 16px;
     }
 
-    .header {
+    .page-header {
         flex-direction: column;
         gap: 16px;
         text-align: center;
 
+        .header-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 16px;
+        }
+
+        .header-main {
+            flex-direction: column;
+            text-align: center;
+
+            .header-text {
+                h1 {
+                    font-size: 1.8rem;
+                }
+
+                p {
+                    font-size: 1rem;
+                }
+            }
+        }
+
         .header-actions {
             width: 100%;
-            flex-direction: column;
 
-            button {
+            .refresh-btn {
                 width: 100%;
-                margin: 4px 0;
                 justify-content: center;
             }
         }
     }
 
-    .table {
-        min-width: 800px;
+    .stats-container {
+        grid-template-columns: repeat(2, 1fr);
     }
 
-    .btn-group {
-        flex-direction: column;
-        gap: 4px;
+    .filters-content {
+        .filter-group {
+            flex-direction: column;
+
+            .filter-field {
+                min-width: 100%;
+            }
+        }
+
+        .filter-actions {
+            flex-direction: column;
+            align-items: stretch;
+
+            button {
+                width: 100%;
+            }
+        }
+    }
+
+    table {
+        min-width: 800px;
+
+        .mat-cell.acciones-cell .acciones-buttons {
+            flex-direction: column;
+            gap: 4px;
+        }
     }
 }
 
-// Mejoras visuales adicionales
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-
-    &.pending {
-        background: #fff3cd;
-        color: #856404;
+// Animaciones
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
     }
 
-    &.approved {
-        background: #d4edda;
-        color: #155724;
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
+}
 
-    &.rejected {
-        background: #f8d7da;
-        color: #721c24;
-    }
+.gestion-ausencias-container {
+    animation: fadeIn 0.5s ease;
 }

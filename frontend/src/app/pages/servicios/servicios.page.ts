@@ -9,7 +9,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
-import { ServicioService, Servicio } from '../../core/services/servicio.service';
+import { ServicioService } from '../../core/services/servicio.service'; // ✅ Solo el servicio
+import { Servicio } from '../../interfaces/servicio.interface'; // ✅ La interfaz desde su archivo
 
 @Component({
     selector: 'app-servicios',

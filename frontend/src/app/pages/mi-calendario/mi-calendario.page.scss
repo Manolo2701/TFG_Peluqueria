@@ -8,6 +8,7 @@
     flex-direction: column;
 }
 
+// Header idéntico al catálogo
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -20,35 +21,55 @@
     border-top: 3px solid var(--secondary);
 
     .header-content {
-        h1 {
-            margin: 0 0 8px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .header-main {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex: 1;
+
+        .back-button {
             color: var(--text-dark);
-            font-size: 2rem;
-            font-weight: 600;
+            background: var(--primary-light);
+
+            &:hover {
+                background: var(--accent);
+            }
         }
 
-        p {
-            margin: 0;
-            color: var(--text-medium);
-            font-size: 1.1rem;
+        .header-text {
+            h1 {
+                margin: 0 0 8px 0;
+                color: var(--text-dark);
+                font-size: 2rem;
+                font-weight: 600;
+            }
+
+            p {
+                margin: 0;
+                color: var(--text-medium);
+                font-size: 1.1rem;
+            }
         }
     }
 
     .header-actions {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        flex-wrap: wrap;
-
-        button {
+        .refresh-btn {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            min-width: 140px;
-            padding: 8px 16px;
             background-color: var(--secondary) !important;
             color: var(--white) !important;
+            padding: 12px 24px;
+            border-radius: 8px;
 
             &:hover {
                 background-color: var(--primary-dark) !important;
@@ -110,6 +131,35 @@
                     color: var(--primary-dark);
                     font-size: 1.2rem;
                 }
+            }
+        }
+    }
+
+    // Filtros de Estado
+    .estado-filters-container {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 16px 20px 0;
+        border-top: 1px solid var(--border-light);
+
+        .estado-filtro-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            padding: 6px 12px;
+
+            &.active {
+                background-color: var(--primary-light);
+                color: var(--secondary);
+                border-color: var(--secondary);
+            }
+
+            mat-icon {
+                font-size: 18px;
+                width: 18px;
+                height: 18px;
             }
         }
     }
@@ -196,6 +246,31 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(255, 109, 177, 0.2);
     }
+
+    // Estados específicos
+    &.reserva-pendiente {
+        border-left-color: #ff9800;
+    }
+
+    &.reserva-confirmada {
+        border-left-color: #4caf50;
+    }
+
+    &.reserva-completada {
+        border-left-color: #2196f3;
+    }
+
+    &.reserva-cancelada {
+        border-left-color: #f44336;
+        background: #fafafa;
+        opacity: 0.8;
+    }
+
+    &.reserva-rechazada {
+        border-left-color: #c62828;
+        background: #fafafa;
+        opacity: 0.8;
+    }
 }
 
 .reserva-header,
@@ -237,18 +312,28 @@
         }
 
         &.status-confirmada {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        &.status-completada {
             background: #d1edff;
             color: #0c5460;
+        }
+
+        &.status-cancelada {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        &.status-rechazada {
+            background: #ffebee;
+            color: #c62828;
         }
 
         &.status-aprobada {
             background: #d4edda;
             color: #155724;
-        }
-
-        &.status-rechazada {
-            background: #f8d7da;
-            color: #721c24;
         }
     }
 }
@@ -275,6 +360,37 @@
                 font-size: 18px;
                 width: 18px;
                 height: 18px;
+            }
+
+            // Estilos para motivo de cancelación/rechazo
+            &.motivo-item {
+                background: #fff3e0;
+                padding: 8px;
+                border-radius: 4px;
+                margin-top: 8px;
+                align-items: flex-start;
+
+                mat-icon {
+                    color: #ff9800;
+                }
+
+                .motivo-content {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+
+                    .motivo-label {
+                        font-weight: 600;
+                        color: #e65100;
+                        font-size: 0.8rem;
+                    }
+
+                    .motivo-text {
+                        color: var(--text-dark);
+                        font-size: 0.85rem;
+                        line-height: 1.3;
+                    }
+                }
             }
         }
     }
@@ -303,6 +419,22 @@
         display: flex;
         align-items: center;
         gap: 4px;
+    }
+
+    // Información de estado no gestionable
+    .estado-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-medium);
+        font-size: 0.85rem;
+        font-style: italic;
+
+        mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+        }
     }
 }
 
@@ -335,6 +467,25 @@
     flex-wrap: wrap;
 }
 
+// Footer idéntico al catálogo
+.mi-calendario-footer {
+    margin-top: auto;
+    padding: 20px;
+    text-align: center;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid var(--secondary);
+    color: var(--text-medium);
+
+    .footer-content {
+        p {
+            margin: 0;
+            opacity: 0.8;
+        }
+    }
+}
+
 // Estilo para el datepicker deshabilitado
 .mat-form-field-disabled .mat-form-field-outline {
     opacity: 0.5;
@@ -351,13 +502,32 @@
         gap: 16px;
         text-align: center;
 
+        .header-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 16px;
+        }
+
+        .header-main {
+            flex-direction: column;
+            text-align: center;
+
+            .header-text {
+                h1 {
+                    font-size: 1.8rem;
+                }
+
+                p {
+                    font-size: 1rem;
+                }
+            }
+        }
+
         .header-actions {
             width: 100%;
-            flex-direction: column;
 
-            button {
+            .refresh-btn {
                 width: 100%;
-                margin: 4px 0;
                 justify-content: center;
             }
         }
@@ -368,6 +538,16 @@
         align-items: stretch !important;
 
         .stats {
+            justify-content: center;
+        }
+    }
+
+    .estado-filters-container {
+        justify-content: center;
+
+        .estado-filtro-btn {
+            flex: 1;
+            min-width: 140px;
             justify-content: center;
         }
     }
@@ -395,4 +575,86 @@
             justify-content: center;
         }
     }
+}
+
+// Animaciones
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.reservas-container,
+.ausencias-container {
+    animation: fadeIn 0.5s ease;
+}
+
+// Añadir en mi-calendario.page.scss
+.ausencia-card {
+    margin-bottom: 16px;
+
+    .ausencia-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+
+        .ausencia-info {
+            .tipo {
+                font-weight: bold;
+                color: #333;
+            }
+
+            .fechas {
+                color: #666;
+                font-size: 0.9em;
+                margin-left: 12px;
+            }
+        }
+
+        .estado {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+
+            &.estado-pendiente {
+                background-color: #fff3cd;
+                color: #856404;
+            }
+
+            &.estado-aprobado {
+                background-color: #d4edda;
+                color: #155724;
+            }
+
+            &.estado-rechazado {
+                background-color: #f8d7da;
+                color: #721c24;
+            }
+        }
+    }
+
+    .motivo {
+        color: #555;
+        margin: 0;
+        line-height: 1.4;
+    }
+}
+
+.tab-content {
+    padding: 16px;
+}
+
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
 }

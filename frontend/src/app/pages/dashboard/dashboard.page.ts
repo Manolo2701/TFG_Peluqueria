@@ -1,7 +1,6 @@
-﻿// frontend/src/app/pages/dashboard/dashboard.page.ts
-import { Component, OnInit, OnDestroy } from '@angular/core';
+﻿import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 
 // Angular Material imports
 import { MatCardModule } from '@angular/material/card';
@@ -55,7 +54,9 @@ export class DashboardPage implements OnInit, OnDestroy {
   loading = true;
   error: string | null = null;
   usuario: any = null;
-  vistaTrabajadorActiva = false;
+
+  // ✅ MODIFICADO: Cargar estado desde localStorage
+  vistaTrabajadorActiva = localStorage.getItem('dashboard_vista_trabajador') === 'true';
 
   // Datos para acciones rápidas
   serviciosDisponibles: any[] = [];
@@ -67,21 +68,31 @@ export class DashboardPage implements OnInit, OnDestroy {
     private dashboardService: DashboardService,
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private cdRef: ChangeDetectorRef
   ) { }
 
   ngOnInit() {
+    // ✅ Verificar parámetros de URL para mensajes de pago
+    this.verificarEstadoPago();
+
     const userSub = this.authService.usuarioActual$.subscribe(usuario => {
       this.usuario = usuario;
 
-      // ✅ CORRECCIÓN: Cargar datos según el rol real
+      // ✅ Cargar datos según el rol real Y el estado guardado
       if (usuario?.rol === 'trabajador') {
         console.log('🔄 Cargando dashboard para trabajador normal');
         this.loadDashboardDataTrabajador();
+        // ✅ Forzar vista trabajador para usuarios con rol trabajador
+        this.vistaTrabajadorActiva = true;
+        this.guardarEstadoVista();
       } else if (usuario?.rol === 'administrador') {
         console.log('🔄 Cargando dashboard para administrador');
-        this.loadDashboardData();
+
+        // ✅ Cargar AMBOS conjuntos de datos para evitar recargas
+        this.loadBothDatasets();
       } else {
         console.log('🔄 Cargando dashboard para cliente');
         this.loadDashboardData();
@@ -90,6 +101,101 @@ export class DashboardPage implements OnInit, OnDestroy {
       this.cargarDatosEspecificosRol();
     });
     this.subs.push(userSub);
+  }
+
+  // ✅ NUEVO: Método para cargar ambos conjuntos de datos sin bloqueo
+  private loadBothDatasets() {
+    this.loading = true;
+    this.error = null;
+
+    // Cargar datos de administrador
+    const adminSub = this.dashboardService.getEstadisticas().subscribe({
+      next: (data) => {
+        console.log('📊 DATOS ADMIN RECIBIDOS:', data);
+        this.stats = this.ensureSafeStats(data);
+        this.checkLoadingComplete();
+      },
+      error: (err) => {
+        console.error('❌ ERROR cargando datos admin:', err);
+        this.stats = this.createEmptyStats();
+        this.checkLoadingComplete();
+      }
+    });
+
+    // Cargar datos de trabajador (solo si es admin)
+    const trabajadorSub = this.dashboardService.getEstadisticasTrabajador().subscribe({
+      next: (data) => {
+        console.log('📊 DATOS TRABAJADOR RECIBIDOS:', data);
+        this.statsTrabajador = this.ensureSafeStats(data);
+        this.checkLoadingComplete();
+      },
+      error: (err) => {
+        console.error('❌ ERROR cargando datos trabajador:', err);
+        // No es crítico si falla la carga de datos de trabajador
+        this.statsTrabajador = this.createEmptyStats();
+        this.checkLoadingComplete();
+      }
+    });
+
+    this.subs.push(adminSub, trabajadorSub);
+  }
+
+  // ✅ NUEVO: Verificar si ambas cargas han terminado
+  private checkLoadingComplete() {
+    // Asumimos que ambas peticiones han terminado cuando tenemos datos o errores en ambos
+    if (this.stats && this.statsTrabajador) {
+      this.loading = false;
+      this.cdRef.detectChanges();
+    }
+  }
+
+  // ✅ NUEVO: Método para guardar el estado de la vista
+  private guardarEstadoVista() {
+    localStorage.setItem('dashboard_vista_trabajador', this.vistaTrabajadorActiva.toString());
+    console.log('💾 Estado de vista guardado:', this.vistaTrabajadorActiva ? 'Trabajador' : 'Admin');
+  }
+
+  // ✅ Verificar estado de pago desde parámetros de URL
+  private verificarEstadoPago() {
+    this.route.queryParams.subscribe(params => {
+      const pagoEstado = params['pago'];
+      const ordenId = params['orden'];
+
+      console.log('🔍 Parámetros de URL recibidos:', { pagoEstado, ordenId });
+
+      if (pagoEstado === 'exitoso') {
+        const mensaje = ordenId
+          ? `¡Compra realizada exitosamente! Número de orden: ${ordenId}`
+          : '¡Compra realizada exitosamente!';
+
+        this.mostrarExito(mensaje);
+
+        // Limpiar la URL eliminando los parámetros
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {},
+          replaceUrl: true
+        });
+      } else if (pagoEstado === 'cancelado') {
+        this.mostrarError('El pago fue cancelado. Puedes intentarlo nuevamente.');
+
+        // Limpiar la URL
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {},
+          replaceUrl: true
+        });
+      } else if (pagoEstado === 'error') {
+        this.mostrarError('Ocurrió un error al procesar el pago. Por favor, intenta nuevamente.');
+
+        // Limpiar la URL
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {},
+          replaceUrl: true
+        });
+      }
+    });
   }
 
   loadDashboardData() {
@@ -113,6 +219,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.subs.push(dashboardSub);
   }
 
+  // ✅ MEJORADO: Carga de datos de trabajador con manejo de errores
   loadDashboardDataTrabajador() {
     this.loading = true;
     this.error = null;
@@ -124,12 +231,28 @@ export class DashboardPage implements OnInit, OnDestroy {
         console.log('✅ [COMPONENTE] Datos recibidos para trabajador:', data);
         this.statsTrabajador = this.ensureSafeStats(data);
         this.loading = false;
+
+        // ✅ FORZAR ACTUALIZACIÓN DE LA VISTA
+        setTimeout(() => {
+          this.cdRef.detectChanges();
+        }, 0);
       },
       error: (err) => {
         console.error('❌ [COMPONENTE] ERROR cargando vista trabajador:', err);
-        this.error = err.message || 'Error al cargar la vista de trabajador';
+
+        // ✅ MEJORADO: Manejo específico de errores
+        if (err.message.includes('No se encontró perfil de trabajador')) {
+          this.error = 'No tienes un perfil de trabajador configurado.';
+          this.mostrarError('Para usar la vista de trabajador, necesitas tener un perfil de trabajador configurado.');
+          this.vistaTrabajadorActiva = false; // Volver a vista admin
+          this.guardarEstadoVista(); // ✅ Guardar el cambio
+        } else {
+          this.error = err.message || 'Error al cargar la vista de trabajador';
+          this.mostrarError(err.message);
+        }
+
         this.loading = false;
-        this.mostrarError(err.message);
+        this.cdRef.detectChanges();
       }
     });
 
@@ -172,15 +295,20 @@ export class DashboardPage implements OnInit, OnDestroy {
   }
 
   gestionarTrabajadores() {
-    this.router.navigate(['/trabajadores']);
+    this.router.navigate(['/admin-trabajadores']);
   }
 
-  verReportes() {
-    this.router.navigate(['/reportes']);
+  // ✅ NUEVA ACCIÓN: Ver todos los clientes registrados
+  verClientesRegistrados() {
+    this.router.navigate(['/admin/clientes']);
   }
 
-  abrirConfiguracion() {
-    this.router.navigate(['/configuracion']);
+  abrirConfiguracionCompleta() {
+    this.router.navigate(['/configuracion-completa']);
+  }
+
+  gestionarAusencias() {
+    this.router.navigate(['/admin/ausencias']);
   }
 
   // Para Trabajador
@@ -190,10 +318,6 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   verMisClientes() {
     this.router.navigate(['/mis-clientes']);
-  }
-
-  gestionarServicios() {
-    this.router.navigate(['/servicios']);
   }
 
   // Para Cliente
@@ -211,7 +335,7 @@ export class DashboardPage implements OnInit, OnDestroy {
         console.log('📅 Reserva rápida creada:', result);
         this.mostrarExito('Reserva creada exitosamente');
         // Recargar datos del dashboard
-        this.loadDashboardData();
+        this.recargarDashboard();
       }
     });
   }
@@ -224,27 +348,48 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.router.navigate(['/servicios']);
   }
 
-  // Acción común para todos los roles
+  explorarProductos() {
+    this.router.navigate(['/catalogo-productos']);
+  }
+
+  // ✅ CORREGIDO: Cambiar vista SIN recargar datos
   cambiarVistaTrabajador() {
-    if (this.vistaTrabajadorActiva) {
-      // Volver a vista admin
-      this.vistaTrabajadorActiva = false;
-      console.log('🔄 Cambiando a vista Administrador');
-    } else {
-      // Activar vista trabajador
-      this.vistaTrabajadorActiva = true;
-      console.log('🔄 Cambiando a vista Trabajador');
-      // Cargar datos específicos de trabajador si no están cargados
-      if (!this.statsTrabajador) {
-        this.loadDashboardDataTrabajador();
+    // Agregar clase para transición suave
+    const dashboardContent = document.querySelector('.dashboard-content');
+    if (dashboardContent) {
+      dashboardContent.classList.add('smooth-transition');
+    }
+
+    // ✅ SIMPLEMENTE CAMBIAR LA VISTA sin recargar datos
+    this.vistaTrabajadorActiva = !this.vistaTrabajadorActiva;
+    console.log('🔄 Cambiando a vista:', this.vistaTrabajadorActiva ? 'Trabajador' : 'Admin');
+
+    // ✅ GUARDAR ESTADO en localStorage
+    this.guardarEstadoVista();
+
+    // Remover clase después de la animación
+    setTimeout(() => {
+      if (dashboardContent) {
+        dashboardContent.classList.remove('smooth-transition');
       }
+    }, 300);
+  }
+
+  // ✅ NUEVO: Método para recargar manualmente
+  recargarDashboard() {
+    if (this.isAdministrador) {
+      // Para administradores, recargar ambos conjuntos de datos
+      this.loadBothDatasets();
+    } else if (this.isTrabajador) {
+      this.loadDashboardDataTrabajador();
+    } else {
+      this.loadDashboardData();
     }
   }
 
   // Método para cerrar sesión
   logout() {
     this.authService.logout();
-    // Redirigir al login
     this.router.navigate(['/login']);
   }
 
@@ -254,7 +399,7 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   mostrarExito(mensaje: string) {
     this.snackBar.open(mensaje, 'Cerrar', {
-      duration: 3000,
+      duration: 5000,
       panelClass: ['snackbar-success']
     });
   }
@@ -266,7 +411,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     });
   }
 
-  // ✅ NUEVO MÉTODO: Crear estadísticas vacías
+  // ✅ Crear estadísticas vacías
   private createEmptyStats(): DashboardStats {
     return {
       rol: 'cliente',
@@ -282,7 +427,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     };
   }
 
-  // ✅ MÉTODO MEJORADO: Asegurar que los datos del dashboard sean seguros
+  // ✅ Asegurar que los datos del dashboard sean seguros
   private ensureSafeStats(data: any): DashboardStats {
     if (!data) {
       return this.createEmptyStats();
@@ -326,34 +471,23 @@ export class DashboardPage implements OnInit, OnDestroy {
     return this.isAdministrador && !this.vistaTrabajadorActiva;
   }
 
+  // ✅ CORREGIDO: Getter para stats que muestra correctamente el rol
   get statsParaMostrar(): DashboardStats {
-    console.log('🔍 [DEBUG] Determinando stats para mostrar:', {
-      isTrabajador: this.isTrabajador,
-      statsTrabajador: !!this.statsTrabajador,
-      vistaTrabajadorActiva: this.vistaTrabajadorActiva,
-      stats: !!this.stats
-    });
-
     // ✅ CORRECCIÓN: Si es trabajador normal, usar statsTrabajador SIEMPRE
-    if (this.usuario?.rol === 'trabajador') {
-      console.log('🎯 Usando stats de trabajador (rol trabajador)');
-      return this.statsTrabajador;
+    if (this.isTrabajador) {
+      return this.statsTrabajador || this.createEmptyStats();
     }
 
     // ✅ Si admin está en vista trabajador
     if (this.vistaTrabajadorActiva) {
-      console.log('🎯 Usando stats de trabajador (vista activa)');
-      return this.statsTrabajador;
+      return this.statsTrabajador || this.createEmptyStats();
     }
 
     // Por defecto, stats normales
-    console.log('🎯 Usando stats normales');
-    return this.stats;
+    return this.stats || this.createEmptyStats();
   }
 
   irAReservar() {
-    // Redirigir directamente a reservar sin servicio específico
-    // O mostrar un diálogo para seleccionar servicio rápido
     this.router.navigate(['/reservar']);
   }
 
@@ -382,6 +516,10 @@ export class DashboardPage implements OnInit, OnDestroy {
   formatTime(timeString: string): string {
     if (!timeString) return 'Hora no disponible';
     return timeString.substring(0, 5);
+  }
+
+  formatNumber(number: number | undefined): string {
+    return (number || 0).toString();
   }
 
   ngOnDestroy() {

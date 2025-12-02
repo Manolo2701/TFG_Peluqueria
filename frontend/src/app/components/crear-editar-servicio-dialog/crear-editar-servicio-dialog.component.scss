@@ -1,0 +1,68 @@
+.dialog-container {
+    min-width: 500px;
+    max-width: 600px;
+}
+
+.servicio-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 16px 0;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.half-width {
+    width: 48%;
+}
+
+.form-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 4%;
+}
+
+mat-dialog-actions {
+    padding: 16px 0 0 0;
+    gap: 8px;
+
+    button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+}
+
+.button-spinner {
+    margin-left: 8px;
+}
+
+// Estilos para los campos de formulario
+mat-form-field {
+    margin-bottom: 8px;
+}
+
+mat-checkbox {
+    margin: 8px 0;
+}
+
+// Responsive
+@media (max-width: 600px) {
+    .dialog-container {
+        min-width: auto;
+        width: 100vw;
+        max-width: 100vw;
+        margin: -24px;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .half-width {
+        width: 100%;
+    }
+}

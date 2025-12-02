@@ -1,0 +1,198 @@
+<div class="catalogo-container">
+  <!-- Header actualizado -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-main">
+        <button mat-icon-button routerLink="/dashboard" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="header-text">
+          <h1>Nuestros Productos</h1>
+          <p>Descubre nuestra exclusiva selección de productos de belleza y cuidado personal</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button mat-raised-button color="primary" routerLink="/carrito" class="carrito-btn">
+          <mat-icon>shopping_cart</mat-icon>
+          Ver Carrito
+          <span *ngIf="cantidadCarrito > 0" class="badge">{{ cantidadCarrito }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buscador actualizado -->
+  <section class="buscador-section">
+    <div class="buscador-container">
+      <div class="buscador-content">
+        <mat-form-field appearance="outline" class="full-width buscador-field">
+          <mat-label>¿Qué producto buscas?</mat-label>
+          <input
+            matInput
+            [(ngModel)]="terminoBusqueda"
+            (input)="onBuscarChange()"
+            (keyup.enter)="buscarProductos()"
+            placeholder="Ej: champú, crema, tratamiento..."
+          />
+          <button mat-icon-button matSuffix *ngIf="terminoBusqueda" (click)="limpiarBusqueda()">
+            <mat-icon>clear</mat-icon>
+          </button>
+          <button mat-icon-button matSuffix (click)="buscarProductos()" [disabled]="buscando">
+            <mat-icon *ngIf="!buscando">search</mat-icon>
+            <mat-spinner *ngIf="buscando" diameter="20"></mat-spinner>
+          </button>
+        </mat-form-field>
+
+        <!-- Sugerencias -->
+        <div class="sugerencias-container" *ngIf="mostrarSugerencias && sugerencias.length > 0">
+          <div
+            class="sugerencia-item"
+            *ngFor="let sugerencia of sugerencias"
+            (click)="seleccionarSugerencia(sugerencia)"
+          >
+            <mat-icon>search</mat-icon>
+            <span>{{ sugerencia }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Información de búsqueda -->
+    <div *ngIf="terminoBusqueda" class="info-busqueda">
+      <p>
+        {{ productosFiltrados.length }} producto(s) encontrado(s) para "{{ terminoBusqueda }}"
+        <button mat-button color="primary" (click)="limpiarBusqueda()">
+          <mat-icon>clear_all</mat-icon>
+          Mostrar todos
+        </button>
+      </p>
+    </div>
+  </section>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando productos...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <h3>Error al cargar el catálogo</h3>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="cargarProductos()">
+      <mat-icon>refresh</mat-icon>
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Productos Grid Actualizado -->
+  <div *ngIf="!loading && !error" class="productos-grid-container">
+    <div *ngIf="productosFiltrados.length === 0" class="empty-state">
+      <mat-icon *ngIf="buscando">search_off</mat-icon>
+      <mat-icon *ngIf="!buscando">inventory_2</mat-icon>
+      <h3>
+        {{ buscando ? 'No se encontraron productos' : 'Catálogo vacío' }}
+      </h3>
+      <p>
+        {{
+          buscando
+            ? 'Intenta con otros términos de búsqueda'
+            : 'Próximamente agregaremos nuevos productos a nuestra colección.'
+        }}
+      </p>
+      <button
+        *ngIf="buscando"
+        mat-raised-button
+        color="primary"
+        (click)="limpiarBusqueda()"
+        class="ver-todos-btn"
+      >
+        <mat-icon>list</mat-icon>
+        Ver catálogo completo
+      </button>
+    </div>
+
+    <div class="productos-grid" *ngIf="productosFiltrados.length > 0">
+      <mat-card
+        *ngFor="let producto of productosFiltrados; let i = index"
+        class="producto-card"
+        [class.low-stock]="getStockDisponible(producto) < 5 && getStockDisponible(producto) > 0"
+        [class.no-stock]="getStockDisponible(producto) === 0"
+      >
+        <!-- Badge de stock actualizado -->
+        <div class="stock-badge" [class]="getStockBadgeClass(getStockDisponible(producto))">
+          {{ getStockText(getStockDisponible(producto)) }}
+        </div>
+
+        <div class="producto-image">
+          <mat-icon>spa</mat-icon>
+        </div>
+
+        <mat-card-header>
+          <mat-card-title>{{ producto.nombre }}</mat-card-title>
+          <mat-card-subtitle>Producto de belleza</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="producto-info">
+            <div class="precio-section">
+              <span class="precio">{{ formatCurrency(producto.precio) }}</span>
+            </div>
+
+            <!-- Selector de cantidad actualizado -->
+            <div class="cantidad-selector" *ngIf="getStockDisponible(producto) > 0">
+              <label>Cantidad:</label>
+              <div class="cantidad-controls">
+                <button
+                  mat-icon-button
+                  (click)="decrementarCantidad(producto)"
+                  [disabled]="getCantidadSeleccionada(producto) <= 1"
+                  class="cantidad-btn"
+                >
+                  <mat-icon>remove</mat-icon>
+                </button>
+                <span class="cantidad-value">{{ getCantidadSeleccionada(producto) }}</span>
+                <button
+                  mat-icon-button
+                  (click)="incrementarCantidad(producto)"
+                  [disabled]="getCantidadSeleccionada(producto) >= getStockDisponible(producto)"
+                  class="cantidad-btn"
+                >
+                  <mat-icon>add</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Información de stock actualizada -->
+            <div class="stock-info" *ngIf="getStockDisponible(producto) > 0">
+              <mat-icon>inventory_2</mat-icon>
+              <span>{{ getStockDisponible(producto) }} disponibles</span>
+            </div>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions align="end">
+          <!-- Botón actualizado -->
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="agregarAlCarrito(producto)"
+            [disabled]="getStockDisponible(producto) === 0"
+            class="add-to-cart-btn"
+          >
+            <mat-icon>add_shopping_cart</mat-icon>
+            Agregar al Carrito
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Footer actualizado -->
+  <footer class="catalogo-footer">
+    <div class="footer-content">
+      <p>&copy; 2025 Peluquería y Estética Selene. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+</div>

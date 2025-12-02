@@ -55,6 +55,9 @@ export class CalendarioPage implements OnInit {
     loading = true;
     error: string | null = null;
 
+    // Nuevo: Filtro de estado
+    filtroEstado: string = 'todas'; // 'todas', 'pendientes', 'confirmadas', 'completadas', 'canceladas', 'rechazadas'
+
     displayedColumns: string[] = ['hora', 'cliente', 'servicio', 'trabajador', 'estado', 'acciones'];
 
     constructor(
@@ -148,42 +151,101 @@ export class CalendarioPage implements OnInit {
             return;
         }
 
-        // Si estamos en modo "ver todas", no filtramos por fecha
-        if (this.mostrandoTodasLasReservas) {
-            this.reservasFiltradas = [...this.reservas];
-            return;
+        let reservasFiltradas = [...this.reservas];
+
+        // 1. Aplicar filtro por estado primero
+        switch (this.filtroEstado) {
+            case 'pendientes':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'pendiente');
+                break;
+            case 'confirmadas':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'confirmada');
+                break;
+            case 'completadas':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'completada');
+                break;
+            case 'canceladas':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'cancelada');
+                break;
+            case 'rechazadas':
+                reservasFiltradas = reservasFiltradas.filter(reserva => reserva.estado === 'rechazada');
+                break;
+            case 'todas':
+            default:
+                // No filtrar por estado
+                break;
         }
 
-        if (!this.fechaSeleccionada) {
-            this.reservasFiltradas = [...this.reservas];
-            return;
+        // 2. Aplicar filtro por fecha (a menos que estemos en modo "ver todas")
+        if (!this.mostrandoTodasLasReservas) {
+            if (!this.fechaSeleccionada) {
+                // Si no hay fecha seleccionada, mostrar todas las filtradas por estado
+                this.reservasFiltradas = reservasFiltradas;
+                return;
+            }
+
+            // Filtrar por fecha
+            const fechaSeleccionadaStr = this.formatDateToLocal(this.fechaSeleccionada);
+            console.log('🔍 Filtrando por fecha (LOCAL):', fechaSeleccionadaStr);
+
+            reservasFiltradas = reservasFiltradas.filter(reserva => {
+                if (!reserva.fecha_reserva) {
+                    console.warn('Reserva sin fecha_reserva:', reserva);
+                    return false;
+                }
+
+                const reservaFechaStr = reserva.fecha_reserva;
+                const coincide = reservaFechaStr === fechaSeleccionadaStr;
+
+                return coincide;
+            });
         }
 
-        // ✅ SOLUCIÓN: Usar fecha local en lugar de UTC
-        const fechaSeleccionadaStr = this.formatDateToLocal(this.fechaSeleccionada);
-        console.log('🔍 Filtrando por fecha (LOCAL):', fechaSeleccionadaStr);
-        console.log('📅 Todas las fechas disponibles:', [...new Set(this.reservas.map(r => r.fecha_reserva))]);
-
-        this.reservasFiltradas = this.reservas.filter(reserva => {
-            if (!reserva.fecha_reserva) {
-                console.warn('Reserva sin fecha_reserva:', reserva);
-                return false;
-            }
-
-            const reservaFechaStr = reserva.fecha_reserva;
-            const coincide = reservaFechaStr === fechaSeleccionadaStr;
-
-            if (coincide) {
-                console.log('✅ Reserva coincide:', reserva.id, reserva.fecha_reserva, reserva.hora_inicio);
-            }
-
-            return coincide;
-        });
-
-        console.log(`📊 Filtradas ${this.reservasFiltradas.length} reservas para ${fechaSeleccionadaStr}`);
+        this.reservasFiltradas = reservasFiltradas;
+        console.log(`📊 Filtradas ${this.reservasFiltradas.length} reservas (estado: ${this.filtroEstado})`);
     }
 
-    // ✅ NUEVO MÉTODO: Formatear fecha a YYYY-MM-DD en hora local
+    // ✅ NUEVO MÉTODO: Cambiar filtro de estado
+    onFiltroEstadoChange(filtro: string) {
+        this.filtroEstado = filtro;
+        this.filtrarReservas();
+    }
+
+    // ✅ NUEVO MÉTODO: Contar reservas por estado
+    contarReservasPorEstado(estado: string): number {
+        if (!this.reservas || !Array.isArray(this.reservas)) {
+            return 0;
+        }
+
+        let reservasFiltradas = [...this.reservas];
+
+        // Aplicar filtro de fecha para los contadores (a menos que estemos en modo "ver todas")
+        if (!this.mostrandoTodasLasReservas && this.fechaSeleccionada) {
+            const fechaStr = this.formatDateToLocal(this.fechaSeleccionada);
+            reservasFiltradas = reservasFiltradas.filter(
+                reserva => reserva.fecha_reserva === fechaStr
+            );
+        }
+
+        switch (estado) {
+            case 'pendientes':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'pendiente').length;
+            case 'confirmadas':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'confirmada').length;
+            case 'completadas':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'completada').length;
+            case 'canceladas':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'cancelada').length;
+            case 'rechazadas':
+                return reservasFiltradas.filter(reserva => reserva.estado === 'rechazada').length;
+            case 'todas':
+                return reservasFiltradas.length;
+            default:
+                return 0;
+        }
+    }
+
+    // ✅ MÉTODO: Formatear fecha a YYYY-MM-DD en hora local
     formatDateToLocal(date: Date): string {
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -259,7 +321,7 @@ export class CalendarioPage implements OnInit {
 
     verTodasLasReservas() {
         this.mostrandoTodasLasReservas = true;
-        this.reservasFiltradas = [...this.reservas];
+        this.filtrarReservas();
         console.log('📋 Mostrando todas las reservas:', this.reservasFiltradas.length);
     }
 }

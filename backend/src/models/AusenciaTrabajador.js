@@ -4,10 +4,19 @@ class AusenciaTrabajador {
     // Crear una nueva ausencia
     static async crear(ausenciaData) {
         try {
+            console.log(`📝 [AUSENCIA_MODEL] Creando ausencia con datos:`, ausenciaData);
+            console.log(`📝 [AUSENCIA_MODEL] trabajador_id: ${ausenciaData.trabajador_id}, tipo: ${typeof ausenciaData.trabajador_id}`);
+
+            // ✅ VERIFICAR que trabajador_id es un número
+            if (typeof ausenciaData.trabajador_id !== 'number') {
+                console.error('❌ [AUSENCIA_MODEL] trabajador_id no es un número:', ausenciaData.trabajador_id);
+                throw new Error('trabajador_id debe ser un número');
+            }
+
             const [result] = await pool.execute(
                 `INSERT INTO ausencia_trabajador 
-                (trabajador_id, tipo, fecha_inicio, fecha_fin, motivo, estado) 
-                VALUES (?, ?, ?, ?, ?, ?)`,
+            (trabajador_id, tipo, fecha_inicio, fecha_fin, motivo, estado) 
+            VALUES (?, ?, ?, ?, ?, ?)`,
                 [
                     ausenciaData.trabajador_id,
                     ausenciaData.tipo,
@@ -17,25 +26,37 @@ class AusenciaTrabajador {
                     ausenciaData.estado || 'pendiente'
                 ]
             );
+
+            console.log(`✅ [AUSENCIA_MODEL] Ausencia creada con ID: ${result.insertId}`);
             return result.insertId;
         } catch (error) {
-            console.error('Error en AusenciaTrabajador.crear:', error);
+            console.error('❌ Error en AusenciaTrabajador.crear:', error);
             throw error;
         }
     }
 
-    // Obtener ausencias por trabajador
-    static async obtenerPorTrabajador(trabajadorId) {
+    // Obtener ausencias por trabajador (usa usuario_id)
+    static async obtenerPorTrabajador(usuarioId) {
         try {
+            console.log(`🔍 [AUSENCIA_MODEL] Obteniendo ausencias para usuarioId: ${usuarioId}, tipo: ${typeof usuarioId}`);
+
+            // ✅ VERIFICAR que usuarioId es un número
+            if (typeof usuarioId !== 'number') {
+                console.error('❌ [AUSENCIA_MODEL] usuarioId no es un número:', usuarioId);
+                throw new Error('usuarioId debe ser un número');
+            }
+
             const [rows] = await pool.execute(
                 `SELECT * FROM ausencia_trabajador 
-                 WHERE trabajador_id = ? 
-                 ORDER BY fecha_inicio DESC`,
-                [trabajadorId]
+             WHERE trabajador_id = ? 
+             ORDER BY fecha_inicio DESC`,
+                [usuarioId]
             );
+
+            console.log(`✅ [AUSENCIA_MODEL] Ausencias encontradas: ${rows.length}`);
             return rows;
         } catch (error) {
-            console.error('Error en AusenciaTrabajador.obtenerPorTrabajador:', error);
+            console.error('❌ Error en AusenciaTrabajador.obtenerPorTrabajador:', error);
             throw error;
         }
     }
@@ -85,29 +106,43 @@ class AusenciaTrabajador {
         }
     }
 
-    // Verificar si un trabajador tiene ausencia en una fecha específica
-    static async verificarDisponibilidad(trabajadorId, fecha) {
+    // ✅ NUEVO MÉTODO CORREGIDO: Verificar disponibilidad usando usuario_id (trabajador_id en ausencia_trabajador)
+    static async verificarDisponibilidad(usuarioId, fecha) {
         try {
+            console.log(`🔍 [VERIFICAR_DISPONIBILIDAD] Consultando ausencias para usuario_id ${usuarioId} en fecha ${fecha}`);
+
             const [rows] = await pool.execute(
                 `SELECT * FROM ausencia_trabajador 
                  WHERE trabajador_id = ? 
                  AND estado = 'aprobado'
                  AND ? BETWEEN fecha_inicio AND fecha_fin`,
-                [trabajadorId, fecha]
+                [usuarioId, fecha]  // ✅ CORRECTO: usuarioId es el trabajador_id en ausencia_trabajador
             );
-            return rows.length === 0; // True si está disponible
+
+            console.log(`📊 [VERIFICAR_DISPONIBILIDAD] Encontradas ${rows.length} ausencias aprobadas`);
+            if (rows.length > 0) {
+                console.log(`📋 Ausencias encontradas:`, rows.map(r => ({
+                    id: r.id,
+                    tipo: r.tipo,
+                    fecha_inicio: r.fecha_inicio,
+                    fecha_fin: r.fecha_fin,
+                    estado: r.estado
+                })));
+            }
+
+            return rows.length === 0; // True si está disponible (no tiene ausencias)
         } catch (error) {
-            console.error('Error en AusenciaTrabajador.verificarDisponibilidad:', error);
+            console.error('❌ Error en AusenciaTrabajador.verificarDisponibilidad:', error);
             throw error;
         }
     }
 
     // Eliminar ausencia
-    static async eliminar(id, trabajadorId) {
+    static async eliminar(id, usuarioId) {
         try {
             const [result] = await pool.execute(
                 'DELETE FROM ausencia_trabajador WHERE id = ? AND trabajador_id = ?',
-                [id, trabajadorId]
+                [id, usuarioId]
             );
             return result.affectedRows > 0;
         } catch (error) {

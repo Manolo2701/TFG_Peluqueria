@@ -1,203 +1,160 @@
-﻿const db = require('../config/database');
-
-console.log('[PAYPAL] Controlador cargado (Modo Simulación)');
+﻿const { pool } = require('../config/database');
 
 const paypalController = {
     crearOrden: async (req, res) => {
+        const connection = await pool.getConnection();
         try {
-            const { items, total, venta_id } = req.body;
+            await connection.beginTransaction();
 
-            console.log('[PAYPAL] Creando orden de pago...');
-            console.log('[PAYPAL] Items:', JSON.stringify(items));
-            console.log('[PAYPAL] Total:', total);
-            console.log('[PAYPAL] Venta ID recibida:', venta_id);
+            const { items, total } = req.body;
+            const usuarioId = req.usuario.id;
 
-            // Simulación pura - sin SDK
+            console.log('[PAYPAL] Creando orden para usuario:', usuarioId);
+
+            // Validaciones
+            if (!items || !Array.isArray(items) || items.length === 0) {
+                await connection.rollback();
+                return res.status(400).json({
+                    success: false,
+                    error: 'El carrito está vacío'
+                });
+            }
+
+            if (!total || total <= 0) {
+                await connection.rollback();
+                return res.status(400).json({
+                    success: false,
+                    error: 'Total inválido'
+                });
+            }
+
+            // Verificar stock
+            const problemasStock = [];
+            for (const item of items) {
+                const [producto] = await connection.execute(
+                    'SELECT stock, nombre FROM producto WHERE id = ?',
+                    [item.producto_id]
+                );
+
+                if (producto.length === 0) {
+                    problemasStock.push(`Producto ID ${item.producto_id} no encontrado`);
+                } else if (producto[0].stock < item.cantidad) {
+                    problemasStock.push(`Stock insuficiente para ${producto[0].nombre}: disponible ${producto[0].stock}, solicitado ${item.cantidad}`);
+                }
+            }
+
+            if (problemasStock.length > 0) {
+                await connection.rollback();
+                return res.status(400).json({
+                    success: false,
+                    error: 'Problemas de stock',
+                    detalles: problemasStock
+                });
+            }
+
+            // ✅ GENERAR ID DE TRANSACCIÓN ÚNICO
+            const transaccionId = 'PED-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase();
             const mockOrderId = 'MOCK-PAYPAL-' + Date.now();
-            const mockApprovalUrl = 'https://www.sandbox.paypal.com/checkoutnow?token=MOCK_TOKEN_' + Date.now();
 
-            let ventaId = venta_id;
+            console.log(`[PAYPAL] Transacción ID: ${transaccionId}`);
 
-            // ✅ CORRECCIÓN DEFINITIVA: Usar 'transferencia' como método de pago (valor permitido en ENUM)
-            if (!venta_id) {
-                try {
-                    console.log('[PAYPAL] 🔄 Creando nueva venta automáticamente...');
+            // ✅ CREAR VENTA CON TRANSACCIÓN ID
+            const [ventaResult] = await connection.execute(
+                'INSERT INTO venta (cliente_id, total, estado, metodo_pago, transaccion_id, fecha_venta) VALUES (?, ?, "completada", "paypal", ?, NOW())',
+                [usuarioId, total, transaccionId]
+            );
 
-                    // Crear nueva venta - usar 'transferencia' que es un valor permitido
-                    const [result] = await db.pool.execute(
-                        'INSERT INTO venta (cliente_id, total, estado, metodo_pago, fecha_venta) VALUES (?, ?, "pendiente", "transferencia", NOW())',
-                        [1, total] // cliente_id 1 por defecto
-                    );
+            const ventaId = ventaResult.insertId;
+            console.log('[PAYPAL] ✅ Venta creada con ID:', ventaId, 'Transacción:', transaccionId);
 
-                    ventaId = result.insertId;
-                    console.log('[PAYPAL] ✅ NUEVA VENTA CREADA con ID:', ventaId);
+            // Crear detalles y actualizar stock
+            for (const item of items) {
+                await connection.execute(
+                    'INSERT INTO venta_detalle (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)',
+                    [ventaId, item.producto_id, item.cantidad, item.precio, item.precio * item.cantidad]
+                );
 
-                } catch (dbError) {
-                    console.log('[PAYPAL] ❌ ERROR creando venta:', dbError.message);
+                await connection.execute(
+                    'UPDATE producto SET stock = stock - ? WHERE id = ?',
+                    [item.cantidad, item.producto_id]
+                );
 
-                    // Si falla, intentar con cliente_id NULL
-                    try {
-                        console.log('[PAYPAL] 🔄 Reintentando con cliente_id NULL...');
-                        const [result] = await db.pool.execute(
-                            'INSERT INTO venta (cliente_id, total, estado, metodo_pago, fecha_venta) VALUES (NULL, ?, "pendiente", "transferencia", NOW())',
-                            [total]
-                        );
-                        ventaId = result.insertId;
-                        console.log('[PAYPAL] ✅ VENTA CREADA con cliente_id NULL, ID:', ventaId);
-                    } catch (secondError) {
-                        console.log('[PAYPAL] ❌ ERROR también con cliente_id NULL:', secondError.message);
-                        // En caso de error extremo, asignar un ID temporal
-                        ventaId = 1000 + Math.floor(Math.random() * 1000);
-                        console.log('[PAYPAL] ⚠️ Usando ID temporal:', ventaId);
-                    }
-                }
-            } else {
-                // ✅ VERIFICAR SI LA VENTA EXISTE antes de actualizar
-                try {
-                    console.log('[PAYPAL] 🔄 Verificando si venta existe ID:', venta_id);
-                    const [existingVenta] = await db.pool.execute(
-                        'SELECT id FROM venta WHERE id = ?',
-                        [venta_id]
-                    );
-
-                    if (existingVenta.length === 0) {
-                        console.log('[PAYPAL] ⚠️ Venta no existe, creando nueva...');
-                        try {
-                            const [result] = await db.pool.execute(
-                                'INSERT INTO venta (id, cliente_id, total, estado, metodo_pago, fecha_venta) VALUES (?, 1, ?, "pendiente", "transferencia", NOW())',
-                                [venta_id, total]
-                            );
-                            console.log('[PAYPAL] ✅ VENTA CREADA con ID específico:', venta_id);
-                        } catch (insertError) {
-                            console.log('[PAYPAL] ❌ ERROR creando venta con ID específico:', insertError.message);
-                            // Si falla, crear con auto-increment
-                            const [result] = await db.pool.execute(
-                                'INSERT INTO venta (cliente_id, total, estado, metodo_pago, fecha_venta) VALUES (1, ?, "pendiente", "transferencia", NOW())',
-                                [total]
-                            );
-                            ventaId = result.insertId;
-                            console.log('[PAYPAL] ✅ VENTA CREADA con auto-increment, ID:', ventaId);
-                        }
-                    } else {
-                        console.log('[PAYPAL] ✅ Venta ya existe, procediendo con actualización');
-                    }
-                } catch (dbError) {
-                    console.log('[PAYPAL] ❌ ERROR verificando/creando venta:', dbError.message);
-                }
+                console.log(`[PAYPAL] ✅ Stock actualizado: producto ${item.producto_id}, -${item.cantidad} unidades`);
             }
 
-            console.log('[PAYPAL] 🔍 Venta ID final a usar:', ventaId);
+            // Vaciar carrito
+            await connection.execute(
+                'DELETE FROM carrito_item WHERE usuario_id = ?',
+                [usuarioId]
+            );
 
-            // ✅ ACTUALIZAR VENTA CON DATOS PAYPAL
-            if (ventaId) {
-                try {
-                    console.log('[PAYPAL] 🔄 Actualizando venta con datos PayPal...');
-                    const [result] = await db.pool.execute(
-                        'UPDATE venta SET paypal_order_id = ?, estado = "pendiente" WHERE id = ?',
-                        [mockOrderId, ventaId]
-                    );
+            console.log('[PAYPAL] ✅ Carrito vaciado para usuario:', usuarioId);
 
-                    console.log('[PAYPAL] 🔍 Resultado de actualización - affectedRows:', result.affectedRows);
+            await connection.commit();
 
-                    if (result.affectedRows > 0) {
-                        console.log('[PAYPAL] ✅ Order ID guardado en venta:', ventaId);
-                    } else {
-                        console.log('[PAYPAL] ⚠️ No se pudo actualizar venta (no existe):', ventaId);
-                    }
-                } catch (dbError) {
-                    console.log('[PAYPAL] ❌ ERROR actualizando venta:', dbError.message);
-                }
-            } else {
-                console.log('[PAYPAL] ❌ No hay ventaId válido para actualizar');
-            }
+            // ✅ MODIFICADO: Redirigir directamente al recibo
+            const mockApprovalUrl = `http://localhost/confirmacion-compra?venta_id=${ventaId}&orden=${transaccionId}`;
 
-            // Respuesta de simulación
-            const responseData = {
+            res.json({
                 success: true,
                 orderID: mockOrderId,
-                approvalUrl: mockApprovalUrl,
-                status: 'CREATED',
+                transaccionId: transaccionId,
                 venta_id: ventaId,
-                message: 'Orden de PayPal simulada - Desarrollo'
-            };
-
-            console.log('[PAYPAL] 📤 Enviando respuesta:', JSON.stringify(responseData));
-            res.json(responseData);
+                approvalUrl: mockApprovalUrl,
+                status: 'COMPLETED',
+                message: '✅ Compra procesada exitosamente',
+                detalles: {
+                    numeroPedido: transaccionId,
+                    total: total,
+                    items: items.length,
+                    fecha: new Date().toISOString()
+                },
+                paypalReal: false // ✅ Indicar que es simulación
+            });
 
         } catch (error) {
+            await connection.rollback();
             console.error('[PAYPAL] ❌ ERROR en crearOrden:', error);
+
             res.status(500).json({
                 success: false,
-                message: 'Error al crear orden de pago',
-                error: error.message
+                error: 'Error al procesar la compra: ' + error.message
             });
+        } finally {
+            connection.release();
         }
     },
 
     capturarPago: async (req, res) => {
+        console.log('[PAYPAL] capturarPago llamado pero no necesario en simulación');
+        res.json({
+            success: true,
+            message: 'Pago ya procesado en crearOrden',
+            status: 'COMPLETED',
+            paypalReal: false
+        });
+    },
+
+    exito: async (req, res) => {
         try {
-            const { orderID } = req.body;
-
-            console.log('[PAYPAL] Capturando pago para orden:', orderID);
-
-            // Simular captura exitosa
-            const mockCaptureId = 'MOCK-CAPTURE-' + Date.now();
-
-            // ✅ ACTUALIZAR VENTA COMO COMPLETADA - usar 'transferencia' como método de pago
-            try {
-                const [result] = await db.pool.execute(
-                    `UPDATE venta 
-                     SET estado = 'completada', 
-                         metodo_pago = 'transferencia', 
-                         paypal_capture_id = ?,
-                         fecha_pago = NOW()
-                     WHERE paypal_order_id = ?`,
-                    [mockCaptureId, orderID]
-                );
-
-                console.log('[PAYPAL] 🔍 Resultado captura - affectedRows:', result.affectedRows);
-
-                if (result.affectedRows > 0) {
-                    console.log('[PAYPAL] ✅ Venta actualizada como completada');
-                } else {
-                    console.log('[PAYPAL] ⚠️ No se pudo actualizar venta (no encontrada)');
-                }
-            } catch (dbError) {
-                console.log('[PAYPAL] ❌ ERROR actualizando venta:', dbError.message);
-            }
-
-            res.json({
-                success: true,
-                message: 'Pago simulado completado exitosamente',
-                captureID: mockCaptureId,
-                status: 'COMPLETED',
-                orderID: orderID
-            });
-
+            const { token } = req.query;
+            console.log('[PAYPAL] Redirigiendo desde éxito - token:', token);
+            // ✅ MODIFICADO: Redirigir al recibo
+            res.redirect('http://localhost:4200/confirmacion-compra?orden=' + (token || ''));
         } catch (error) {
-            console.error('[PAYPAL] ❌ ERROR en capturarPago:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error al procesar pago',
-                error: error.message
-            });
+            console.error('[PAYPAL] ❌ ERROR en exito:', error);
+            res.redirect('http://localhost:4200/confirmacion-compra?pago=error');
         }
     },
 
-    exito: (req, res) => {
-        console.log('[PAYPAL] Pago exitoso - redireccion desde PayPal');
-        res.json({
-            success: true,
-            message: '¡Pago completado exitosamente! Gracias por tu compra.'
-        });
-    },
-
-    cancelar: (req, res) => {
-        console.log('[PAYPAL] Pago cancelado - redireccion desde PayPal');
-        res.json({
-            success: false,
-            message: 'Pago cancelado por el usuario.'
-        });
+    cancelar: async (req, res) => {
+        try {
+            console.log('[PAYPAL] Pago cancelado');
+            res.redirect('http://localhost:4200/carrito?pago=cancelado');
+        } catch (error) {
+            console.error('[PAYPAL] ❌ ERROR en cancelar:', error);
+            res.redirect('http://localhost:4200/carrito?pago=error');
+        }
     }
 };
 

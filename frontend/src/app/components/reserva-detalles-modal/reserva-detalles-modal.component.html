@@ -91,14 +91,53 @@
 
             <div class="politica-info" *ngIf="mostrarInformacionCliente">
               <mat-icon>info</mat-icon>
-              <span class="politica-text">{{ getDescripcionPoliticaCancelacion() }}</span>
+              <span class="politica-text">Sistema de políticas de cancelación en desarrollo</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección para motivo de rechazo -->
+        <div
+          class="motivo-rechazo-section"
+          *ngIf="esReservaRechazada() && mostrarInformacionCliente"
+        >
+          <h4>Información del rechazo</h4>
+          <div class="motivo-rechazo-content">
+            <mat-icon>warning</mat-icon>
+            <div class="motivo-text">
+              <p><strong>Esta reserva fue rechazada por el profesional</strong></p>
+              <p><strong>Motivo:</strong> {{ getMotivoRechazo() }}</p>
+              <p class="sugerencia">
+                Puedes intentar reservar con otro profesional o en otro horario.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección para motivo de cancelación -->
+        <div class="motivo-cancelacion-section" *ngIf="esReservaCancelada()">
+          <h4>Información de cancelación</h4>
+          <div class="motivo-cancelacion-content">
+            <mat-icon>cancel</mat-icon>
+            <div class="motivo-text">
+              <p><strong>Esta reserva fue cancelada</strong></p>
+              <p><strong>Motivo:</strong> {{ getMotivoCancelacion() }}</p>
+              <p *ngIf="getFechaCancelacion()" class="fecha-cancelacion">
+                <strong>Fecha de cancelación:</strong> {{ getFechaCancelacion() }}
+              </p>
+              <p *ngIf="getPoliticaCancelacionAplicada()" class="politica-cancelacion">
+                <strong>Política aplicada:</strong> {{ getPoliticaCancelacionAplicada() }}
+              </p>
+              <p *ngIf="getPenalizacionAplicada()" class="penalizacion">
+                <strong>Penalización aplicada:</strong> Sistema en desarrollo
+              </p>
             </div>
           </div>
         </div>
 
         <!-- Notas del cliente -->
         <div class="notas-section" *ngIf="data.reserva.notas">
-          <h4>Tus notas:</h4>
+          <h4>Notas:</h4>
           <p class="notas-text">{{ data.reserva.notas }}</p>
         </div>
 
@@ -142,7 +181,7 @@
             <div class="cliente-item">
               <mat-icon>calendar_today</mat-icon>
               <div class="cliente-text">
-                <span class="cliente-label">Reservado el</span>
+                <span class="cliente-label">Reservado el </span>
                 <span class="cliente-value">{{ formatDateTime(getFechaCreacion()) }}</span>
               </div>
             </div>
@@ -150,7 +189,7 @@
             <div class="cliente-item" *ngIf="!esReservaCancelable()">
               <mat-icon>warning</mat-icon>
               <div class="cliente-text">
-                <span class="cliente-label">No cancelable</span>
+                <span class="cliente-label">No cancelable: </span>
                 <span class="cliente-value">Esta reserva ya ha pasado o está muy próxima</span>
               </div>
             </div>

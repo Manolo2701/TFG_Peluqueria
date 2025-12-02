@@ -1,0 +1,162 @@
+<div class="clientes-container">
+  <!-- Header idéntico al catálogo -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-main">
+        <button mat-icon-button routerLink="/dashboard" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="header-text">
+          <h1>Mis Clientes</h1>
+          <p>Gestiona la información de tus clientes y su historial de servicios</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button mat-raised-button color="primary" (click)="cargarClientes()" class="refresh-btn">
+          <mat-icon>refresh</mat-icon>
+          Actualizar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando clientes...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <mat-icon color="warn">error_outline</mat-icon>
+    <h3>Error al cargar los clientes</h3>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="cargarClientes()">
+      <mat-icon>refresh</mat-icon>
+      Reintentar
+    </button>
+  </div>
+
+  <!-- Contenido principal -->
+  <div *ngIf="!loading && !error" class="clientes-content">
+    <!-- Barra de estadísticas -->
+    <div *ngIf="clientes.length > 0" class="stats-bar">
+      <div class="stat-item">
+        <mat-icon>groups</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ clientes.length }}</span>
+          <span class="stat-label">Clientes Totales</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <mat-icon>event_note</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ getTotalReservas() }}</span>
+          <span class="stat-label">Total Reservas</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid de clientes -->
+    <div *ngIf="clientes.length > 0" class="clientes-grid">
+      <mat-card *ngFor="let cliente of clientes; let i = index" class="cliente-card">
+        <div class="cliente-avatar-section">
+          <div class="cliente-avatar">
+            <mat-icon>person</mat-icon>
+          </div>
+        </div>
+
+        <mat-card-header>
+          <mat-card-title>{{ cliente.nombre }} {{ cliente.apellidos }}</mat-card-title>
+          <mat-card-subtitle>{{ cliente.totalReservas }} reserva(s)</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="cliente-info">
+            <div class="info-section">
+              <div class="info-item">
+                <mat-icon>email</mat-icon>
+                <span>{{ cliente.email }}</span>
+              </div>
+              <div class="info-item" *ngIf="cliente.telefono">
+                <mat-icon>phone</mat-icon>
+                <span>{{ cliente.telefono }}</span>
+              </div>
+              <div class="info-item" *ngIf="!cliente.telefono">
+                <mat-icon>phone_disabled</mat-icon>
+                <span>Sin teléfono</span>
+              </div>
+              <div class="info-item">
+                <mat-icon>event</mat-icon>
+                <span>Última visita: {{ formatDate(cliente.ultimaVisita) }}</span>
+              </div>
+            </div>
+
+            <div class="servicios-utilizados" *ngIf="cliente.serviciosUtilizados.length > 0">
+              <h4>Servicios utilizados:</h4>
+              <mat-chip-listbox>
+                <mat-chip
+                  *ngFor="let servicio of cliente.serviciosUtilizados"
+                  [title]="servicio"
+                  class="servicio-chip"
+                >
+                  {{ servicio }}
+                </mat-chip>
+              </mat-chip-listbox>
+            </div>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions align="end">
+          <button mat-button color="primary" (click)="verHistorial(cliente)" class="action-btn">
+            <mat-icon>history</mat-icon>
+            Historial
+          </button>
+          <button
+            mat-button
+            color="accent"
+            (click)="contactarCliente(cliente)"
+            *ngIf="cliente.telefono"
+            class="action-btn"
+          >
+            <fa-icon [icon]="faWhatsapp"></fa-icon>
+            WhatsApp
+          </button>
+          <button
+            mat-button
+            color="warn"
+            (click)="llamarCliente(cliente)"
+            *ngIf="cliente.telefono"
+            class="action-btn"
+          >
+            <mat-icon>call</mat-icon>
+            Llamar
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="clientes.length === 0" class="empty-state">
+      <mat-icon>group_off</mat-icon>
+      <h3>No tienes clientes aún</h3>
+      <p>Cuando tengas reservas confirmadas, tus clientes aparecerán aquí.</p>
+      <button
+        mat-raised-button
+        color="primary"
+        routerLink="/reservas-disponibles"
+        class="ver-todos-btn"
+      >
+        <mat-icon>event_available</mat-icon>
+        Ver Reservas Disponibles
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer idéntico al catálogo -->
+  <footer class="clientes-footer">
+    <div class="footer-content">
+      <p>&copy; 2025 Peluquería y Estética Selene. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+</div>

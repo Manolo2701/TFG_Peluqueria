@@ -1,11 +1,14 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 export interface ReservaDetallesData {
   reserva: any;
@@ -24,7 +27,10 @@ export interface ReservaDetallesData {
     MatIconModule,
     MatCardModule,
     MatDividerModule,
-    MatChipsModule
+    MatChipsModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule
   ],
   providers: [DatePipe],
   templateUrl: './reserva-detalles-modal.component.html',
@@ -49,11 +55,12 @@ export class ReservaDetallesModalComponent implements OnInit {
   constructor(
     public dialogRef: MatDialogRef<ReservaDetallesModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ReservaDetallesData,
-    private datePipe: DatePipe
+    private datePipe: DatePipe,
+    private dialog: MatDialog,
+    private fb: FormBuilder
   ) { }
 
   ngOnInit() {
-    console.log('🔍 DATOS COMPLETOS DE LA RESERVA EN MODAL:', JSON.stringify(this.data.reserva, null, 2));
     this.cargarUsuarioYVista();
     this.verificarPermisos();
   }
@@ -69,13 +76,6 @@ export class ReservaDetallesModalComponent implements OnInit {
     this.esVistaTrabajador = this.data.esVistaTrabajador || false;
     this.rolReal = this.usuario?.rol || '';
     this.contexto = this.data.contexto || 'calendario-general';
-
-    console.log('👤 Contexto del modal:', {
-      usuario: this.usuario,
-      rolReal: this.rolReal,
-      esVistaTrabajador: this.esVistaTrabajador,
-      contexto: this.contexto
-    });
   }
 
   // === MÉTODOS ROBUSTOS PARA DATOS ===
@@ -83,17 +83,14 @@ export class ReservaDetallesModalComponent implements OnInit {
   getNombreCliente(): string {
     const reserva = this.data.reserva;
 
-    // Formato anidado (endpoint trabajadores)
     if (reserva.cliente && reserva.cliente.nombre) {
       return `${reserva.cliente.nombre} ${reserva.cliente.apellidos || ''}`.trim();
     }
 
-    // Formato plano (endpoint calendario general)
     if (reserva.cliente_nombre && reserva.cliente_apellidos) {
       return `${reserva.cliente_nombre} ${reserva.cliente_apellidos}`;
     }
 
-    // Por ID
     if (reserva.cliente_id) {
       return `Cliente #${reserva.cliente_id}`;
     }
@@ -104,18 +101,15 @@ export class ReservaDetallesModalComponent implements OnInit {
   getNombreTrabajador(): string {
     const reserva = this.data.reserva;
 
-    // PRIORIDAD 1: Objeto trabajador completo con nombre y apellidos
     if (reserva.trabajador && reserva.trabajador.nombre && reserva.trabajador.apellidos) {
       const nombreCompleto = `${reserva.trabajador.nombre} ${reserva.trabajador.apellidos}`.trim();
       return nombreCompleto;
     }
 
-    // PRIORIDAD 2: Campos planos del JOIN (formato calendario general)
     if (reserva.trabajador_nombre && reserva.trabajador_apellidos) {
       return `${reserva.trabajador_nombre} ${reserva.trabajador_apellidos}`;
     }
 
-    // PRIORIDAD 3: Solo tenemos el ID
     if (reserva.trabajador_id) {
       return `Trabajador #${reserva.trabajador_id}`;
     }
@@ -126,7 +120,6 @@ export class ReservaDetallesModalComponent implements OnInit {
   getPrecioServicio(): number {
     const reserva = this.data.reserva;
 
-    // Todas las ubicaciones posibles del precio (de mayor a menor prioridad)
     const posiblesPrecios = [
       reserva.precio,
       reserva.servicio_precio,
@@ -163,8 +156,7 @@ export class ReservaDetallesModalComponent implements OnInit {
   }
 
   getPoliticaCancelacion(): string {
-    const reserva = this.data.reserva;
-    return reserva.politica_cancelacion || 'flexible';
+    return 'flexible';
   }
 
   getNotasInternas(): string {
@@ -175,12 +167,10 @@ export class ReservaDetallesModalComponent implements OnInit {
   getNombreServicio(): string {
     const reserva = this.data.reserva;
 
-    // Formato anidado (endpoint trabajadores)
     if (reserva.servicio && reserva.servicio.nombre) {
       return reserva.servicio.nombre;
     }
 
-    // Formato plano (endpoint calendario general)
     if (reserva.servicio_nombre) {
       return reserva.servicio_nombre;
     }
@@ -191,17 +181,14 @@ export class ReservaDetallesModalComponent implements OnInit {
   getDuracionServicio(): number {
     const reserva = this.data.reserva;
 
-    // Formato anidado (endpoint trabajadores)
     if (reserva.servicio && reserva.servicio.duracion !== undefined) {
       return reserva.servicio.duracion;
     }
 
-    // Formato plano (endpoint calendario general)
     if (reserva.servicio_duracion !== undefined) {
       return reserva.servicio_duracion;
     }
 
-    // Duración directa
     if (reserva.duracion !== undefined) {
       return reserva.duracion;
     }
@@ -234,7 +221,7 @@ export class ReservaDetallesModalComponent implements OnInit {
     return this.datePipe.transform(dateTimeString, 'medium') || dateTimeString;
   }
 
-  // === PERMISOS Y ACCIONES - MODIFICADO PARA CLIENTES ===
+  // === PERMISOS Y ACCIONES ===
 
   getVistaEfectiva(): string {
     if (this.rolReal === 'administrador' && this.esVistaTrabajador) {
@@ -249,8 +236,6 @@ export class ReservaDetallesModalComponent implements OnInit {
     const reserva = this.data.reserva;
     const vistaEfectiva = this.getVistaEfectiva();
 
-    console.log('🔐 Verificando permisos en contexto:', this.contexto);
-
     // Resetear permisos
     this.esModoSoloLectura = true;
     this.puedeAceptarReserva = false;
@@ -263,22 +248,23 @@ export class ReservaDetallesModalComponent implements OnInit {
     if (vistaEfectiva === 'cliente') {
       this.mostrarInformacionCliente = true;
 
-      // El cliente puede cancelar sus propias reservas si están pendientes o confirmadas
-      // y la fecha de la reserva es futura
       if (reserva.cliente_id === this.usuario.id) {
         const ahora = new Date();
         const fechaReserva = new Date(reserva.fecha_reserva + 'T' + reserva.hora_inicio);
         const esFutura = fechaReserva > ahora;
 
-        this.puedeCancelarComoCliente = (reserva.estado === 'pendiente' || reserva.estado === 'confirmada') && esFutura;
+        // ✅ CORRECCIÓN: No permitir cancelar reservas rechazadas
+        this.puedeCancelarComoCliente =
+          (reserva.estado === 'pendiente' || reserva.estado === 'confirmada') &&
+          esFutura &&
+          reserva.estado !== 'rechazada'; // ✅ Nueva condición
+
         this.esModoSoloLectura = !this.puedeCancelarComoCliente;
       }
       return;
     }
-
     // === PERMISOS ORIGINALES PARA TRABAJADORES/ADMIN ===
     if (this.contexto === 'calendario-general') {
-      // Vista solo lectura para calendario general
       return;
     }
 
@@ -292,14 +278,6 @@ export class ReservaDetallesModalComponent implements OnInit {
       this.puedeCancelarReserva = reserva.cliente_id === this.usuario.id;
       this.esModoSoloLectura = !this.puedeCancelarReserva;
     }
-
-    console.log('🎯 Permisos finales:', {
-      soloLectura: this.esModoSoloLectura,
-      puedeAceptar: this.puedeAceptarReserva,
-      puedeCancelar: this.puedeCancelarReserva,
-      puedeEditar: this.puedeEditarReserva,
-      puedeCancelarComoCliente: this.puedeCancelarComoCliente
-    });
   }
 
   aceptarReserva() {
@@ -313,15 +291,34 @@ export class ReservaDetallesModalComponent implements OnInit {
     });
   }
 
+  // CORREGIDO: Cancelación directa sin abrir otro diálogo
   cancelarReserva() {
-    // Manejar tanto la cancelación de trabajadores como de clientes
     if (!this.puedeCancelarReserva && !this.puedeCancelarComoCliente) {
       console.warn('❌ No tienes permisos para cancelar esta reserva');
       return;
     }
-    this.dialogRef.close({
-      accion: 'cancelada',
-      reserva: this.data.reserva
+
+    // Abrir diálogo de cancelación directo
+    const dialogRef = this.dialog.open(DialogoCancelacionSimpleComponent, {
+      width: '400px',
+      data: {
+        reserva: this.data.reserva
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Usar la política de la reserva - CORREGIDO: cliente no elige política
+        const politica = this.data.reserva.politica_cancelacion || 'flexible';
+
+        // Cerrar el modal con todos los datos necesarios
+        this.dialogRef.close({
+          accion: 'cancelada',
+          reserva: this.data.reserva,
+          motivo: result.motivo,
+          politica: politica
+        });
+      }
     });
   }
 
@@ -379,17 +376,7 @@ export class ReservaDetallesModalComponent implements OnInit {
   // === MÉTODOS ESPECÍFICOS PARA CLIENTES ===
 
   getDescripcionPoliticaCancelacion(): string {
-    const politica = this.getPoliticaCancelacion();
-    switch (politica) {
-      case 'flexible':
-        return 'Cancelación gratuita hasta 24 horas antes';
-      case 'moderada':
-        return '25% de penalización si se cancela con menos de 48 horas';
-      case 'estricta':
-        return '50% de penalización si se cancela con menos de 72 horas';
-      default:
-        return 'Política de cancelación estándar';
-    }
+    return 'Sistema de políticas de cancelación en desarrollo. Próximamente disponible.';
   }
 
   esReservaCancelable(): boolean {
@@ -399,23 +386,301 @@ export class ReservaDetallesModalComponent implements OnInit {
 
     const ahora = new Date();
     const fechaReserva = new Date(this.data.reserva.fecha_reserva + 'T' + this.data.reserva.hora_inicio);
-    return fechaReserva > ahora;
+
+    // ✅ CORRECCIÓN: No es cancelable si ya pasó o si está rechazada
+    return fechaReserva > ahora && this.data.reserva.estado !== 'rechazada';
   }
 
   // Método auxiliar para iconos de estado
   getEstadoIcon(estado: string): string {
     switch (estado) {
-      case 'confirmada':
-        return 'check_circle';
-      case 'pendiente':
-        return 'schedule';
-      case 'cancelada':
-        return 'cancel';
-      case 'completada':
-        return 'done_all';
-      default:
-        return 'help';
+      case 'confirmada': return 'check_circle';
+      case 'pendiente': return 'schedule';
+      case 'cancelada': return 'cancel';
+      case 'completada': return 'done_all';
+      case 'rechazada': return 'block';
+      default: return 'help';
     }
   }
 
+  // Método para obtener el motivo del rechazo
+  getMotivoRechazo(): string {
+    const reserva = this.data.reserva;
+
+    // Primero intentar obtener del motivo_cancelacion
+    if (reserva.motivo_cancelacion && reserva.estado === 'rechazada') {
+      return reserva.motivo_cancelacion;
+    }
+
+    // Si no, buscar en las notas internas
+    if (reserva.notas_internas) {
+      const lineas = reserva.notas_internas.split('\n');
+      const lineaRechazo = lineas.find((linea: string | string[]) =>
+        linea.includes('RECHAZADA POR TRABAJADOR') ||
+        linea.includes('Rechazada por trabajador')
+      );
+      if (lineaRechazo) {
+        // Extraer solo el motivo, quitando el prefijo
+        return lineaRechazo.replace(/RECHAZADA POR TRABAJADOR.*?:/, '')
+          .replace(/Rechazada por trabajador.*?:/, '')
+          .trim();
+      }
+    }
+
+    return 'Motivo no especificado';
+  }
+
+  // Método para verificar si es una reserva rechazada
+  esReservaRechazada(): boolean {
+    return this.data.reserva.estado === 'rechazada';
+  }
+
+  // === NUEVOS MÉTODOS PARA CANCELACIONES - CORREGIDOS ===
+
+  // Método para verificar si es una reserva cancelada
+  esReservaCancelada(): boolean {
+    return this.data.reserva.estado === 'cancelada';
+  }
+
+  // Método CORREGIDO para obtener el motivo de cancelación
+  getMotivoCancelacion(): string {
+    const reserva = this.data.reserva;
+
+    console.log('🔍 Buscando motivo de cancelación para reserva:', {
+      id: reserva.id,
+      estado: reserva.estado,
+      motivo_cancelacion: reserva.motivo_cancelacion,
+      notas_internas: reserva.notas_internas,
+      notas: reserva.notas
+    });
+
+    // 1. Primero intentar obtener directamente del campo motivo_cancelacion
+    if (reserva.motivo_cancelacion) {
+      console.log('✅ Motivo encontrado en motivo_cancelacion:', reserva.motivo_cancelacion);
+      return reserva.motivo_cancelacion;
+    }
+
+    // 2. Buscar en notas_internas por patrones de cancelación
+    if (reserva.notas_internas) {
+      console.log('🔍 Buscando en notas_internas:', reserva.notas_internas);
+
+      const lineas = reserva.notas_internas.split('\n');
+
+      // Buscar líneas que contengan información de cancelación
+      for (const linea of lineas) {
+        const lineaLower = linea.toLowerCase();
+
+        // Patrones para cancelación
+        if (lineaLower.includes('cancelada') ||
+          lineaLower.includes('cancelación') ||
+          lineaLower.includes('cancelar') ||
+          lineaLower.includes('cancelado')) {
+
+          console.log('✅ Línea de cancelación encontrada:', linea);
+
+          // Extraer solo el motivo (eliminar prefijos comunes)
+          let motivo = linea
+            .replace(/.*cancelada.*?:/i, '')
+            .replace(/.*cancelación.*?:/i, '')
+            .replace(/.*cancelar.*?:/i, '')
+            .replace(/.*cancelado.*?:/i, '')
+            .trim();
+
+          // Si después de limpiar queda vacío, usar la línea completa
+          if (motivo && motivo.length > 0) {
+            return motivo;
+          } else {
+            return linea.trim();
+          }
+        }
+      }
+    }
+
+    // 3. Buscar en notas normales
+    if (reserva.notas) {
+      console.log('🔍 Buscando en notas:', reserva.notas);
+      const lineas = reserva.notas.split('\n');
+
+      for (const linea of lineas) {
+        const lineaLower = linea.toLowerCase();
+        if (lineaLower.includes('cancel') || lineaLower.includes('cancelar')) {
+          console.log('✅ Motivo encontrado en notas:', linea);
+          return linea.trim();
+        }
+      }
+    }
+
+    // 4. Si no se encuentra en ningún campo, verificar si hay información en otros campos
+    if (reserva.penalizacion_aplicada && reserva.penalizacion_aplicada > 0) {
+      console.log('ℹ️ Penalización aplicada pero sin motivo específico');
+      return 'Cancelación con penalización aplicada';
+    }
+
+    console.log('❌ No se encontró motivo de cancelación en ningún campo');
+    return 'Motivo no especificado en el sistema';
+  }
+
+  // Método para obtener la fecha de cancelación
+  getFechaCancelacion(): string {
+    const reserva = this.data.reserva;
+    if (reserva.fecha_cancelacion) {
+      return this.formatDateTime(reserva.fecha_cancelacion);
+    }
+
+    // Si no hay fecha_cancelacion, buscar en notas_internas
+    if (reserva.notas_internas) {
+      const lineas = reserva.notas_internas.split('\n');
+      for (const linea of lineas) {
+        if (linea.includes('fecha') && linea.includes('cancel')) {
+          return linea;
+        }
+      }
+    }
+
+    return 'Fecha no registrada';
+  }
+
+  // Método para obtener la política de cancelación aplicada
+  getPoliticaCancelacionAplicada(): string {
+    return 'Funcionalidad en desarrollo';
+  }
+
+  // Método para obtener la penalización aplicada
+  getPenalizacionAplicada(): string {
+    return 'Próximamente';
+  }
+}
+
+// Componente de diálogo simple para cancelación (solo motivo)
+@Component({
+  selector: 'app-dialogo-cancelacion-simple',
+  template: `
+    <div class="dialogo-cancelacion-simple">
+        <h2 mat-dialog-title>Cancelar Reserva</h2>
+        
+        <mat-dialog-content>
+            <p>¿Estás seguro de que deseas cancelar esta reserva?</p>
+            
+            <div class="info-reserva">
+                <strong>{{ data.reserva.servicio_nombre }}</strong><br>
+                {{ formatDate(data.reserva.fecha_reserva) }} a las {{ formatTime(data.reserva.hora_inicio) }}
+            </div>
+
+            <form [formGroup]="cancelacionForm">
+                <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Motivo de cancelación</mat-label>
+                    <textarea matInput formControlName="motivo" placeholder="Ingresa el motivo de la cancelación" rows="3"></textarea>
+                    <mat-error *ngIf="cancelacionForm.get('motivo')?.hasError('required')">
+                        El motivo es obligatorio
+                    </mat-error>
+                </mat-form-field>
+
+                <div class="politica-info" *ngIf="getPoliticaCancelacion()">
+                    <mat-icon>info</mat-icon>
+                    <span>{{ getPoliticaCancelacion() }}</span>
+                </div>
+            </form>
+        </mat-dialog-content>
+
+        <mat-dialog-actions align="end">
+            <button mat-button (click)="cancelar()">No Cancelar</button>
+            <button mat-raised-button color="warn" (click)="confirmar()" [disabled]="!cancelacionForm.valid">
+                <mat-icon>cancel</mat-icon>
+                Confirmar Cancelación
+            </button>
+        </mat-dialog-actions>
+    </div>
+  `,
+  styles: [`
+    .dialogo-cancelacion-simple {
+        padding: 0;
+    }
+    .full-width {
+        width: 100%;
+        margin-bottom: 16px;
+    }
+    .info-reserva {
+        background: #f5f5f5;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        text-align: center;
+    }
+    .politica-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #e3f2fd;
+        border-radius: 4px;
+        color: #1976d2;
+        font-size: 14px;
+        
+        mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+    }
+  `],
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule]
+})
+export class DialogoCancelacionSimpleComponent {
+  cancelacionForm: FormGroup;
+
+  constructor(
+    private fb: FormBuilder,
+    public dialogRef: MatDialogRef<DialogoCancelacionSimpleComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: any
+  ) {
+    this.cancelacionForm = this.fb.group({
+      motivo: ['', Validators.required]
+    });
+  }
+
+  confirmar() {
+    if (this.cancelacionForm.valid) {
+      this.dialogRef.close(this.cancelacionForm.value);
+    }
+  }
+
+  cancelar() {
+    this.dialogRef.close();
+  }
+
+  getPoliticaCancelacion(): string {
+    const reserva = this.data.reserva;
+    const politica = reserva.politica_cancelacion || 'flexible';
+
+    switch (politica) {
+      case 'flexible':
+        return 'Política flexible: Cancelación gratuita hasta 24 horas antes';
+      case 'moderada':
+        return 'Política moderada: 25% de penalización si se cancela con menos de 48 horas';
+      case 'estricta':
+        return 'Política estricta: 50% de penalización si se cancela con menos de 72 horas';
+      default:
+        return 'Política de cancelación estándar';
+    }
+  }
+
+  formatDate(dateString: string): string {
+    if (!dateString) return 'Fecha no disponible';
+    try {
+      return new Date(dateString).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Fecha inválida';
+    }
+  }
+
+  formatTime(timeString: string): string {
+    if (!timeString) return '--:--';
+    return timeString.substring(0, 5);
+  }
 }

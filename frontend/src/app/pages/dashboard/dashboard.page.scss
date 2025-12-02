@@ -1,5 +1,4 @@
-﻿// frontend/src/app/pages/dashboard/dashboard.page.scss
-.dashboard-container {
+﻿.dashboard-container {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
@@ -128,6 +127,17 @@
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(255, 109, 177, 0.3) !important;
         }
+      }
+    }
+
+    .profile-btn {
+      background-color: var(--accent) !important;
+      color: var(--text-dark) !important;
+
+      &:hover {
+        background-color: var(--primary-light) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(246, 200, 202, 0.3) !important;
       }
     }
   }
@@ -461,5 +471,136 @@
 
   &.mat-warn {
     background-color: var(--error) !important;
+  }
+}
+
+// Estilos específicos para admin
+.admin-dashboard {
+  .quick-actions {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+
+    .action-btn {
+      min-height: 100px;
+      padding: 20px 16px;
+
+      mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+        margin-bottom: 8px;
+      }
+
+      span {
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.2;
+      }
+    }
+  }
+}
+
+// ====================
+// CORRECCIONES ESPECÍFICAS
+// ====================
+
+// ✅ CORREGIDO: Asegurar que el role-badge muestre correctamente "trabajador"
+.trabajador-dashboard {
+  .role-badge.trabajador {
+    background: var(--accent) !important;
+    color: var(--text-dark) !important;
+  }
+}
+
+// ✅ MEJORADO: Transiciones suaves entre vistas
+.admin-dashboard,
+.trabajador-dashboard,
+.cliente-dashboard {
+  transition: all 0.3s ease-in-out;
+  opacity: 1;
+}
+
+// ✅ NUEVO: Clase para manejar la transición sin recarga
+.smooth-transition {
+  .dashboard-content {
+    animation: smoothSwitch 0.3s ease-in-out;
+  }
+}
+
+@keyframes smoothSwitch {
+  from {
+    opacity: 0.8;
+    transform: translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// ✅ MEJORADO: Estados de carga más suaves
+.loading-state {
+  mat-spinner {
+    animation: gentlePulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes gentlePulse {
+
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+// ✅ MEJORADO: Efectos hover más sutiles
+.stat-card,
+.reserva-card,
+.servicio-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 109, 177, 0.25);
+  }
+}
+
+// ✅ MEJORADO: Botones con transiciones más fluidas
+button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+  &:active {
+    transform: translateY(0) !important;
+  }
+}
+
+// ✅ MEJORADO: Header actions con mejor espaciado
+.header-actions {
+  gap: 8px;
+
+  @media (min-width: 769px) {
+    gap: 12px;
+  }
+}
+
+// ✅ CORREGIDO: Asegurar que los badges muestren el color correcto
+.role-badge {
+  &.cliente {
+    background: var(--primary-light) !important;
+    color: var(--primary-dark) !important;
+  }
+
+  &.trabajador {
+    background: var(--accent) !important;
+    color: var(--text-dark) !important;
+  }
+
+  &.administrador {
+    background: var(--secondary) !important;
+    color: var(--white) !important;
   }
 }

@@ -90,12 +90,16 @@ class Reserva {
         }
     }
 
-    // Obtener reserva por ID
+    // Obtener reserva por ID - CON CAMPOS DE CANCELACIÓN
     static async buscarPorId(id) {
         try {
             const [rows] = await pool.execute(`
       SELECT 
-        r.*, 
+        r.*,
+        r.motivo_cancelacion,  -- ✅ INCLUIR EXPLÍCITAMENTE
+        r.politica_cancelacion, -- ✅ INCLUIR EXPLÍCITAMENTE
+        r.fecha_cancelacion,    -- ✅ INCLUIR EXPLÍCITAMENTE
+        r.penalizacion_aplicada, -- ✅ INCLUIR EXPLÍCITAMENTE
         u_cliente.nombre as cliente_nombre, 
         u_cliente.apellidos as cliente_apellidos,
         u_cliente.telefono as cliente_telefono,
@@ -114,6 +118,14 @@ class Reserva {
       LEFT JOIN usuario u_trabajador ON t.usuario_id = u_trabajador.id
       WHERE r.id = ?
     `, [id]);
+
+            console.log(`🔍 [MODELO] Reserva ${id} encontrada. Campos de cancelación:`, {
+                motivo_cancelacion: rows[0]?.motivo_cancelacion,
+                politica_cancelacion: rows[0]?.politica_cancelacion,
+                fecha_cancelacion: rows[0]?.fecha_cancelacion,
+                penalizacion_aplicada: rows[0]?.penalizacion_aplicada
+            });
+
             return rows[0];
         } catch (error) {
             console.error('Error buscando reserva por ID:', error);
@@ -124,36 +136,61 @@ class Reserva {
     // Verificar disponibilidad
     static async verificarDisponibilidad(trabajador_id, fecha_reserva, hora_inicio, duracion) {
         try {
-            console.log(`🔍 Verificando disponibilidad: trabajador ${trabajador_id}, ${fecha_reserva} ${hora_inicio}, ${duracion}min`);
+            console.log(`🔍 [ANTI-OVERBOOKING] Verificando: Trabajador ${trabajador_id}, ${fecha_reserva} ${hora_inicio}, ${duracion}min`);
 
-            const [rows] = await pool.execute(`
-                SELECT id, hora_inicio, duracion, estado 
-                FROM reserva 
-                WHERE trabajador_id = ? 
-                AND fecha_reserva = ? 
-                AND estado IN ('pendiente', 'confirmada')
-                AND (
-                    (hora_inicio <= ? AND DATE_ADD(hora_inicio, INTERVAL duracion MINUTE) > ?) OR
-                    (hora_inicio < DATE_ADD(?, INTERVAL ? MINUTE) AND DATE_ADD(hora_inicio, INTERVAL duracion MINUTE) >= ?) OR
-                    (hora_inicio >= ? AND hora_inicio < DATE_ADD(?, INTERVAL ? MINUTE))
-                )
-            `, [
-                trabajador_id, fecha_reserva,
-                hora_inicio, hora_inicio,
-                hora_inicio, duracion, hora_inicio,
-                hora_inicio, hora_inicio, duracion
-            ]);
+            // ✅ CONSULTA DE EMERGENCIA - MÁS SIMPLE
+            const [reservasExistentes] = await pool.execute(`
+            SELECT id, hora_inicio, duracion, estado 
+            FROM reserva 
+            WHERE trabajador_id = ? 
+            AND fecha_reserva = ? 
+            AND estado IN ('pendiente', 'confirmada')
+            ORDER BY hora_inicio
+        `, [trabajador_id, fecha_reserva]);
 
-            console.log(`📊 Encontrados ${rows.length} conflictos de horario:`);
-            rows.forEach(conflicto => {
-                console.log(`   - Reserva ${conflicto.id}: ${conflicto.hora_inicio} (${conflicto.duracion}min), estado: ${conflicto.estado}`);
-            });
+            console.log(`📊 [ANTI-OVERBOOKING] Reservas existentes: ${reservasExistentes.length}`);
 
-            return rows.length === 0; // true si está disponible
+            // Verificar solapamiento manualmente
+            const nuevaHoraInicio = this.horaAMinutos(hora_inicio);
+            const nuevaHoraFin = nuevaHoraInicio + parseInt(duracion);
+
+            let conflictos = [];
+
+            for (const reserva of reservasExistentes) {
+                const existenteHoraInicio = this.horaAMinutos(reserva.hora_inicio);
+                const existenteHoraFin = existenteHoraInicio + parseInt(reserva.duracion);
+
+                // Verificar solapamiento
+                const seSolapan = (nuevaHoraInicio < existenteHoraFin && nuevaHoraFin > existenteHoraInicio);
+
+                if (seSolapan) {
+                    conflictos.push(reserva);
+                    console.log(`   ❌ CONFLICTO con reserva ${reserva.id}:`);
+                    console.log(`      ${reserva.hora_inicio} - ${this.minutosAHora(existenteHoraFin)} (${reserva.duracion}min)`);
+                }
+            }
+
+            const disponible = conflictos.length === 0;
+            console.log(`🎯 [ANTI-OVERBOOKING] Trabajador ${trabajador_id} ${disponible ? 'DISPONIBLE' : 'NO DISPONIBLE'} en ${fecha_reserva} a las ${hora_inicio}`);
+
+            return disponible;
+
         } catch (error) {
-            console.error('Error verificando disponibilidad:', error);
+            console.error('❌ Error en verificarDisponibilidad:', error);
             throw error;
         }
+    }
+
+    // Métodos auxiliares para la versión de emergencia
+    static horaAMinutos(hora) {
+        const [horas, minutos] = hora.split(':').map(Number);
+        return horas * 60 + minutos;
+    }
+
+    static minutosAHora(minutos) {
+        const horas = Math.floor(minutos / 60);
+        const mins = minutos % 60;
+        return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
     }
 
     // Obtener reservas por trabajador y fecha
@@ -203,41 +240,6 @@ class Reserva {
     }
 
     // === NUEVOS MÉTODOS PARA SISTEMA HÍBRIDO ===
-    static async buscarPorTrabajador(trabajadorId) {
-        try {
-            console.log(`🔍 [MODELO] Buscando reservas para trabajador_id: ${trabajadorId}`);
-
-            const [rows] = await pool.execute(`
-                SELECT 
-                    r.*, 
-                    s.nombre as servicio_nombre, 
-                    s.categoria,
-                    s.duracion as servicio_duracion,
-                    s.precio as servicio_precio,
-                    u.nombre as cliente_nombre, 
-                    u.apellidos as cliente_apellidos, 
-                    u.telefono as cliente_telefono,
-                    u_trabajador.nombre as trabajador_nombre,
-                    u_trabajador.apellidos as trabajador_apellidos
-                FROM reserva r
-                JOIN servicio s ON r.servicio_id = s.id
-                JOIN usuario u ON r.cliente_id = u.id
-                LEFT JOIN trabajador t ON r.trabajador_id = t.id
-                LEFT JOIN usuario u_trabajador ON t.usuario_id = u_trabajador.id
-                WHERE r.trabajador_id = ? 
-                AND r.estado IN ('pendiente', 'confirmada')
-                ORDER BY r.fecha_reserva DESC, r.hora_inicio DESC
-            `, [trabajadorId]);
-
-            console.log(`📊 [MODELO] Encontradas ${rows.length} reservas para trabajador ${trabajadorId}`);
-            return rows;
-        } catch (error) {
-            console.error('Error buscando reservas por trabajador:', error);
-            throw error;
-        }
-    }
-
-
     static async buscarPorTrabajadorYFecha(trabajadorId, fecha) {
         try {
             const [rows] = await pool.execute(`
@@ -255,38 +257,73 @@ class Reserva {
     }
 
     // Verificar disponibilidad - MEJORADO
-    static async verificarDisponibilidad(trabajador_id, fecha_reserva, hora_inicio, duracion) {
+    static async verificarDisponibilidadMejorado(trabajador_id, fecha_reserva, hora_inicio, duracion) {
         try {
-            console.log(`🔍 Verificando disponibilidad: trabajador ${trabajador_id}, ${fecha_reserva} ${hora_inicio}, ${duracion}min`);
+            console.log(`🔍 [ANTI-OVERBOOKING] Verificando: Trabajador ${trabajador_id}, ${fecha_reserva} ${hora_inicio}, ${duracion}min`);
 
-            const [rows] = await pool.execute(`
-                SELECT id, hora_inicio, duracion, estado 
-                FROM reserva 
-                WHERE trabajador_id = ? 
-                AND fecha_reserva = ? 
-                AND estado IN ('pendiente', 'confirmada')
-                AND (
-                    (hora_inicio <= ? AND DATE_ADD(hora_inicio, INTERVAL duracion MINUTE) > ?) OR
-                    (hora_inicio < DATE_ADD(?, INTERVAL ? MINUTE) AND DATE_ADD(hora_inicio, INTERVAL duracion MINUTE) >= ?) OR
-                    (hora_inicio >= ? AND hora_inicio < DATE_ADD(?, INTERVAL ? MINUTE))
-                )
-            `, [
-                trabajador_id, fecha_reserva,
-                hora_inicio, hora_inicio,
-                hora_inicio, duracion, hora_inicio,
-                hora_inicio, hora_inicio, duracion
-            ]);
+            // ✅ CONSULTA PARA OBTENER TODAS LAS RESERVAS EXISTENTES
+            const [reservasExistentes] = await pool.execute(`
+            SELECT id, hora_inicio, duracion, estado 
+            FROM reserva 
+            WHERE trabajador_id = ? 
+            AND fecha_reserva = ? 
+            AND estado IN ('pendiente', 'confirmada')
+            ORDER BY hora_inicio
+        `, [trabajador_id, fecha_reserva]);
 
-            console.log(`📊 Encontrados ${rows.length} conflictos de horario:`);
-            rows.forEach(conflicto => {
-                console.log(`   - Reserva ${conflicto.id}: ${conflicto.hora_inicio} (${conflicto.duracion}min), estado: ${conflicto.estado}`);
-            });
+            console.log(`📊 [ANTI-OVERBOOKING] Reservas existentes: ${reservasExistentes.length}`);
 
-            return rows.length === 0; // true si está disponible
+            // Verificar solapamiento manualmente
+            const nuevaHoraInicio = this.horaAMinutos(hora_inicio);
+            const nuevaHoraFin = nuevaHoraInicio + parseInt(duracion);
+
+            let conflictos = [];
+
+            for (const reserva of reservasExistentes) {
+                const existenteHoraInicio = this.horaAMinutos(reserva.hora_inicio);
+                const existenteHoraFin = existenteHoraInicio + parseInt(reserva.duracion);
+
+                // Verificar solapamiento
+                const seSolapan = (nuevaHoraInicio < existenteHoraFin && nuevaHoraFin > existenteHoraInicio);
+
+                if (seSolapan) {
+                    conflictos.push(reserva);
+                    console.log(`   ❌ CONFLICTO con reserva ${reserva.id}:`);
+                    console.log(`      ${reserva.hora_inicio} - ${this.minutosAHora(existenteHoraFin)} (${reserva.duracion}min)`);
+                    console.log(`      Estado: ${reserva.estado}`);
+                }
+            }
+
+            const disponible = conflictos.length === 0;
+            console.log(`🎯 [ANTI-OVERBOOKING] Trabajador ${trabajador_id} ${disponible ? 'DISPONIBLE' : 'NO DISPONIBLE'} en ${fecha_reserva} a las ${hora_inicio}`);
+
+            return disponible;
+
         } catch (error) {
-            console.error('Error verificando disponibilidad:', error);
+            console.error('❌ Error en verificarDisponibilidad:', error);
             throw error;
         }
+    }
+
+    // ✅ MÉTODOS AUXILIARES (añadir a la clase Reserva)
+    static horaAMinutos(hora) {
+        const [horas, minutos] = hora.split(':').map(Number);
+        return horas * 60 + minutos;
+    }
+
+    static minutosAHora(minutos) {
+        const horas = Math.floor(minutos / 60);
+        const mins = minutos % 60;
+        return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    }
+
+    // ✅ MÉTODO AUXILIAR: Calcular hora de fin (versión corregida)
+    static calcularHoraFin(horaInicio, duracion) {
+        const [horas, minutos] = horaInicio.split(':').map(Number);
+        const totalMinutos = horas * 60 + minutos + duracion;
+        const finHoras = Math.floor(totalMinutos / 60);
+        const finMinutos = totalMinutos % 60;
+        return `${finHoras.toString().padStart(2, '0')}:${finMinutos.toString().padStart(2, '0')}`;
     }
 
     // Asignar trabajador a reserva
@@ -348,6 +385,19 @@ class Reserva {
         }
     }
 
+    static async actualizarMotivo(reservaId, motivo) {
+        try {
+            const [result] = await pool.execute(
+                'UPDATE reserva SET motivo_cancelacion = ? WHERE id = ?',
+                [motivo, reservaId]
+            );
+            return result.affectedRows > 0;
+        } catch (error) {
+            console.error('Error actualizando notas internas:', error);
+            throw error;
+        }
+    }
+
     static async obtenerTrabajadorDeReserva(reservaId) {
         try {
             const [rows] = await pool.execute(`
@@ -363,7 +413,6 @@ class Reserva {
             throw error;
         }
     }
-
 
     // Obtener notas internas (solo para trabajadores/administradores)
     static async obtenerNotasInternas(reservaId) {
@@ -433,9 +482,15 @@ class Reserva {
         }
     }
 
-    // Cancelar reserva con política
+    // Cancelar reserva con política - MÉTODO ACTUALIZADO CON LOGS
     static async cancelarConPolitica(reservaId, motivo, politica = 'flexible') {
         try {
+            console.log('💾 Guardando cancelación en BD:', {
+                reservaId,
+                motivo,
+                politica
+            });
+
             const reserva = await this.buscarPorId(reservaId);
             if (!reserva) {
                 throw new Error('Reserva no encontrada');
@@ -443,6 +498,7 @@ class Reserva {
 
             // Calcular penalización
             const penalizacion = await this.calcularPenalizacion(reserva, politica);
+            console.log('💰 Penalización calculada:', penalizacion);
 
             const [result] = await pool.execute(
                 `UPDATE reserva 
@@ -455,21 +511,31 @@ class Reserva {
                 [politica, motivo, penalizacion, reservaId]
             );
 
+            console.log('✅ Cancelación guardada en BD. Filas afectadas:', result.affectedRows);
+
             return result.affectedRows > 0;
         } catch (error) {
-            console.error('Error cancelando reserva con política:', error);
+            console.error('❌ Error en cancelarConPolitica:', error.message);
             throw error;
         }
     }
 
     static async calcularPenalizacion(reserva, politica = 'flexible') {
         try {
+            // ⚠️ SISTEMA DE PENALIZACIONES EN DESARROLLO - PRÓXIMAMENTE
+            console.log('⚠️ Sistema de penalizaciones en desarrollo - Próximamente disponible');
+
+            // Por ahora, no aplicar penalizaciones hasta que el sistema esté completo
+            return 0; // Penalización cero temporalmente
+
+            // === CÓDIGO ORIGINAL (COMENTADO PARA FUTURA IMPLEMENTACIÓN) ===
+            /*
             const ahora = new Date();
             const fechaReserva = new Date(reserva.fecha_reserva + 'T' + reserva.hora_inicio);
             const horasDiferencia = (fechaReserva - ahora) / (1000 * 60 * 60);
-
+    
             let porcentajePenalizacion = 0;
-
+    
             switch (politica) {
                 case 'flexible':
                     porcentajePenalizacion = horasDiferencia < 24 ? 0.1 : 0;
@@ -483,10 +549,11 @@ class Reserva {
                 default:
                     porcentajePenalizacion = 0;
             }
-
+    
             // ✅ USAR EL PRECIO REAL DEL SERVICIO desde la reserva
             const precioServicio = reserva.precio || 0;
             return precioServicio * porcentajePenalizacion;
+            */
 
         } catch (error) {
             console.error('Error calculando penalización:', error);
@@ -497,10 +564,83 @@ class Reserva {
     // Obtener políticas disponibles
     static obtenerPoliticasDisponibles() {
         return [
-            { valor: 'flexible', nombre: 'Flexible', descripcion: 'Cancelación gratuita hasta 24 horas antes' },
-            { valor: 'moderada', nombre: 'Moderada', descripcion: '25% de penalización si se cancela con menos de 48 horas' },
-            { valor: 'estricta', nombre: 'Estricta', descripcion: '50% de penalización si se cancela con menos de 72 horas' }
+            {
+                valor: 'flexible',
+                nombre: 'Flexible',
+                descripcion: 'Sistema de políticas en desarrollo - Próximamente'
+            },
+            {
+                valor: 'moderada',
+                nombre: 'Moderada',
+                descripcion: 'Sistema de políticas en desarrollo - Próximamente'
+            },
+            {
+                valor: 'estricta',
+                nombre: 'Estricta',
+                descripcion: 'Sistema de políticas en desarrollo - Próximamente'
+            }
         ];
+    }
+
+    // === NUEVO MÉTODO: VERIFICAR DISPONIBILIDAD DEL CLIENTE (ANTI-DOBLE RESERVA) ===
+    static async verificarDisponibilidadCliente(clienteId, fechaReserva, horaInicio, duracion) {
+        try {
+            console.log(`🔍 [ANTI-DOBLE-RESERVA] Verificando cliente ${clienteId}, ${fechaReserva} ${horaInicio}, ${duracion}min`);
+
+            // ✅ CORREGIDO: Hacer JOIN con la tabla servicio para obtener el nombre
+            const [reservasCliente] = await pool.execute(`
+            SELECT 
+                r.id, 
+                r.hora_inicio, 
+                r.duracion, 
+                r.estado, 
+                s.nombre as servicio_nombre  -- ✅ Obtener desde servicio
+            FROM reserva r
+            JOIN servicio s ON r.servicio_id = s.id  -- ✅ JOIN con servicio
+            WHERE r.cliente_id = ? 
+            AND r.fecha_reserva = ? 
+            AND r.estado IN ('pendiente', 'confirmada')
+            ORDER BY r.hora_inicio
+        `, [clienteId, fechaReserva]);
+
+            console.log(`📊 [ANTI-DOBLE-RESERVA] Reservas existentes del cliente: ${reservasCliente.length}`);
+
+            // Verificar solapamiento manualmente
+            const nuevaHoraInicio = this.horaAMinutos(horaInicio);
+            const nuevaHoraFin = nuevaHoraInicio + parseInt(duracion);
+
+            let conflictos = [];
+
+            for (const reserva of reservasCliente) {
+                const existenteHoraInicio = this.horaAMinutos(reserva.hora_inicio);
+                const existenteHoraFin = existenteHoraInicio + parseInt(reserva.duracion);
+
+                // Verificar solapamiento (misma lógica que para trabajadores)
+                const seSolapan = (nuevaHoraInicio < existenteHoraFin && nuevaHoraFin > existenteHoraInicio);
+
+                if (seSolapan) {
+                    conflictos.push(reserva);
+                    console.log(`   ❌ CONFLICTO CLIENTE con reserva ${reserva.id}:`);
+                    console.log(`      ${reserva.hora_inicio} - ${this.minutosAHora(existenteHoraFin)} (${reserva.duracion}min) - ${reserva.servicio_nombre}`);
+                }
+            }
+
+            const disponible = conflictos.length === 0;
+            console.log(`🎯 [ANTI-DOBLE-RESERVA] Cliente ${clienteId} ${disponible ? 'DISPONIBLE' : 'NO DISPONIBLE'} en ${fechaReserva} a las ${horaInicio}`);
+
+            return {
+                disponible: disponible,
+                conflictos: conflictos
+            };
+
+        } catch (error) {
+            console.error('❌ Error en verificarDisponibilidadCliente:', error);
+            return {
+                disponible: false,
+                conflictos: [],
+                error: error.message
+            };
+        }
     }
 }
 

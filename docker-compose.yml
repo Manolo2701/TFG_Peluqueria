@@ -1,20 +1,24 @@
-﻿services:
+﻿version: '3.8'
+
+services:
   mysql:
     image: mysql:8.0
     container_name: mysql_peluqueria
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: peluqueria_selene
+      TZ: Europe/Madrid
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --default-authentication-plugin=mysql_native_password
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: peluqueria_selene
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
     restart: unless-stopped
@@ -24,22 +28,19 @@
   backend:
     build: ./backend
     container_name: backend_peluqueria
-    working_dir: /app
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: peluqueria_selene
+      JWT_SECRET: clave_secreta_tfg_expo_2025
+      JWT_EXPIRES_IN: 7d
+      HOST: 0.0.0.0 
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_USER=root
-      - DB_PASSWORD=root
-      - DB_NAME=peluqueria_selene
-      - JWT_SECRET=tu_clave_secreta_super_segura_aqui_2024
-      - JWT_EXPIRES_IN=7d
-    command: sh -c "sleep 10 && npm run dev"
     depends_on:
       mysql:
         condition: service_healthy
@@ -48,20 +49,18 @@
       - peluqueria-network
 
   frontend:
-    # ← ¡ESTE DEBE ESTAR DENTRO DE SERVICES!
     build: ./frontend
     container_name: frontend_peluqueria
     ports:
-      - "4200:80"
+      - "80:80"
     depends_on:
       - backend
-    restart: unless-stopped # ← Añade esto para reinicio automático
+    restart: unless-stopped
     networks:
       - peluqueria-network
 
 volumes:
   mysql_data:
-
 
 networks:
   peluqueria-network:

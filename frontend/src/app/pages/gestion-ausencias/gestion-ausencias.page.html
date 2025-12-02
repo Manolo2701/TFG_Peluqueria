@@ -1,91 +1,272 @@
-<!-- frontend/src/app/pages/gestion-ausencias/gestion-ausencias.page.html -->
-<div class="container-fluid mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Gestión de Ausencias</h2>
-    <button class="btn btn-outline-secondary" (click)="cargarAusencias()" [disabled]="loading">
-      🔄 Actualizar
-    </button>
-  </div>
-
-  <!-- Loading -->
-  <div *ngIf="loading" class="text-center py-4">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Cargando...</span>
-    </div>
-    <p class="mt-2">Cargando ausencias...</p>
-  </div>
-
-  <!-- Error -->
-  <div *ngIf="error && !loading" class="alert alert-danger" role="alert">
-    {{ error }}
-  </div>
-
-  <!-- Tabla de ausencias -->
-  <div *ngIf="!loading && !error" class="card">
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-striped table-hover">
-          <thead class="table-dark">
-            <tr>
-              <th>Trabajador</th>
-              <th>Tipo</th>
-              <th>Fecha Inicio</th>
-              <th>Fecha Fin</th>
-              <th>Motivo</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let ausencia of ausencias">
-              <td>
-                <strong>{{
-                  ausencia.trabajador_nombre || 'Trabajador ' + ausencia.trabajador_id
-                }}</strong>
-              </td>
-              <td>
-                <span [class]="getTipoClass(ausencia.tipo)">
-                  {{ ausencia.tipo }}
-                </span>
-              </td>
-              <td>{{ ausencia.fecha_inicio | date : 'dd/MM/yyyy' }}</td>
-              <td>{{ ausencia.fecha_fin | date : 'dd/MM/yyyy' }}</td>
-              <td>{{ ausencia.motivo }}</td>
-              <td>
-                <span [class]="getBadgeClass(ausencia.estado)">
-                  {{ ausencia.estado }}
-                </span>
-              </td>
-              <td>
-                <div *ngIf="ausencia.estado === 'pendiente'" class="btn-group btn-group-sm">
-                  <button
-                    class="btn btn-success"
-                    (click)="aprobarAusencia(ausencia)"
-                    title="Aprobar ausencia"
-                  >
-                    ✅ Aprobar
-                  </button>
-                  <button
-                    class="btn btn-danger"
-                    (click)="rechazarAusencia(ausencia)"
-                    title="Rechazar ausencia"
-                  >
-                    ❌ Rechazar
-                  </button>
-                </div>
-                <span *ngIf="ausencia.estado !== 'pendiente'" class="text-muted small">
-                  Gestionada
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div *ngIf="ausencias.length === 0" class="text-center text-muted py-5">
-          <i class="fas fa-inbox fa-3x mb-3"></i>
-          <p>No hay solicitudes de ausencias pendientes.</p>
+<div class="gestion-ausencias-container">
+  <!-- Header idéntico al catálogo y mi-calendario -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-main">
+        <button mat-icon-button routerLink="/dashboard" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="header-text">
+          <h1>Gestión de Ausencias</h1>
+          <p>Administra las solicitudes de ausencia del personal</p>
         </div>
+      </div>
+      <div class="header-actions">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="cargarAusencias()"
+          [disabled]="loading"
+          class="refresh-btn"
+        >
+          <mat-icon>refresh</mat-icon>
+          {{ loading ? 'Actualizando...' : 'Actualizar' }}
+        </button>
       </div>
     </div>
   </div>
+
+  <!-- Contenido principal -->
+  <div class="content-main">
+    <!-- Mensaje de error de permisos -->
+    <div *ngIf="!esAdministrador" class="error-card">
+      <mat-icon color="warn">warning</mat-icon>
+      <h3>Acceso restringido</h3>
+      <p>{{ error }}</p>
+      <button mat-raised-button color="primary" routerLink="/dashboard">
+        <mat-icon>home</mat-icon>
+        Volver al Dashboard
+      </button>
+    </div>
+
+    <!-- Estados de carga y error para admin -->
+    <div *ngIf="esAdministrador">
+      <!-- Loading -->
+      <div *ngIf="loading" class="loading-state">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>Cargando solicitudes de ausencia...</p>
+      </div>
+
+      <!-- Error de carga -->
+      <div *ngIf="error && !loading" class="error-state">
+        <mat-icon color="warn">error_outline</mat-icon>
+        <h3>Error al cargar las ausencias</h3>
+        <p>{{ error }}</p>
+        <button mat-raised-button color="primary" (click)="cargarAusencias()">
+          <mat-icon>refresh</mat-icon>
+          Reintentar
+        </button>
+      </div>
+
+      <!-- Contenido principal -->
+      <div *ngIf="!loading && !error">
+        <!-- Estadísticas rápidas -->
+        <div class="stats-container">
+          <mat-card class="stat-card">
+            <div class="stat-content">
+              <mat-icon>pending_actions</mat-icon>
+              <div class="stat-text">
+                <span class="stat-number">{{ contarAusenciasPorEstado('pendiente') }}</span>
+                <span class="stat-label">Pendientes</span>
+              </div>
+            </div>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <div class="stat-content">
+              <mat-icon>check_circle</mat-icon>
+              <div class="stat-text">
+                <span class="stat-number">{{ contarAusenciasPorEstado('aprobado') }}</span>
+                <span class="stat-label">Aprobadas</span>
+              </div>
+            </div>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <div class="stat-content">
+              <mat-icon>cancel</mat-icon>
+              <div class="stat-text">
+                <span class="stat-number">{{ contarAusenciasPorEstado('rechazado') }}</span>
+                <span class="stat-label">Rechazadas</span>
+              </div>
+            </div>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <div class="stat-content">
+              <mat-icon>summarize</mat-icon>
+              <div class="stat-text">
+                <span class="stat-number">{{ ausencias.length }}</span>
+                <span class="stat-label">Total</span>
+              </div>
+            </div>
+          </mat-card>
+        </div>
+
+        <!-- Filtros -->
+        <mat-card class="filters-card">
+          <div class="filters-content">
+            <div class="filter-group">
+              <mat-form-field appearance="outline" class="filter-field">
+                <mat-label>Filtrar por estado</mat-label>
+                <mat-select [(value)]="filtroEstado" (selectionChange)="aplicarFiltros()">
+                  <mat-option value="todos">Todos los estados</mat-option>
+                  <mat-option value="pendiente">Pendientes</mat-option>
+                  <mat-option value="aprobado">Aprobadas</mat-option>
+                  <mat-option value="rechazado">Rechazadas</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="filter-field">
+                <mat-label>Filtrar por tipo</mat-label>
+                <mat-select [(value)]="filtroTipo" (selectionChange)="aplicarFiltros()">
+                  <mat-option value="todos">Todos los tipos</mat-option>
+                  <mat-option value="vacaciones">Vacaciones</mat-option>
+                  <mat-option value="enfermedad">Enfermedad</mat-option>
+                  <mat-option value="personal">Personal</mat-option>
+                  <mat-option value="formacion">Formación</mat-option>
+                  <mat-option value="otro">Otro</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="filter-actions">
+              <button mat-stroked-button (click)="limpiarFiltros()">
+                <mat-icon>clear</mat-icon>
+                Limpiar filtros
+              </button>
+              <span class="filter-count">
+                Mostrando {{ ausenciasFiltradas.length }} de {{ ausencias.length }} solicitudes
+              </span>
+            </div>
+          </div>
+        </mat-card>
+
+        <!-- Tabla de ausencias -->
+        <mat-card class="table-card">
+          <div class="table-container">
+            <table mat-table [dataSource]="ausenciasFiltradas" class="mat-elevation-z0">
+              <!-- Columna Trabajador -->
+              <ng-container matColumnDef="trabajador">
+                <th mat-header-cell *matHeaderCellDef>Trabajador</th>
+                <td mat-cell *matCellDef="let ausencia" class="trabajador-cell">
+                  <div class="trabajador-info">
+                    <span class="nombre">{{ getNombreTrabajador(ausencia) }}</span>
+                    <span class="id"> ID: {{ ausencia.trabajador_id }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Columna Tipo -->
+              <ng-container matColumnDef="tipo">
+                <th mat-header-cell *matHeaderCellDef>Tipo</th>
+                <td mat-cell *matCellDef="let ausencia">
+                  <span [class]="getTipoClass(ausencia.tipo)" class="tipo-badge">
+                    {{ ausencia.tipo }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Columna Fechas -->
+              <ng-container matColumnDef="fechas">
+                <th mat-header-cell *matHeaderCellDef>Fechas</th>
+                <td mat-cell *matCellDef="let ausencia" class="fechas-cell">
+                  <div class="fecha-inicio">
+                    <mat-icon>event</mat-icon>
+                    {{ ausencia.fecha_inicio | date : 'dd/MM/yyyy' }}
+                  </div>
+                  <div class="fecha-fin">
+                    <mat-icon>event_available</mat-icon>
+                    {{ ausencia.fecha_fin | date : 'dd/MM/yyyy' }}
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Columna Motivo -->
+              <ng-container matColumnDef="motivo">
+                <th mat-header-cell *matHeaderCellDef>Motivo</th>
+                <td mat-cell *matCellDef="let ausencia" class="motivo-cell">
+                  <span class="motivo-text" [title]="ausencia.motivo">
+                    {{ ausencia.motivo }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Columna Estado -->
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef>Estado</th>
+                <td mat-cell *matCellDef="let ausencia">
+                  <span [class]="getEstadoClass(ausencia.estado)" class="estado-badge">
+                    <mat-icon>{{ getEstadoIcon(ausencia.estado) }}</mat-icon>
+                    {{ ausencia.estado }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Columna Acciones -->
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef class="acciones-header">Acciones</th>
+                <td mat-cell *matCellDef="let ausencia" class="acciones-cell">
+                  <div *ngIf="ausencia.estado === 'pendiente'" class="acciones-buttons">
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      (click)="aprobarAusencia(ausencia)"
+                      class="action-btn approve-btn"
+                    >
+                      <mat-icon>check_circle</mat-icon>
+                      Aprobar
+                    </button>
+                    <button
+                      mat-stroked-button
+                      color="warn"
+                      (click)="rechazarAusencia(ausencia)"
+                      class="action-btn reject-btn"
+                    >
+                      <mat-icon>cancel</mat-icon>
+                      Rechazar
+                    </button>
+                  </div>
+                  <div *ngIf="ausencia.estado !== 'pendiente'" class="estado-gestionado">
+                    <mat-icon>verified</mat-icon>
+                    <span>Gestionada</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+              <tr mat-row *matRowDef="let row; columns: columnasMostradas"></tr>
+            </table>
+
+            <!-- Estado vacío -->
+            <div *ngIf="ausenciasFiltradas.length === 0" class="empty-state">
+              <mat-icon>inventory_2</mat-icon>
+              <h3>No hay solicitudes de ausencias</h3>
+              <p *ngIf="filtroEstado !== 'todos' || filtroTipo !== 'todos'">
+                No se encontraron solicitudes con los filtros aplicados.
+              </p>
+              <p *ngIf="filtroEstado === 'todos' && filtroTipo === 'todos'">
+                No hay solicitudes de ausencias pendientes o todas han sido gestionadas.
+              </p>
+              <button
+                mat-stroked-button
+                (click)="limpiarFiltros()"
+                *ngIf="filtroEstado !== 'todos' || filtroTipo !== 'todos'"
+              >
+                <mat-icon>clear_all</mat-icon>
+                Limpiar filtros
+              </button>
+            </div>
+          </div>
+        </mat-card>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer idéntico al catálogo y mi-calendario -->
+  <footer class="gestion-ausencias-footer">
+    <div class="footer-content">
+      <p>&copy; 2025 Peluquería y Estética Selene. Todos los derechos reservados.</p>
+    </div>
+  </footer>
 </div>

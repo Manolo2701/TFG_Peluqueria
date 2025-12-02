@@ -1,0 +1,189 @@
+<div class="modal-container">
+  <div class="modal-header">
+    <h2 mat-dialog-title>
+      <mat-icon>history</mat-icon>
+      Historial de {{ data.cliente.nombre }} {{ data.cliente.apellidos }}
+    </h2>
+    <button mat-icon-button (click)="cerrar()" class="close-button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="modal-content">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-state">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Cargando historial...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="error-state">
+      <mat-icon color="warn">error_outline</mat-icon>
+      <h3>Error al cargar el historial</h3>
+      <p>{{ error }}</p>
+      <button mat-raised-button color="primary" (click)="cargarHistorial()">
+        <mat-icon>refresh</mat-icon>
+        Reintentar
+      </button>
+    </div>
+
+    <!-- Historial Content -->
+    <div *ngIf="!loading && !error" class="historial-content">
+      <!-- Estadísticas -->
+      <div *ngIf="estadisticas" class="stats-section">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <mat-icon>event</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number">{{ estadisticas.totalReservas }}</span>
+              <span class="stat-label">Total Reservas</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon confirmada">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number">{{ estadisticas.reservasConfirmadas }}</span>
+              <span class="stat-label">Confirmadas</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon cancelada">
+              <mat-icon>cancel</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number">{{ estadisticas.reservasCanceladas }}</span>
+              <span class="stat-label">Canceladas</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon ingresos">
+              <mat-icon>euro</mat-icon>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number">{{ formatearPrecio(estadisticas?.totalIngresos) }}</span>
+              <span class="stat-label">Total Ingresos</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs de Reservas -->
+      <mat-tab-group *ngIf="historial.length > 0">
+        <!-- Todas las Reservas -->
+        <mat-tab label="Todas">
+          <div class="reservas-list">
+            <mat-card
+              *ngFor="let reserva of historial"
+              class="reserva-card"
+              [class]="reserva.estado"
+            >
+              <mat-card-header>
+                <mat-card-title>{{ reserva.servicio.nombre }}</mat-card-title>
+                <mat-card-subtitle>
+                  {{ formatearFecha(reserva.fecha) }} a las {{ formatearHora(reserva.horaInicio) }}
+                </mat-card-subtitle>
+                <span class="estado-badge" [class]="reserva.estado">
+                  {{ reserva.estado }}
+                </span>
+              </mat-card-header>
+
+              <mat-card-content>
+                <div class="reserva-info">
+                  <div class="info-row">
+                    <span class="label">Duración:</span>
+                    <span class="value">{{ formatearDuracion(reserva.duracion) }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Precio:</span>
+                    <span class="value precio">{{ formatearPrecio(reserva.precio) }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Categoría:</span>
+                    <span class="value">{{ reserva.servicio.categoria }}</span>
+                  </div>
+                  <div *ngIf="reserva.notas" class="info-row">
+                    <span class="label">Notas:</span>
+                    <span class="value notas">{{ reserva.notas }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </mat-tab>
+
+        <!-- Solo Confirmadas -->
+        <mat-tab label="Confirmadas" [disabled]="getReservasConfirmadas().length === 0">
+          <div class="reservas-list">
+            <mat-card
+              *ngFor="let reserva of getReservasConfirmadas()"
+              class="reserva-card confirmada"
+            >
+              <!-- Mismo contenido que arriba -->
+              <mat-card-header>
+                <mat-card-title>{{ reserva.servicio.nombre }}</mat-card-title>
+                <mat-card-subtitle>
+                  {{ formatearFecha(reserva.fecha) }} a las {{ formatearHora(reserva.horaInicio) }}
+                </mat-card-subtitle>
+                <span class="estado-badge confirmada">Confirmada</span>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="reserva-info">
+                  <div class="info-row">
+                    <span class="label">Duración:</span>
+                    <span class="value">{{ formatearDuracion(reserva.duracion) }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Precio:</span>
+                    <span class="value precio">{{ formatearPrecio(reserva.precio) }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </mat-tab>
+
+        <!-- Solo Canceladas -->
+        <mat-tab label="Canceladas" [disabled]="getReservasCanceladas().length === 0">
+          <div class="reservas-list">
+            <mat-card
+              *ngFor="let reserva of getReservasCanceladas()"
+              class="reserva-card cancelada"
+            >
+              <!-- Mismo contenido que arriba -->
+              <mat-card-header>
+                <mat-card-title>{{ reserva.servicio.nombre }}</mat-card-title>
+                <mat-card-subtitle>
+                  {{ formatearFecha(reserva.fecha) }} a las {{ formatearHora(reserva.horaInicio) }}
+                </mat-card-subtitle>
+                <span class="estado-badge cancelada">Cancelada</span>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="reserva-info">
+                  <div class="info-row">
+                    <span class="label">Motivo:</span>
+                    <span class="value">{{ reserva.notas || 'Sin motivo especificado' }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+
+      <!-- Empty State -->
+      <div *ngIf="historial.length === 0" class="empty-state">
+        <mat-icon>history</mat-icon>
+        <h3>No hay historial de reservas</h3>
+        <p>Este cliente no tiene reservas previas contigo.</p>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="cerrar()">Cerrar</button>
+  </mat-dialog-actions>
+</div>

@@ -1,4 +1,5 @@
 ﻿const { pool } = require('../config/database');
+const Trabajador = require('../models/Trabajador');
 
 exports.getEstadisticas = async (req, res) => {
   try {
@@ -31,7 +32,7 @@ exports.getEstadisticas = async (req, res) => {
         "SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ingresos FROM venta WHERE DATE(fecha_venta) = CURDATE() AND estado = 'completada'"
       );
 
-      // Servicios populares (top 5)
+      // Servicios populares (top 5) - CONSULTA ORIGINAL QUE FUNCIONA
       const [serviciosPopulares] = await pool.execute(`
         SELECT s.nombre, COUNT(r.id) as total_reservas
         FROM servicio s 
@@ -108,69 +109,59 @@ exports.getEstadisticas = async (req, res) => {
 };
 
 // NUEVO MÉTODO: Estadísticas específicas para trabajador - VERSIÓN CORREGIDA
+// En dashboardController.js - SIMPLIFICAR
 exports.getEstadisticasTrabajador = async (req, res) => {
   try {
     const usuario = req.usuario;
 
-    console.log('[DASHBOARD-TRABAJADOR] DEPURACIÓN:');
-    console.log('   Usuario ID:', usuario.id);
-    console.log('   Usuario Email:', usuario.email);
-    console.log('   Usuario Rol:', usuario.rol);
+    // ✅ Obtener trabajador_id
+    const trabajador = await Trabajador.buscarPorUsuarioId(usuario.id);
 
-    console.log('[DASHBOARD-TRABAJADOR] Usuario:', usuario.id, 'Rol:', usuario.rol);
+    if (!trabajador) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontró perfil de trabajador para este usuario'
+      });
+    }
+
+    const trabajadorId = trabajador.id;
 
     let estadisticas = {
       tipo: 'trabajador',
       rol: 'trabajador'
     };
 
-    // Consultas específicas para el trabajador (usando su ID)
+    // ✅ SOLO estadísticas de reservas (sin ventas)
     const [misReservasHoy] = await pool.execute(
       `SELECT COUNT(*) as total FROM reserva 
        WHERE trabajador_id = ? AND fecha_reserva = CURDATE()`,
-      [usuario.id]
+      [trabajadorId]
     );
 
     const [misReservasConfirmadas] = await pool.execute(
       `SELECT COUNT(*) as total FROM reserva 
        WHERE trabajador_id = ? AND fecha_reserva = CURDATE() AND estado = 'confirmada'`,
-      [usuario.id]
+      [trabajadorId]
     );
 
     const [misReservasPendientes] = await pool.execute(
       `SELECT COUNT(*) as total FROM reserva 
        WHERE trabajador_id = ? AND fecha_reserva = CURDATE() AND estado = 'pendiente'`,
-      [usuario.id]
+      [trabajadorId]
     );
 
-    // ✅ CORREGIDO: INGRESOS POR VENTAS REALES del trabajador
-    const [misIngresosHoy] = await pool.execute(
-      `SELECT COALESCE(SUM(total), 0) as ingresos 
-       FROM venta 
-       WHERE trabajador_id = ? AND DATE(fecha_venta) = CURDATE() AND estado = 'completada'`,
-      [usuario.id]
-    );
-
-    // ✅ CORREGIDO: VENTAS REALES del trabajador
-    const [misVentasHoy] = await pool.execute(
-      `SELECT COUNT(*) as total 
-       FROM venta 
-       WHERE trabajador_id = ? AND DATE(fecha_venta) = CURDATE() AND estado = 'completada'`,
-      [usuario.id]
-    );
-
-    // Servicios más solicitados a este trabajador (top 5)
+    // ✅ Servicios más solicitados
     const [misServiciosPopulares] = await pool.execute(`
       SELECT s.nombre, COUNT(r.id) as total_reservas
       FROM servicio s 
-      LEFT JOIN reserva r ON s.id = r.servicio_id 
-      WHERE r.trabajador_id = ? AND s.activo = true
+      JOIN reserva r ON s.id = r.servicio_id 
+      WHERE r.trabajador_id = ? 
       GROUP BY s.id, s.nombre 
       ORDER BY total_reservas DESC 
       LIMIT 5
-    `, [usuario.id]);
+    `, [trabajadorId]);
 
-    // Próximas reservas del trabajador (máximo 5)
+    // ✅ Próximas reservas
     const [misProximasReservas] = await pool.execute(`
       SELECT r.*, s.nombre as servicio_nombre, s.precio as servicio_precio,
              u.nombre as cliente_nombre, u.apellidos as cliente_apellidos
@@ -180,23 +171,14 @@ exports.getEstadisticasTrabajador = async (req, res) => {
       WHERE r.trabajador_id = ? AND r.fecha_reserva >= CURDATE()
       ORDER BY r.fecha_reserva ASC, r.hora_inicio ASC
       LIMIT 5
-    `, [usuario.id]);
+    `, [trabajadorId]);
 
-    console.log('   Mis reservas hoy:', misReservasHoy[0].total);
-    console.log('   Mis ingresos ventas:', misIngresosHoy[0].ingresos);
-
-    // Asignar estadísticas CORREGIDAS
-    estadisticas.totalReservasHoy = misReservasHoy[0].total;
-    estadisticas.reservasConfirmadas = misReservasConfirmadas[0].total;
-    estadisticas.reservasPendientes = misReservasPendientes[0].total;
-    estadisticas.totalVentasHoy = misVentasHoy[0].total;  // ✅ NUEVO: Mis ventas
-    estadisticas.ingresosHoy = parseFloat(misIngresosHoy[0].ingresos); // ✅ CORREGIDO: Solo ventas
-    estadisticas.serviciosPopulares = misServiciosPopulares;
-    estadisticas.proximasReservas = misProximasReservas;
-
-    console.log('[DASHBOARD-TRABAJADOR] Estadísticas generadas correctamente');
-    console.log('   Mis ingresos por ventas:', estadisticas.ingresosHoy);
-    console.log('   Mis ventas hoy:', estadisticas.totalVentasHoy);
+    // ✅ Asignar solo los datos necesarios
+    estadisticas.totalReservasHoy = misReservasHoy[0]?.total || 0;
+    estadisticas.reservasConfirmadas = misReservasConfirmadas[0]?.total || 0;
+    estadisticas.reservasPendientes = misReservasPendientes[0]?.total || 0;
+    estadisticas.serviciosPopulares = misServiciosPopulares || [];
+    estadisticas.proximasReservas = misProximasReservas || [];
 
     res.json({
       success: true,

@@ -106,6 +106,7 @@ export class ReservarPage implements OnInit {
     loadingBusqueda: boolean = false;
 
     // Mapa de días para conversión
+    // Asegúrate de que estos mapas estén correctos:
     private readonly MAPA_DIAS_COMPLETOS: { [key: string]: string } = {
         'lunes': 'LUN',
         'martes': 'MAR',
@@ -195,20 +196,67 @@ export class ReservarPage implements OnInit {
     // INICIALIZACIÓN
     // ====================
 
+    // Modifica el método cargarConfiguracion:
     private cargarConfiguracion() {
         this.loadingConfig = true;
         this.configuracionService.getConfiguracion().subscribe({
-            next: (config) => {
-                console.log('✅ Configuración cargada desde BBDD:', config);
-                if (config) {
-                    this.configuracion = {
-                        ...this.configuracion,
-                        ...config,
-                        dias_apertura: config.dias_apertura && Array.isArray(config.dias_apertura)
-                            ? config.dias_apertura
-                            : this.configuracion.dias_apertura
+            next: (response: any) => {
+                console.log('✅ Respuesta completa del backend:', response);
+
+                // Extraer los datos reales de la respuesta
+                let configData = response;
+
+                // Si la respuesta tiene estructura {success: true, data: {...}}
+                if (response && typeof response === 'object' && 'data' in response) {
+                    configData = response.data;
+                    console.log('✅ Datos extraídos:', configData);
+                }
+
+                // Si todavía no tenemos datos, usar valores por defecto
+                if (!configData) {
+                    console.warn('⚠️ No se recibieron datos de configuración, usando valores por defecto');
+                    configData = {
+                        nombre_negocio: 'Peluquería Selene',
+                        horario_apertura: '09:30',
+                        horario_cierre: '20:00',
+                        dias_apertura: ['martes', 'miercoles', 'viernes', 'sabado'], // Sin jueves
+                        tiempo_minimo_entre_reservas: 15,
+                        maximo_reservas_por_dia: 50,
+                        politica_cancelacion_default: 'flexible'
                     };
                 }
+
+                // Asegurarnos de que dias_apertura sea un array válido
+                let diasAperturaArray: string[] = [];
+
+                if (Array.isArray(configData.dias_apertura)) {
+                    diasAperturaArray = configData.dias_apertura;
+                } else if (typeof configData.dias_apertura === 'string') {
+                    try {
+                        // Intentar parsear si viene como string JSON
+                        diasAperturaArray = JSON.parse(configData.dias_apertura);
+                    } catch (e) {
+                        console.error('Error parseando dias_apertura:', e);
+                        diasAperturaArray = ['martes', 'miercoles', 'viernes', 'sabado'];
+                    }
+                } else {
+                    diasAperturaArray = ['martes', 'miercoles', 'viernes', 'sabado'];
+                }
+
+                // Actualizar la configuración
+                this.configuracion = {
+                    id: configData.id || 1,
+                    nombre_negocio: configData.nombre_negocio || 'Peluquería Selene',
+                    horario_apertura: configData.horario_apertura || '09:30',
+                    horario_cierre: configData.horario_cierre || '20:00',
+                    dias_apertura: diasAperturaArray,
+                    tiempo_minimo_entre_reservas: configData.tiempo_minimo_entre_reservas || 15,
+                    maximo_reservas_por_dia: configData.maximo_reservas_por_dia || 50,
+                    politica_cancelacion_default: configData.politica_cancelacion_default || 'flexible'
+                };
+
+                console.log('🔍 Configuración final aplicada:', this.configuracion);
+                console.log('🔍 Días de apertura:', this.configuracion.dias_apertura);
 
                 // Generar horarios basados en la configuración
                 this.generarHorariosDesdeConfiguracion();
@@ -220,6 +268,10 @@ export class ReservarPage implements OnInit {
             },
             error: (error) => {
                 console.error('❌ Error cargando configuración:', error);
+
+                // Usar valores por defecto (sin jueves)
+                this.configuracion.dias_apertura = ['martes', 'miercoles', 'viernes', 'sabado'];
+
                 this.generarHorariosDesdeConfiguracion();
                 this.semanaActual = this.generarSemana(new Date());
                 this.loadingConfig = false;
@@ -233,28 +285,37 @@ export class ReservarPage implements OnInit {
     // ====================
 
     private generarHorariosDesdeConfiguracion() {
-        // Generar horarios de mañana: desde horario_apertura hasta 12:30
-        if (this.configuracion.horario_apertura) {
-            this.horariosManana = this.generarHorariosConIntervalo(
-                this.configuracion.horario_apertura,
-                '12:30',
-                this.configuracion.tiempo_minimo_entre_reservas || 15
-            );
-        } else {
-            this.horariosManana = this.generarHorariosConIntervalo('09:30', '12:30', 15);
+        // Asegurarnos de que las horas estén en formato HH:MM (sin segundos)
+        let horaApertura = this.configuracion.horario_apertura || '09:30';
+        let horaCierre = this.configuracion.horario_cierre || '20:00';
+
+        // Si las horas vienen con segundos, quitarlos
+        if (horaApertura.includes(':') && horaApertura.split(':').length > 2) {
+            const partes = horaApertura.split(':');
+            horaApertura = `${partes[0]}:${partes[1]}`;
         }
 
-        // Generar horarios de tarde: desde 17:00 hasta horario_cierre (pero máximo 19:30)
-        if (this.configuracion.horario_cierre) {
-            const horarioTardeFin = this.obtenerHorarioTardeFin();
-            this.horariosTarde = this.generarHorariosConIntervalo(
-                '17:00',
-                horarioTardeFin,
-                this.configuracion.tiempo_minimo_entre_reservas || 15
-            );
-        } else {
-            this.horariosTarde = this.generarHorariosConIntervalo('17:00', '19:30', 15);
+        if (horaCierre.includes(':') && horaCierre.split(':').length > 2) {
+            const partes = horaCierre.split(':');
+            horaCierre = `${partes[0]}:${partes[1]}`;
         }
+
+        console.log('🕐 Horas procesadas:', { horaApertura, horaCierre });
+
+        // Generar horarios de mañana: desde horario_apertura hasta 12:30
+        this.horariosManana = this.generarHorariosConIntervalo(
+            horaApertura,
+            '12:30',
+            this.configuracion.tiempo_minimo_entre_reservas || 15
+        );
+
+        // Generar horarios de tarde: desde 17:00 hasta horario_cierre (pero máximo 19:30)
+        const horarioTardeFin = this.obtenerHorarioTardeFin(horaCierre);
+        this.horariosTarde = this.generarHorariosConIntervalo(
+            '17:00',
+            horarioTardeFin,
+            this.configuracion.tiempo_minimo_entre_reservas || 15
+        );
 
         console.log('🕐 Horarios generados:', {
             manana: this.horariosManana,
@@ -262,10 +323,12 @@ export class ReservarPage implements OnInit {
         });
     }
 
-    private obtenerHorarioTardeFin(): string {
-        if (!this.configuracion.horario_cierre) return '19:30';
+    private obtenerHorarioTardeFin(horaCierre: string): string {
+        if (!horaCierre) return '19:30';
 
-        const [cierreHora, cierreMinuto] = this.configuracion.horario_cierre.split(':').map(Number);
+        const [cierreHoraStr, cierreMinutoStr] = horaCierre.split(':');
+        const cierreHora = parseInt(cierreHoraStr, 10);
+        const cierreMinuto = parseInt(cierreMinutoStr || '0', 10);
         const cierreTotal = cierreHora * 60 + cierreMinuto;
 
         // Máximo hasta las 19:30
@@ -274,7 +337,7 @@ export class ReservarPage implements OnInit {
         }
 
         // Si cierra antes de las 19:30, usar la hora de cierre
-        return this.configuracion.horario_cierre;
+        return horaCierre;
     }
 
     private generarHorariosConIntervalo(inicio: string, fin: string, intervaloMinutos: number): string[] {
@@ -313,7 +376,10 @@ export class ReservarPage implements OnInit {
         inicioSemana.setDate(inicioSemana.getDate() + diff);
 
         const dias: DiaSemana[] = [];
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
 
+        // SIEMPRE generamos 6 días (de lunes a sábado)
         for (let i = 0; i < 6; i++) {
             const dia = new Date(inicioSemana);
             dia.setDate(inicioSemana.getDate() + i);
@@ -322,6 +388,7 @@ export class ReservarPage implements OnInit {
             const nombreDia = this.getNombreDia(dia.getDay());
             const nombreDiaLower = this.convertirDiaInglesAEspanol(nombreDia);
             const esFestivo = this.esFestivo(dia);
+            const diaYaPasado = dia < hoy;
 
             // Verificar si el día está en los días de apertura configurados
             const estaAbierto = this.configuracion.dias_apertura.includes(nombreDiaLower);
@@ -331,30 +398,30 @@ export class ReservarPage implements OnInit {
             const clasesHorariosManana: { [hora: string]: string } = {};
             const clasesHorariosTarde: { [hora: string]: string } = {};
 
-            // Verificar si el día tiene horario de mañana (todos los días abiertos)
-            if (estaAbierto) {
-                this.horariosManana.forEach(hora => {
-                    const disponible = !esFestivo && this.calcularDisponibilidad(dia, hora, 'manana');
-                    horariosManana[hora] = disponible;
-                    clasesHorariosManana[hora] = disponible ? 'horario-disponible' : 'horario-no-disponible';
-                });
-            }
+            // SIEMPRE generar horarios de mañana para TODOS los días
+            // Solo disponibles si el día está abierto, no es festivo, no ha pasado y el horario no ha pasado
+            this.horariosManana.forEach(hora => {
+                const disponible = estaAbierto && !esFestivo && !diaYaPasado && !this.esHorarioPasado(dia, hora);
+                horariosManana[hora] = disponible;
+                clasesHorariosManana[hora] = disponible ? 'horario-disponible' : 'horario-no-disponible';
+            });
 
-            // Verificar si el día tiene horario de tarde (solo los días en DIAS_CON_TARDE)
-            if (estaAbierto && this.DIAS_CON_TARDE.includes(nombreDiaLower)) {
-                this.horariosTarde.forEach(hora => {
-                    const disponible = !esFestivo && this.calcularDisponibilidad(dia, hora, 'tarde');
-                    horariosTarde[hora] = disponible;
-                    clasesHorariosTarde[hora] = disponible ? 'horario-disponible' : 'horario-no-disponible';
-                });
-            }
+            // SIEMPRE generar horarios de tarde para TODOS los días
+            // Solo disponibles si el día está abierto, está en DIAS_CON_TARDE, no es festivo, no ha pasado y el horario no ha pasado
+            const tieneTardePermitida = estaAbierto && this.DIAS_CON_TARDE.includes(nombreDiaLower);
+
+            this.horariosTarde.forEach(hora => {
+                const disponible = tieneTardePermitida && !esFestivo && !diaYaPasado && !this.esHorarioPasado(dia, hora);
+                horariosTarde[hora] = disponible;
+                clasesHorariosTarde[hora] = disponible ? 'horario-disponible' : 'horario-no-disponible';
+            });
 
             dias.push({
                 fecha: dia,
                 nombre: nombreDia,
                 nombreCompleto: this.NOMBRES_DIAS_COMPLETOS[nombreDia] || nombreDia,
                 numero: dia.getDate().toString(),
-                disponible: estaAbierto && !esFestivo && this.esDiaDisponible(dia),
+                disponible: estaAbierto && !esFestivo && !diaYaPasado,
                 esFestivo: esFestivo,
                 horariosManana: horariosManana,
                 horariosTarde: horariosTarde,
@@ -371,6 +438,18 @@ export class ReservarPage implements OnInit {
             fin: finSemana,
             dias: dias
         };
+    }
+
+    private esHorarioPasado(dia: Date, hora: string): boolean {
+        const ahora = new Date();
+        const fechaHoraSeleccionada = new Date(dia);
+
+        // Parsear la hora (formato "HH:MM")
+        const [horas, minutos] = hora.split(':').map(Number);
+        fechaHoraSeleccionada.setHours(horas, minutos, 0, 0);
+
+        // Comparar con el momento actual
+        return fechaHoraSeleccionada < ahora;
     }
 
     private regenerarSemana() {
@@ -397,20 +476,8 @@ export class ReservarPage implements OnInit {
 
         if (fechaHoraSeleccionada < new Date()) return false;
 
-        const nombreDia = this.getNombreDia(dia.getDay());
-        const nombreDiaLower = this.convertirDiaInglesAEspanol(nombreDia);
-
-        // Verificar si el día está abierto según configuración
-        if (!this.configuracion.dias_apertura.includes(nombreDiaLower)) {
-            return false;
-        }
-
-        // Para la tarde, verificar si el día está en DIAS_CON_TARDE
-        if (turno === 'tarde' && !this.DIAS_CON_TARDE.includes(nombreDiaLower)) {
-            return false;
-        }
-
-        // Verificar si la hora está dentro del horario generado
+        // Para la tarde, verificar si el día está en DIAS_CON_TARDE (ya se verifica en generarSemana)
+        // Aquí solo verificamos si la hora está dentro del horario generado
         if (turno === 'manana') {
             return this.horariosManana.includes(hora);
         } else {
@@ -419,7 +486,9 @@ export class ReservarPage implements OnInit {
     }
 
     private convertirDiaInglesAEspanol(diaIngles: string): string {
-        return this.MAPA_DIAS_INGLES[diaIngles] || diaIngles.toLowerCase();
+        const convertido = this.MAPA_DIAS_INGLES[diaIngles] || diaIngles.toLowerCase();
+        console.log(`🔍 Conversión: ${diaIngles} -> ${convertido}`);
+        return convertido;
     }
 
     private convertirDiaEspanolAIngles(diaEspanol: string): string {
@@ -451,20 +520,52 @@ export class ReservarPage implements OnInit {
         return this.horariosManana.length > 0 || (tieneTarde && this.horariosTarde.length > 0);
     }
 
-    getHorariosMananaParaDia(dia: DiaSemana): string[] {
-        return Object.keys(dia.horariosManana);
+    // Métodos para el template
+    esHorarioDisponible(dia: DiaSemana, hora: string, turno: 'manana' | 'tarde'): boolean {
+        if (turno === 'manana') {
+            // DEBUG: Agregar log
+            const disponible = dia.horariosManana ? dia.horariosManana[hora] || false : false;
+            console.log(`🔍 Horario ${hora} (${turno}) en ${dia.nombre}: ${disponible}`);
+            return disponible;
+        } else {
+            const disponible = dia.horariosTarde ? dia.horariosTarde[hora] || false : false;
+            console.log(`🔍 Horario ${hora} (${turno}) en ${dia.nombre}: ${disponible}`);
+            return disponible;
+        }
     }
 
-    getHorariosTardeParaDia(dia: DiaSemana): string[] {
-        return Object.keys(dia.horariosTarde);
-    }
+    getClaseHorarioPrecalculada(dia: DiaSemana, hora: string, turno: 'manana' | 'tarde'): string {
+        if (dia.esFestivo) return 'horario-festivo';
 
-    tieneHorarioManana(dia: DiaSemana): boolean {
-        return Object.keys(dia.horariosManana).length > 0;
-    }
+        if (turno === 'manana') {
+            const baseClass = dia.clasesHorariosManana[hora] || 'horario-no-disponible';
 
-    tieneHorarioTarde(dia: DiaSemana): boolean {
-        return Object.keys(dia.horariosTarde).length > 0;
+            if (baseClass === 'horario-disponible' && this.fechaSeleccionada && this.horaSeleccionada) {
+                const estaSeleccionado =
+                    dia.fecha.getDate() === this.fechaSeleccionada.getDate() &&
+                    dia.fecha.getMonth() === this.fechaSeleccionada.getMonth() &&
+                    dia.fecha.getFullYear() === this.fechaSeleccionada.getFullYear() &&
+                    this.horaSeleccionada === hora;
+
+                return estaSeleccionado ? 'horario-seleccionado' : baseClass;
+            }
+
+            return baseClass;
+        } else {
+            const baseClass = dia.clasesHorariosTarde[hora] || 'horario-no-disponible';
+
+            if (baseClass === 'horario-disponible' && this.fechaSeleccionada && this.horaSeleccionada) {
+                const estaSeleccionado =
+                    dia.fecha.getDate() === this.fechaSeleccionada.getDate() &&
+                    dia.fecha.getMonth() === this.fechaSeleccionada.getMonth() &&
+                    dia.fecha.getFullYear() === this.fechaSeleccionada.getFullYear() &&
+                    this.horaSeleccionada === hora;
+
+                return estaSeleccionado ? 'horario-seleccionado' : baseClass;
+            }
+
+            return baseClass;
+        }
     }
 
     // =========
@@ -736,34 +837,6 @@ export class ReservarPage implements OnInit {
     seleccionarTrabajador(trabajador: TrabajadorDisponible) {
         this.trabajadorSeleccionado = trabajador;
         this.cdr.detectChanges();
-    }
-
-    esHorarioDisponible(dia: DiaSemana, hora: string, turno: 'manana' | 'tarde'): boolean {
-        if (turno === 'manana') {
-            return dia.horariosManana[hora] || false;
-        } else {
-            return dia.horariosTarde[hora] || false;
-        }
-    }
-
-    getClaseHorarioPrecalculada(dia: DiaSemana, hora: string, turno: 'manana' | 'tarde'): string {
-        if (dia.esFestivo) return 'horario-festivo';
-
-        const baseClass = turno === 'manana'
-            ? dia.clasesHorariosManana[hora] || 'horario-no-disponible'
-            : dia.clasesHorariosTarde[hora] || 'horario-no-disponible';
-
-        if (baseClass === 'horario-disponible' && this.fechaSeleccionada && this.horaSeleccionada) {
-            const estaSeleccionado =
-                dia.fecha.getDate() === this.fechaSeleccionada.getDate() &&
-                dia.fecha.getMonth() === this.fechaSeleccionada.getMonth() &&
-                dia.fecha.getFullYear() === this.fechaSeleccionada.getFullYear() &&
-                this.horaSeleccionada === hora;
-
-            return estaSeleccionado ? 'horario-seleccionado' : baseClass;
-        }
-
-        return baseClass;
     }
 
     semanaAnterior() {

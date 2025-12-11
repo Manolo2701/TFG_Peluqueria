@@ -301,10 +301,10 @@ INSERT IGNORE INTO usuario (id, email, password, nombre, apellidos, telefono, ro
 INSERT IGNORE INTO usuario (id, email, password, nombre, apellidos, telefono, rol) VALUES
 (5, 'laura.garcia@selene.com', '$2a$12$qudJWwadOwaDLHUfOx6lTuI59MSAzkM5Fwhrw3q3PG5SYMTu5Laqe', 'Laura', 'García', '+34 634 567 890', 'trabajador');
 
--- Registrar los trabajadores en tabla trabajador CON HORARIOS PREDEFINIDOS
+-- Registrar los trabajadores en tabla trabajador CON ESPECIALIDADES CORRECTAS
 -- Josefa - ID usuario 1 (Administradora/Esteticista)
 INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia, horario_laboral) VALUES
-(1, '["Estética general"]', 'Estética', 'Administradora principal y esteticista con amplia experiencia en todos los servicios de estética.', 8,
+(1, '["Maquillaje","Depilación","Cuidado facial"]', 'Estética', 'Administradora principal y esteticista con amplia experiencia en todos los servicios de estética.', 8,
 '{"martes": {"inicio": "09:30", "fin": "13:00"},
   "miercoles": {"inicio": "09:30", "fin": "20:00"},
   "jueves": {"inicio": "09:30", "fin": "13:00"},
@@ -314,7 +314,7 @@ INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcio
 
 -- Ana Rodríguez - ID usuario 3 (Peluquera)
 INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia, horario_laboral) VALUES
-(3, '["Cortes y tintes"]', 'Peluquería', 'Especialista en cortes modernos y tintes personalizados. Más de 5 años de experiencia en peluquería unisex.', 5,
+(3, '["Cortes de cabello","Coloración","Mechas"]', 'Peluquería', 'Especialista en cortes modernos y tintes personalizados. Más de 5 años de experiencia en peluquería unisex.', 5,
 '{"martes": {"inicio": "09:30", "fin": "20:00"},
   "miercoles": {"inicio": "09:30", "fin": "13:00"},
   "jueves": {"inicio": "09:30", "fin": "20:00"},
@@ -324,7 +324,7 @@ INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcio
 
 -- Marta López - ID usuario 4 (Peluquera)
 INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia, horario_laboral) VALUES
-(4, '["Peinados y recogidos"]', 'Peluquería', 'Especialista en peinados para eventos y recogidos elegantes. Formada en las últimas tendencias de peluquería.', 4,
+(4, '["Peinados","Cortes de cabello","Tratamientos capilares"]', 'Peluquería', 'Especialista en peinados para eventos y recogidos elegantes. Formada en las últimas tendencias de peluquería.', 4,
 '{"martes": {"inicio": "09:30", "fin": "13:00"},
   "miercoles": {"inicio": "09:30", "fin": "20:00"},
   "jueves": {"inicio": "09:30", "fin": "13:00"},
@@ -333,12 +333,13 @@ INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcio
 
 -- Laura García - ID usuario 5 (Esteticista)
 INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia, horario_laboral) VALUES
-(5, '["Depilación y cuidados faciales"]', 'Estética', 'Especialista en depilación con cera y tratamientos faciales personalizados. Formada en las mejores técnicas de estética.', 6,
+(5, '["Depilación","Cuidado facial","Uñas"]', 'Estética', 'Especialista en depilación con cera y tratamientos faciales personalizados. Formada en las mejores técnicas de estética.', 6,
 '{"miercoles": {"inicio": "09:30", "fin": "13:00"},
   "jueves": {"inicio": "09:30", "fin": "20:00"},
   "viernes": {"inicio": "09:30", "fin": "13:00"},
   "sabado": {"inicio": "09:30", "fin": "20:00"}}'
 );
+
 
 -- =============================================
 -- ACTUALIZAR TRABAJADORES EXISTENTES QUE NO TIENEN HORARIOS

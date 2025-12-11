@@ -12,9 +12,9 @@ exports.getEstadisticas = async (req, res) => {
       rol: usuario.rol
     };
 
-    // Consultas directas a la base de datos - SIN usar modelos
+    // Consultas directas a la base de datos
     if (usuario.rol === 'administrador' || usuario.rol === 'trabajador') {
-      // Para admin/trabajador - consultas directas
+      // Para admin/trabajador
       const [reservasHoy] = await pool.execute(
         "SELECT COUNT(*) as total FROM reserva WHERE fecha_reserva = CURDATE()"
       );
@@ -27,12 +27,11 @@ exports.getEstadisticas = async (req, res) => {
         "SELECT COUNT(*) as total FROM reserva WHERE fecha_reserva = CURDATE() AND estado = 'pendiente'"
       );
 
-      // ✅ VENTAS REALES - Solo ventas completadas
       const [ventasHoy] = await pool.execute(
         "SELECT COUNT(*) as total, COALESCE(SUM(total), 0) as ingresos FROM venta WHERE DATE(fecha_venta) = CURDATE() AND estado = 'completada'"
       );
 
-      // Servicios populares (top 5) - CONSULTA ORIGINAL QUE FUNCIONA
+      // Servicios populares (top 5)
       const [serviciosPopulares] = await pool.execute(`
         SELECT s.nombre, COUNT(r.id) as total_reservas
         FROM servicio s 
@@ -51,7 +50,7 @@ exports.getEstadisticas = async (req, res) => {
       estadisticas.serviciosPopulares = serviciosPopulares;
 
     } else {
-      // Para cliente - consultas directas
+      // Para cliente
       const [misReservasTotal] = await pool.execute(
         "SELECT COUNT(*) as total FROM reserva WHERE cliente_id = ?",
         [usuario.id]
@@ -108,13 +107,11 @@ exports.getEstadisticas = async (req, res) => {
   }
 };
 
-// NUEVO MÉTODO: Estadísticas específicas para trabajador - VERSIÓN CORREGIDA
-// En dashboardController.js - SIMPLIFICAR
+// Estadísticas específicas para trabajador
 exports.getEstadisticasTrabajador = async (req, res) => {
   try {
     const usuario = req.usuario;
 
-    // ✅ Obtener trabajador_id
     const trabajador = await Trabajador.buscarPorUsuarioId(usuario.id);
 
     if (!trabajador) {
@@ -131,7 +128,7 @@ exports.getEstadisticasTrabajador = async (req, res) => {
       rol: 'trabajador'
     };
 
-    // ✅ SOLO estadísticas de reservas (sin ventas)
+    // Estadísticas de reservas
     const [misReservasHoy] = await pool.execute(
       `SELECT COUNT(*) as total FROM reserva 
        WHERE trabajador_id = ? AND fecha_reserva = CURDATE()`,
@@ -150,7 +147,7 @@ exports.getEstadisticasTrabajador = async (req, res) => {
       [trabajadorId]
     );
 
-    // ✅ Servicios más solicitados
+    // Servicios más solicitados
     const [misServiciosPopulares] = await pool.execute(`
       SELECT s.nombre, COUNT(r.id) as total_reservas
       FROM servicio s 
@@ -161,7 +158,7 @@ exports.getEstadisticasTrabajador = async (req, res) => {
       LIMIT 5
     `, [trabajadorId]);
 
-    // ✅ Próximas reservas
+    // Próximas reservas
     const [misProximasReservas] = await pool.execute(`
       SELECT r.*, s.nombre as servicio_nombre, s.precio as servicio_precio,
              u.nombre as cliente_nombre, u.apellidos as cliente_apellidos
@@ -173,7 +170,7 @@ exports.getEstadisticasTrabajador = async (req, res) => {
       LIMIT 5
     `, [trabajadorId]);
 
-    // ✅ Asignar solo los datos necesarios
+    // Asignar solo los datos necesarios
     estadisticas.totalReservasHoy = misReservasHoy[0]?.total || 0;
     estadisticas.reservasConfirmadas = misReservasConfirmadas[0]?.total || 0;
     estadisticas.reservasPendientes = misReservasPendientes[0]?.total || 0;

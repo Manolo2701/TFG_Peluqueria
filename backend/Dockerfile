@@ -1,15 +1,13 @@
 FROM node:22-alpine
 WORKDIR /app
 
-# Copiar dependencias
 COPY package*.json ./
-RUN npm install
+RUN npm ci --only=production
 
-# Copiar código
 COPY . .
 
-# Exponer puerto
+RUN rm -f .env 2>/dev/null || true
+
 EXPOSE 3000
 
-# Comando (en producción usa "node src/app.js", en desarrollo "npm run dev")
-CMD ["npm", "run", "dev"]
+CMD ["node", "src/app.js"]

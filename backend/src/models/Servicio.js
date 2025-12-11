@@ -22,12 +22,20 @@ class Servicio {
     }
   }
 
-  // Obtener todos los servicios activos
-  static async listarTodos() {
+  // Obtener servicios con opción de incluir inactivos
+  static async listarTodos(incluirInactivos = false) {
     try {
-      const [rows] = await pool.execute(
-        'SELECT * FROM servicio WHERE activo = true ORDER BY categoria, nombre'
-      );
+      let query = 'SELECT * FROM servicio';
+
+      if (!incluirInactivos) {
+        query += ' WHERE activo = true';
+      }
+
+      query += ' ORDER BY categoria, nombre';
+
+      const [rows] = await pool.execute(query);
+
+      console.log(`✅ Servicios encontrados: ${rows.length} (incluirInactivos: ${incluirInactivos})`);
       return rows;
     } catch (error) {
       console.error('Error listando servicios:', error);
@@ -35,13 +43,16 @@ class Servicio {
     }
   }
 
-  // Obtener servicio por ID
-  static async buscarPorId(id) {
+  // Obtener servicio por ID (para administración - incluye inactivos)
+  static async buscarPorId(id, incluirInactivos = false) {
     try {
-      const [rows] = await pool.execute(
-        'SELECT * FROM servicio WHERE id = ? AND activo = true',
-        [id]
-      );
+      let query = 'SELECT * FROM servicio WHERE id = ?';
+
+      if (!incluirInactivos) {
+        query += ' AND activo = true';
+      }
+
+      const [rows] = await pool.execute(query, [id]);
       return rows[0];
     } catch (error) {
       console.error('Error buscando servicio por ID:', error);
@@ -49,13 +60,18 @@ class Servicio {
     }
   }
 
-  // Obtener servicios por categoría
-  static async buscarPorCategoria(categoria) {
+  // Obtener servicios por categoría con opción de incluir inactivos
+  static async buscarPorCategoria(categoria, incluirInactivos = false) {
     try {
-      const [rows] = await pool.execute(
-        'SELECT * FROM servicio WHERE categoria = ? AND activo = true ORDER BY nombre',
-        [categoria]
-      );
+      let query = 'SELECT * FROM servicio WHERE categoria = ?';
+
+      if (!incluirInactivos) {
+        query += ' AND activo = true';
+      }
+
+      query += ' ORDER BY nombre';
+
+      const [rows] = await pool.execute(query, [categoria]);
       return rows;
     } catch (error) {
       console.error('Error buscando servicios por categoría:', error);
@@ -63,7 +79,7 @@ class Servicio {
     }
   }
 
-  // ✅ MÉTODO NUEVO: Actualizar servicio
+  // Actualizar servicio
   static async actualizar(id, servicioData) {
     try {
       const { nombre, descripcion, duracion, precio, categoria, activo } = servicioData;
@@ -82,7 +98,7 @@ class Servicio {
     }
   }
 
-  // ✅ MÉTODO NUEVO: Eliminar servicio (borrado lógico)
+  // Eliminar servicio (borrado lógico)
   static async eliminar(id) {
     try {
       const [result] = await pool.execute(

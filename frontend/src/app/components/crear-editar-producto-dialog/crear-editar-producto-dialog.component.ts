@@ -14,7 +14,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'; /
 import { Producto } from '../../interfaces/producto.interface';
 
 export interface ProductoDialogData {
-    producto?: Producto; // Si está definido, es edición, si no, es creación
+    producto?: Producto; 
 }
 
 @Component({
@@ -29,8 +29,8 @@ export interface ProductoDialogData {
         MatButtonModule,
         MatSnackBarModule,
         MatCheckboxModule,
-        MatIconModule, // ✅ AÑADIDO
-        MatProgressSpinnerModule // ✅ AÑADIDO
+        MatIconModule, 
+        MatProgressSpinnerModule 
     ],
     templateUrl: './crear-editar-producto-dialog.component.html',
     styleUrls: ['./crear-editar-producto-dialog.component.scss']

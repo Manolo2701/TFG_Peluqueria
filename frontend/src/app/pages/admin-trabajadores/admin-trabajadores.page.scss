@@ -437,7 +437,6 @@ table {
     }
 }
 
-// ✅ MEJORADO: Efectos hover más sutiles
 .stat-card,
 .trabajadores-card {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -448,7 +447,6 @@ table {
     }
 }
 
-// ✅ MEJORADO: Botones con transiciones más fluidas
 button {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 
@@ -457,7 +455,6 @@ button {
     }
 }
 
-// ✅ MEJORADO: Header actions con mejor espaciado
 .header-actions {
     gap: 8px;
 

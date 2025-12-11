@@ -52,13 +52,13 @@ const paypalController = {
                 });
             }
 
-            // ✅ GENERAR ID DE TRANSACCIÓN ÚNICO
+            // GENERAR ID DE TRANSACCIÓN ÚNICO
             const transaccionId = 'PED-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase();
             const mockOrderId = 'MOCK-PAYPAL-' + Date.now();
 
             console.log(`[PAYPAL] Transacción ID: ${transaccionId}`);
 
-            // ✅ CREAR VENTA CON TRANSACCIÓN ID
+            // CREAR VENTA CON TRANSACCIÓN ID
             const [ventaResult] = await connection.execute(
                 'INSERT INTO venta (cliente_id, total, estado, metodo_pago, transaccion_id, fecha_venta) VALUES (?, ?, "completada", "paypal", ?, NOW())',
                 [usuarioId, total, transaccionId]
@@ -92,7 +92,7 @@ const paypalController = {
 
             await connection.commit();
 
-            // ✅ MODIFICADO: Redirigir directamente al recibo
+            // Redirigir directamente al recibo
             const mockApprovalUrl = `http://localhost/confirmacion-compra?venta_id=${ventaId}&orden=${transaccionId}`;
 
             res.json({
@@ -109,7 +109,7 @@ const paypalController = {
                     items: items.length,
                     fecha: new Date().toISOString()
                 },
-                paypalReal: false // ✅ Indicar que es simulación
+                paypalReal: false // Indicar que es simulación
             });
 
         } catch (error) {
@@ -139,7 +139,7 @@ const paypalController = {
         try {
             const { token } = req.query;
             console.log('[PAYPAL] Redirigiendo desde éxito - token:', token);
-            // ✅ MODIFICADO: Redirigir al recibo
+            // Redirigir al recibo
             res.redirect('http://localhost:4200/confirmacion-compra?orden=' + (token || ''));
         } catch (error) {
             console.error('[PAYPAL] ❌ ERROR en exito:', error);

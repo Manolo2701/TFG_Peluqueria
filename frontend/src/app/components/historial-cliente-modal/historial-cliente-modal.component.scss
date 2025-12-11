@@ -25,6 +25,10 @@
 
     .close-button {
         color: white;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
     }
 }
 
@@ -42,6 +46,11 @@
     justify-content: center;
     padding: 60px 24px;
     text-align: center;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid #6a11cb;
+    margin: 24px;
 
     mat-icon {
         font-size: 64px;
@@ -62,6 +71,13 @@
         color: #666;
         font-size: 1.1rem;
     }
+
+    button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
 }
 
 .error-state {
@@ -70,18 +86,24 @@
     }
 }
 
+.empty-state {
+    mat-icon {
+        color: #6a11cb;
+    }
+}
+
 .historial-content {
     padding: 24px;
 }
 
-/* Estadísticas */
+/* Estadísticas - VERSIÓN MEJORADA */
 .stats-section {
     margin-bottom: 24px;
 }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 16px;
     margin-bottom: 24px;
 }
@@ -91,7 +113,6 @@
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
-    border-top: 4px solid #6a11cb;
     display: flex;
     align-items: center;
     gap: 16px;
@@ -102,6 +123,35 @@
         box-shadow: 0 6px 20px rgba(106, 17, 203, 0.3);
     }
 
+    // Colores específicos para cada tipo
+    &.total {
+        border-top: 4px solid #6a11cb;
+    }
+
+    &.confirmada {
+        border-top: 4px solid #4caf50;
+    }
+
+    &.cancelada {
+        border-top: 4px solid #f44336;
+    }
+
+    &.pendiente {
+        border-top: 4px solid #ff9800;
+    }
+
+    &.completada {
+        border-top: 4px solid #2196f3;
+    }
+
+    &.rechazada {
+        border-top: 4px solid #c62828;
+    }
+
+    &.ingresos {
+        border-top: 4px solid #ffc107;
+    }
+
     .stat-icon {
         width: 50px;
         height: 50px;
@@ -109,8 +159,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(106, 17, 203, 0.1);
-        color: #6a11cb;
+
+        &.total {
+            background: rgba(106, 17, 203, 0.1);
+            color: #6a11cb;
+        }
 
         &.confirmada {
             background: rgba(76, 175, 80, 0.1);
@@ -120,6 +173,21 @@
         &.cancelada {
             background: rgba(244, 67, 54, 0.1);
             color: #f44336;
+        }
+
+        &.pendiente {
+            background: rgba(255, 152, 0, 0.1);
+            color: #ff9800;
+        }
+
+        &.completada {
+            background: rgba(33, 150, 243, 0.1);
+            color: #2196f3;
+        }
+
+        &.rechazada {
+            background: rgba(198, 40, 40, 0.1);
+            color: #c62828;
         }
 
         &.ingresos {
@@ -153,24 +221,25 @@
     }
 }
 
-/* Tabs */
-::ng-deep .mat-tab-group {
-    .mat-tab-header {
+/* Tabs mejorados */
+::ng-deep .mat-mdc-tab-group {
+    .mat-mdc-tab-header {
         border-bottom: 2px solid #e0e0e0;
     }
 
-    .mat-tab-label {
+    .mat-mdc-tab-label {
         font-weight: 500;
         color: #666;
+        opacity: 0.7;
 
-        &.mat-tab-label-active {
+        &.mdc-tab--active {
             color: #6a11cb;
             opacity: 1;
         }
     }
 
-    .mat-ink-bar {
-        background-color: #6a11cb;
+    .mat-mdc-tab-ripple {
+        background-color: #bc82fa;
     }
 }
 
@@ -188,23 +257,56 @@
     transition: all 0.3s ease;
     border-left: 4px solid #6a11cb;
     position: relative;
+    animation: slideIn 0.3s ease;
 
     &:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(106, 17, 203, 0.3);
     }
 
+    // Estados específicos para las tarjetas
     &.confirmada {
-        border-left-color: #4caf50;
+        border-left: 4px solid #4caf50;
+
+        &:hover {
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+        }
     }
 
     &.cancelada {
-        border-left-color: #f44336;
+        border-left: 4px solid #f44336;
         opacity: 0.8;
+        background: #fafafa;
+
+        &:hover {
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.3);
+        }
     }
 
     &.pendiente {
-        border-left-color: #ff9800;
+        border-left: 4px solid #ff9800;
+
+        &:hover {
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+        }
+    }
+
+    &.completada {
+        border-left: 4px solid #2196f3;
+
+        &:hover {
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.3);
+        }
+    }
+
+    &.rechazada {
+        border-left: 4px solid #c62828;
+        opacity: 0.8;
+        background: #fafafa;
+
+        &:hover {
+            box-shadow: 0 6px 20px rgba(198, 40, 40, 0.3);
+        }
     }
 
     mat-card-header {
@@ -244,6 +346,16 @@
 
             &.pendiente {
                 background: #ff9800;
+                color: white;
+            }
+
+            &.completada {
+                background: #2196f3;
+                color: white;
+            }
+
+            &.rechazada {
+                background: #c62828;
                 color: white;
             }
         }
@@ -297,6 +409,11 @@
 .empty-state {
     text-align: center;
     padding: 60px 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid #6a11cb;
+    margin: 24px;
 
     mat-icon {
         font-size: 80px;
@@ -329,7 +446,7 @@
     }
 
     .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .reserva-card {
@@ -350,5 +467,249 @@
                 text-align: left;
             }
         }
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+// Animaciones
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+// Asegurar que los botones de las acciones del modal tengan buen espaciado
+mat-dialog-actions {
+    padding: 16px 24px;
+    border-top: 1px solid #e0e0e0;
+
+    button {
+        margin-left: 8px;
+
+        &:first-child {
+            margin-left: 0;
+        }
+    }
+}
+
+// Estilo para el campo de búsqueda si se agrega en el futuro
+.search-field {
+    margin-bottom: 16px;
+
+    mat-form-field {
+        width: 100%;
+    }
+}
+
+// Estilo para mensajes de información adicional
+.info-message {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin: 16px 0;
+    font-size: 0.9rem;
+    color: #1565c0;
+
+    mat-icon {
+        vertical-align: middle;
+        margin-right: 8px;
+        font-size: 18px;
+    }
+}
+
+// Estilo para el encabezado del cliente
+.cliente-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e0e0e0;
+
+    .cliente-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        mat-icon {
+            color: white;
+            font-size: 30px;
+            width: 30px;
+            height: 30px;
+        }
+    }
+
+    .cliente-info {
+        h3 {
+            margin: 0 0 4px 0;
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        p {
+            margin: 0;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            mat-icon {
+                font-size: 18px;
+                width: 18px;
+                height: 18px;
+            }
+        }
+    }
+}
+
+// Estilo para la sección de estadísticas generales
+.estadisticas-generales {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
+    border-top: 3px solid #6a11cb;
+
+    h4 {
+        margin: 0 0 16px 0;
+        color: #333;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        mat-icon {
+            color: #6a11cb;
+        }
+    }
+}
+
+// Estilo para el contenedor de pestañas
+::ng-deep .mat-mdc-tab-body-wrapper {
+    padding-top: 16px;
+}
+
+// Estilo para el botón de recargar en caso de error
+.reload-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #6a11cb !important;
+    color: white !important;
+
+    &:hover {
+        background: #2575fc !important;
+    }
+}
+
+// Estilo para tooltips personalizados si se usan
+::ng-deep .custom-tooltip {
+    font-size: 0.85rem !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+}
+
+// Estilo para el footer del modal si se agrega
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .footer-info {
+        font-size: 0.85rem;
+        color: #666;
+
+        mat-icon {
+            vertical-align: middle;
+            margin-right: 4px;
+            font-size: 16px;
+        }
+    }
+}
+
+// Ajustes para pantallas muy pequeñas
+@media (max-width: 350px) {
+    .modal-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+
+        h2 {
+            font-size: 1.2rem;
+        }
+    }
+
+    .cliente-header {
+        flex-direction: column;
+        text-align: center;
+
+        .cliente-avatar {
+            margin: 0 auto;
+        }
+    }
+}
+
+// Scroll personalizado para el contenido del modal
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+// Estilo para el separador entre secciones
+.section-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e0e0e0, transparent);
+    margin: 24px 0;
+}
+
+// Estilo para mensajes de ayuda
+.help-text {
+    font-size: 0.85rem;
+    color: #666;
+    font-style: italic;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #6a11cb;
     }
 }

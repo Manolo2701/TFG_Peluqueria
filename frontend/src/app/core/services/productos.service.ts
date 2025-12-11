@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http'; // <-- Añadir HttpParams
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { Producto } from '../../interfaces/producto.interface';
@@ -12,31 +12,44 @@ export class ProductosService {
     private http = inject(HttpClient);
     private apiUrl = environment.apiUrl;
 
-    getProductos(): Observable<Producto[]> {
-        return this.http.get<any>(`${this.apiUrl}/productos`).pipe(
+    // Obtener productos con opción de incluir inactivos
+    getProductos(incluirInactivos: boolean = false): Observable<Producto[]> {
+        // Crear HttpParams correctamente
+        let params = new HttpParams();
+        if (incluirInactivos) {
+            params = params.set('incluirInactivos', 'true');
+        }
+
+        return this.http.get<any>(`${this.apiUrl}/productos`, { params }).pipe(
             map(response => {
-                console.log('Respuesta completa de productos:', response);
+                console.log(`🔍 Respuesta completa de productos (incluirInactivos: ${incluirInactivos}):`, response);
 
-                let productosArray: any[] = [];
+                // Verificar que response sea un objeto y no un ArrayBuffer
+                if (response && typeof response === 'object' && !(response instanceof ArrayBuffer)) {
+                    let productosArray: any[] = [];
 
-                if (Array.isArray(response)) {
-                    productosArray = response;
-                } else if (response && Array.isArray(response.productos)) {
-                    productosArray = response.productos;
-                } else if (response && Array.isArray(response.data)) {
-                    productosArray = response.data;
+                    if (Array.isArray(response)) {
+                        productosArray = response;
+                    } else if (response && Array.isArray(response.productos)) {
+                        productosArray = response.productos;
+                    } else if (response && Array.isArray(response.data)) {
+                        productosArray = response.data;
+                    } else {
+                        console.warn('Estructura de respuesta no reconocida:', response);
+                        productosArray = [];
+                    }
+
+                    return productosArray.map((producto: any) => ({
+                        id: producto.id,
+                        nombre: producto.nombre || 'Producto sin nombre',
+                        precio: this.parsearPrecio(producto.precio),
+                        stock: this.parsearStock(producto.stock),
+                        activo: producto.activo !== undefined ? producto.activo : true
+                    }));
                 } else {
-                    console.warn('Estructura de respuesta no reconocida:', response);
-                    productosArray = [];
+                    console.warn('❌ Respuesta inesperada (ArrayBuffer u otro tipo):', response);
+                    return [];
                 }
-
-                return productosArray.map((producto: any) => ({
-                    id: producto.id,
-                    nombre: producto.nombre || 'Producto sin nombre',
-                    precio: this.parsearPrecio(producto.precio),
-                    stock: this.parsearStock(producto.stock),
-                    activo: producto.activo !== undefined ? producto.activo : true
-                }));
             }),
             catchError(error => {
                 console.error('Error al obtener productos:', error);
@@ -45,8 +58,19 @@ export class ProductosService {
         );
     }
 
-    getProducto(id: number): Observable<Producto> {
-        return this.http.get<any>(`${this.apiUrl}/productos/${id}`).pipe(
+    // Método específico para configuración completa
+    getTodosProductos(): Observable<Producto[]> {
+        return this.getProductos(true); // Incluir inactivos
+    }
+
+    // Actualizar getProducto para aceptar parámetro opcional
+    getProducto(id: number, incluirInactivos: boolean = false): Observable<Producto> {
+        let params = new HttpParams();
+        if (incluirInactivos) {
+            params = params.set('incluirInactivos', 'true');
+        }
+
+        return this.http.get<any>(`${this.apiUrl}/productos/${id}`, { params }).pipe(
             map(producto => ({
                 id: producto.id,
                 nombre: producto.nombre || 'Producto sin nombre',
@@ -62,9 +86,10 @@ export class ProductosService {
     }
 
     buscarProductos(termino: string): Observable<Producto[]> {
-        return this.http.get<Producto[]>(`${this.apiUrl}/busqueda/productos`, {
-            params: { q: termino }
-        }).pipe(
+        // Crear HttpParams correctamente
+        const params = new HttpParams().set('q', termino);
+
+        return this.http.get<Producto[]>(`${this.apiUrl}/busqueda/productos`, { params }).pipe(
             catchError(error => {
                 console.error('Error al buscar productos:', error);
                 return of([]);

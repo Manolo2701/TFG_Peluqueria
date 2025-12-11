@@ -21,7 +21,7 @@ import { TrabajadorService } from '../../core/services/trabajador.service';
 import { AuthService } from '../../core/services/auth.service';
 
 // Interfaces
-import { Trabajador, CrearTrabajadorRequest } from '../../interfaces/trabajador.interface';
+import { Trabajador } from '../../interfaces/trabajador.interface';
 
 // Componentes de diálogo
 import { CrearTrabajadorDialogComponent } from '../../components/crear-trabajador-dialog/crear-trabajador-dialog.component';
@@ -78,6 +78,10 @@ export class AdminTrabajadoresPage implements OnInit {
             next: (response) => {
                 this.trabajadores = response.trabajadores;
                 this.loading = false;
+
+                // Agrega esto temporalmente en cargarTrabajadores() para depurar:
+                console.log('Respuesta completa del endpoint:', response);
+                console.log('Primer trabajador:', response.trabajadores[0]);
             },
             error: (error) => {
                 console.error('Error cargando trabajadores:', error);
@@ -86,6 +90,8 @@ export class AdminTrabajadoresPage implements OnInit {
                 this.mostrarError('Error al cargar los trabajadores');
             }
         });
+
+
     }
 
     // Métodos para las acciones
@@ -121,7 +127,7 @@ export class AdminTrabajadoresPage implements OnInit {
             this.trabajadorService.eliminarTrabajador(trabajador.id).subscribe({
                 next: (response) => {
                     this.mostrarExito('Trabajador eliminado exitosamente');
-                    this.cargarTrabajadores(); // Recargar la lista
+                    this.cargarTrabajadores();
                 },
                 error: (error) => {
                     console.error('Error eliminando trabajador:', error);

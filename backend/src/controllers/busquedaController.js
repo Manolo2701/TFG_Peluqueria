@@ -118,7 +118,7 @@ const busquedaController = {
     }
   },
 
-  // Búsqueda solo en productos (CORREGIDO - sin categoría)
+  // Búsqueda solo en productos
   buscarProductos: async (req, res) => {
     try {
       const { q } = req.query;
@@ -132,7 +132,6 @@ const busquedaController = {
         });
       }
 
-      // ✅ CORRECCIÓN: Consulta sin referencia a categoría
       const [results] = await db.pool.execute(
         'SELECT id, nombre, precio, stock, activo FROM producto WHERE activo = 1 AND nombre LIKE ?',
         [`%${q}%`]
@@ -156,7 +155,7 @@ const busquedaController = {
     }
   },
 
-  // Búsqueda optimizada para sugerencias (CORREGIDO)
+  // Búsqueda optimizada para sugerencias 
   buscarSugerencias: async (req, res) => {
     try {
       const { q } = req.query;
@@ -206,12 +205,11 @@ const busquedaController = {
     }
   },
 
-  // Obtener categorías (CORREGIDO - solo de servicios)
+  // Obtener categorías
   obtenerCategorias: async (req, res) => {
     try {
       console.log('[BUSQUEDA] Solicitando categorias');
 
-      // ✅ CORRECCIÓN: Solo categorías de servicios (los productos ya no tienen categoría)
       const [categoriasServicios] = await db.pool.execute(
         'SELECT DISTINCT categoria FROM servicio WHERE activo = 1 AND categoria IS NOT NULL ORDER BY categoria'
       );

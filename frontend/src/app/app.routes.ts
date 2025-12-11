@@ -76,13 +76,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    // ✅ CORREGIDO: Ruta para admin/clientes con la página correcta
     path: 'admin/clientes',
     loadComponent: () => import('./pages/admin-clientes/admin-clientes.page').then(m => m.AdminClientesPage),
     canActivate: [authGuard]
   },
   {
-    // ✅ NUEVA RUTA: Mi Perfil
     path: 'mi-perfil',
     loadComponent: () => import('./pages/mi-perfil/mi-perfil.page').then(m => m.MiPerfilPage),
     canActivate: [authGuard]

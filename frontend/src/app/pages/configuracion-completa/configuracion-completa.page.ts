@@ -58,20 +58,24 @@ export class ConfiguracionCompletaPage implements OnInit {
     // Datos de servicios
     servicios: Servicio[] = [];
     serviciosFiltrados: Servicio[] = [];
+    serviciosActivos: Servicio[] = [];
+    serviciosInactivos: Servicio[] = [];
     serviciosLoading = true;
     serviciosError: string | null = null;
     terminoBusquedaServicios: string = '';
-    sugerenciasServicios: string[] = []; // ✅ NUEVO
-    mostrarSugerenciasServicios: boolean = false; // ✅ NUEVO
+    sugerenciasServicios: string[] = [];
+    mostrarSugerenciasServicios: boolean = false;
 
     // Datos de productos
     productos: Producto[] = [];
     productosFiltrados: Producto[] = [];
+    productosActivos: Producto[] = [];
+    productosInactivos: Producto[] = [];
     productosLoading = true;
     productosError: string | null = null;
     terminoBusquedaProductos: string = '';
-    sugerenciasProductos: string[] = []; // ✅ NUEVO
-    mostrarSugerenciasProductos: boolean = false; // ✅ NUEVO
+    sugerenciasProductos: string[] = [];
+    mostrarSugerenciasProductos: boolean = false;
 
     // Usuario actual
     usuario: any = null;
@@ -102,6 +106,20 @@ export class ConfiguracionCompletaPage implements OnInit {
     }
 
     // ====================
+    // MÉTODOS AUXILIARES
+    // ====================
+
+    private separarServiciosPorEstado() {
+        this.serviciosActivos = this.serviciosFiltrados.filter(s => s.activo);
+        this.serviciosInactivos = this.serviciosFiltrados.filter(s => !s.activo);
+    }
+
+    private separarProductosPorEstado() {
+        this.productosActivos = this.productosFiltrados.filter(p => p.activo);
+        this.productosInactivos = this.productosFiltrados.filter(p => !p.activo);
+    }
+
+    // ====================
     // GESTIÓN DE SERVICIOS
     // ====================
 
@@ -109,12 +127,14 @@ export class ConfiguracionCompletaPage implements OnInit {
         this.serviciosLoading = true;
         this.serviciosError = null;
 
-        this.servicioService.getServicios().subscribe({
+        this.servicioService.getTodosServicios().subscribe({
             next: (servicios) => {
                 this.servicios = servicios;
                 this.serviciosFiltrados = servicios;
+                this.separarServiciosPorEstado();
                 this.serviciosLoading = false;
-                console.log('✅ Servicios cargados:', servicios.length);
+                console.log('✅ Todos los servicios cargados:', servicios.length);
+                console.log(`📊 Activos: ${this.serviciosActivos.length}, Inactivos: ${this.serviciosInactivos.length}`);
             },
             error: (error) => {
                 this.serviciosError = 'Error al cargar los servicios';
@@ -125,11 +145,9 @@ export class ConfiguracionCompletaPage implements OnInit {
         });
     }
 
-    // ✅ MEJORADO: Cambio en búsqueda de servicios con sugerencias
     onBuscarServiciosChange() {
         if (this.terminoBusquedaServicios.length > 2 && this.servicios.length > 0) {
             this.mostrarSugerenciasServicios = true;
-            // Generar sugerencias locales basadas en los servicios cargados
             this.sugerenciasServicios = this.servicios
                 .filter(s => s && s.nombre && s.nombre.toLowerCase().includes(this.terminoBusquedaServicios.toLowerCase()))
                 .map(s => s.nombre)
@@ -140,10 +158,10 @@ export class ConfiguracionCompletaPage implements OnInit {
         }
     }
 
-    // ✅ MEJORADO: Buscar servicios con soporte para sugerencias
     buscarServicios() {
         if (!this.terminoBusquedaServicios.trim()) {
             this.serviciosFiltrados = this.servicios;
+            this.separarServiciosPorEstado();
             this.mostrarSugerenciasServicios = false;
             return;
         }
@@ -151,19 +169,18 @@ export class ConfiguracionCompletaPage implements OnInit {
         this.busquedaService.buscarServicios(this.terminoBusquedaServicios).subscribe({
             next: (response) => {
                 this.serviciosFiltrados = response.servicios || [];
+                this.separarServiciosPorEstado();
                 console.log('🔍 Resultados búsqueda servicios:', this.serviciosFiltrados.length);
                 this.mostrarSugerenciasServicios = false;
             },
             error: (error) => {
                 console.error('❌ Error buscando servicios:', error);
-                // En caso de error, filtramos localmente
                 this.filtrarServiciosLocalmente();
                 this.mostrarSugerenciasServicios = false;
             }
         });
     }
 
-    // ✅ NUEVO: Seleccionar sugerencia de servicios
     seleccionarSugerenciaServicios(sugerencia: string) {
         this.terminoBusquedaServicios = sugerencia;
         this.buscarServicios();
@@ -176,11 +193,13 @@ export class ConfiguracionCompletaPage implements OnInit {
             (servicio.descripcion && servicio.descripcion.toLowerCase().includes(termino)) ||
             servicio.categoria.toLowerCase().includes(termino)
         );
+        this.separarServiciosPorEstado();
     }
 
     limpiarBusquedaServicios() {
         this.terminoBusquedaServicios = '';
         this.serviciosFiltrados = this.servicios;
+        this.separarServiciosPorEstado();
         this.mostrarSugerenciasServicios = false;
         this.sugerenciasServicios = [];
     }
@@ -252,12 +271,14 @@ export class ConfiguracionCompletaPage implements OnInit {
         this.productosLoading = true;
         this.productosError = null;
 
-        this.productosService.getProductos().subscribe({
+        this.productosService.getTodosProductos().subscribe({
             next: (productos) => {
                 this.productos = productos;
                 this.productosFiltrados = productos;
+                this.separarProductosPorEstado();
                 this.productosLoading = false;
-                console.log('✅ Productos cargados:', productos.length);
+                console.log('✅ Todos los productos cargados:', productos.length);
+                console.log(`📊 Productos activos: ${this.productosActivos.length}, inactivos: ${this.productosInactivos.length}`);
             },
             error: (error) => {
                 this.productosError = 'Error al cargar los productos';
@@ -268,11 +289,9 @@ export class ConfiguracionCompletaPage implements OnInit {
         });
     }
 
-    // ✅ MEJORADO: Cambio en búsqueda de productos con sugerencias
     onBuscarProductosChange() {
         if (this.terminoBusquedaProductos.length > 2 && this.productos.length > 0) {
             this.mostrarSugerenciasProductos = true;
-            // Generar sugerencias locales basadas en los productos cargados
             this.sugerenciasProductos = this.productos
                 .filter(p => p && p.nombre && p.nombre.toLowerCase().includes(this.terminoBusquedaProductos.toLowerCase()))
                 .map(p => p.nombre)
@@ -283,10 +302,10 @@ export class ConfiguracionCompletaPage implements OnInit {
         }
     }
 
-    // ✅ MEJORADO: Buscar productos con soporte para sugerencias
     buscarProductos() {
         if (!this.terminoBusquedaProductos.trim()) {
             this.productosFiltrados = this.productos;
+            this.separarProductosPorEstado();
             this.mostrarSugerenciasProductos = false;
             return;
         }
@@ -294,19 +313,18 @@ export class ConfiguracionCompletaPage implements OnInit {
         this.busquedaService.buscarProductos(this.terminoBusquedaProductos).subscribe({
             next: (response) => {
                 this.productosFiltrados = response.productos || [];
+                this.separarProductosPorEstado();
                 console.log('🔍 Resultados búsqueda productos:', this.productosFiltrados.length);
                 this.mostrarSugerenciasProductos = false;
             },
             error: (error) => {
                 console.error('❌ Error buscando productos:', error);
-                // En caso de error, filtramos localmente
                 this.filtrarProductosLocalmente();
                 this.mostrarSugerenciasProductos = false;
             }
         });
     }
 
-    // ✅ NUEVO: Seleccionar sugerencia de productos
     seleccionarSugerenciaProductos(sugerencia: string) {
         this.terminoBusquedaProductos = sugerencia;
         this.buscarProductos();
@@ -317,11 +335,13 @@ export class ConfiguracionCompletaPage implements OnInit {
         this.productosFiltrados = this.productos.filter(producto =>
             producto.nombre.toLowerCase().includes(termino)
         );
+        this.separarProductosPorEstado();
     }
 
     limpiarBusquedaProductos() {
         this.terminoBusquedaProductos = '';
         this.productosFiltrados = this.productos;
+        this.separarProductosPorEstado();
         this.mostrarSugerenciasProductos = false;
         this.sugerenciasProductos = [];
     }
@@ -428,6 +448,14 @@ export class ConfiguracionCompletaPage implements OnInit {
         return colores[categoria.toLowerCase()] || colores['default'];
     }
 
+    getEstadoColor(activo: boolean): string {
+        return activo ? 'primary' : 'warn';
+    }
+
+    getEstadoText(activo: boolean): string {
+        return activo ? 'Activo' : 'Inactivo';
+    }
+
     get isAdministrador(): boolean {
         return this.usuario?.rol === 'administrador';
     }
@@ -442,6 +470,6 @@ export class ConfiguracionCompletaPage implements OnInit {
     }
 
     getTotalStock(): number {
-        return this.productos.reduce((total, producto) => total + producto.stock, 0);
+        return this.productosActivos.reduce((total, producto) => total + producto.stock, 0);
     }
 }

@@ -53,7 +53,7 @@ exports.obtenerCarrito = async (req, res) => {
         console.log('✅ Carrito obtenido:', carrito.length, 'productos');
         console.log('📋 Detalles del carrito:', JSON.stringify(carrito, null, 2));
 
-        // ✅ Asegurar que cada item tenga la estructura correcta
+        // Asegurar que cada item tenga la estructura correcta
         const carritoFormateado = carrito.map(item => ({
             producto_id: item.producto_id,
             cantidad: item.cantidad,

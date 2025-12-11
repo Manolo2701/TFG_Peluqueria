@@ -29,15 +29,15 @@
       <!-- Header Admin -->
       <header class="dashboard-header">
         <div class="welcome-section">
-          <h1>Bienvenido, {{ usuario?.nombre }} {{ usuario?.apellidos }}</h1>
+          <h1>Te damos la bienvenida, {{ usuario?.nombre }} {{ usuario?.apellidos }}</h1>
           <div class="role-info">
-            <!-- ✅ CORREGIDO: Siempre mostrar "Administrador" en el badge -->
             <p class="role-badge administrador">Administrador</p>
             <span class="vista-indicator">Vista Administrador</span>
           </div>
         </div>
         <div class="header-actions">
           <button
+            *ngIf="adminTienePerfilTrabajador"
             mat-raised-button
             color="accent"
             (click)="cambiarVistaTrabajador()"
@@ -46,6 +46,11 @@
             <mat-icon>switch_account</mat-icon>
             {{ vistaTrabajadorActiva ? 'Volver a Admin' : 'Vista Trabajador' }}
           </button>
+
+          <div *ngIf="!adminTienePerfilTrabajador && !verificandoPerfil" class="no-trabajador-info">
+            <mat-icon>info</mat-icon>
+            <span>No tienes perfil de trabajador</span>
+          </div>
 
           <button mat-raised-button color="primary" (click)="abrirCalendarioGeneral()">
             <mat-icon>calendar_today</mat-icon>
@@ -171,7 +176,6 @@
             Gestionar Trabajadores
           </button>
 
-          <!-- ✅ NUEVO BOTÓN: Ver Clientes Registrados -->
           <button
             mat-raised-button
             color="primary"
@@ -212,9 +216,8 @@
       <!-- Header Trabajador -->
       <header class="dashboard-header">
         <div class="welcome-section">
-          <h1>Bienvenido, {{ usuario?.nombre }} {{ usuario?.apellidos }}</h1>
+          <h1>Te damos la bienvenida, {{ usuario?.nombre }} {{ usuario?.apellidos }}</h1>
           <div class="role-info">
-            <!-- ✅ CORREGIDO: Siempre mostrar "Trabajador" en el badge -->
             <p class="role-badge trabajador">Trabajador</p>
             <span class="vista-indicator" *ngIf="vistaTrabajadorActiva"
               >Vista Trabajador (Admin)</span
@@ -284,7 +287,7 @@
 
       <!-- Servicios Populares -->
       <section class="section" *ngIf="statsParaMostrar.serviciosPopulares.length > 0">
-        <h2>💎 Servicios Más Solicitados</h2>
+        <h2>Servicios Más Solicitados</h2>
         <div class="servicios-grid">
           <mat-card
             *ngFor="let servicio of statsParaMostrar.serviciosPopulares"
@@ -323,7 +326,12 @@
               <p class="estado-reserva">{{ reserva.estado | titlecase }}</p>
             </mat-card-content>
             <mat-card-actions>
-              <button mat-button color="primary" routerLink="/mi-calendario">
+              <button
+                mat-button
+                color="primary"
+                [routerLink]="['/mi-calendario']"
+                [queryParams]="{ verReservaId: reserva.id }"
+              >
                 <mat-icon>visibility</mat-icon>
                 Ver Detalles
               </button>
@@ -356,8 +364,7 @@
       <!-- Header Cliente -->
       <header class="dashboard-header">
         <div class="welcome-section">
-          <h1>Bienvenido, {{ usuario?.nombre }} {{ usuario?.apellidos }}</h1>
-          <!-- ✅ CORREGIDO: Siempre mostrar "Cliente" en el badge -->
+          <h1>Te damos la bienvenida, {{ usuario?.nombre }} {{ usuario?.apellidos }}</h1>
           <p class="role-badge cliente">Cliente</p>
         </div>
         <div class="header-actions">
@@ -432,22 +439,32 @@
       <section class="section" *ngIf="statsParaMostrar.proximasReservas.length > 0">
         <h2>Mis Próximas Reservas</h2>
         <div class="reservas-list">
-          <mat-card *ngFor="let reserva of statsParaMostrar.proximasReservas" class="reserva-card">
+          <mat-card
+            *ngFor="let reservaItem of statsParaMostrar.proximasReservas"
+            class="reserva-card"
+          >
             <mat-card-header>
               <mat-icon mat-card-avatar>event</mat-icon>
-              <mat-card-title>{{ reserva.servicio_nombre }}</mat-card-title>
+              <mat-card-title>{{ reservaItem.servicio_nombre }}</mat-card-title>
               <mat-card-subtitle>
-                {{ formatDate(reserva.fecha_reserva) }} a las {{ formatTime(reserva.hora_inicio) }}
+                {{ formatDate(reservaItem.fecha_reserva) }} a las
+                {{ formatTime(reservaItem.hora_inicio) }}
               </mat-card-subtitle>
             </mat-card-header>
             <mat-card-content>
               <p>
-                <strong>{{ formatCurrency(reserva.servicio_precio) }}</strong>
+                <strong>{{ formatCurrency(reservaItem.servicio_precio) }}</strong>
               </p>
-              <p class="estado-reserva">{{ reserva.estado | titlecase }}</p>
+              <p class="estado-reserva">{{ reservaItem.estado | titlecase }}</p>
             </mat-card-content>
             <mat-card-actions>
-              <button mat-button color="primary" routerLink="/mis-reservas">
+              <!-- ESTA ES LA LÍNEA IMPORTANTE CORREGIDA -->
+              <button
+                mat-button
+                color="primary"
+                [routerLink]="['/mis-reservas']"
+                [queryParams]="{ verReservaId: reservaItem.id }"
+              >
                 <mat-icon>visibility</mat-icon>
                 Ver Detalles
               </button>

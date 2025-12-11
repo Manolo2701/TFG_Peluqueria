@@ -4,12 +4,13 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 
-# FIX para budgets de Angular - Aumentar límites temporalmente
 RUN npm run build -- --configuration production
 
 FROM nginx:alpine
+
 # Copiar archivos construidos
 COPY --from=build /app/dist/tfg-frontend/browser /usr/share/nginx/html
+
 # Configuración de nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

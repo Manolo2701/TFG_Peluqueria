@@ -1,13 +1,25 @@
 const express = require('express');
-const { registrar, login } = require('../controllers/authController');
+const {
+    registrar,
+    login,
+    obtenerPreguntaSeguridad,
+    verificarRespuestaSeguridad,
+    resetearPassword
+} = require('../controllers/authController');
 const verificarToken = require('../middleware/auth');
 const Trabajador = require('../models/Trabajador');
 const router = express.Router();
 
+// Rutas de autenticación
 router.post('/registro', registrar);
 router.post('/login', login);
 
-// Nuevo endpoint para obtener información del usuario (incluye si es trabajador)
+// Rutas para recuperación de contraseña
+router.post('/obtener-pregunta', obtenerPreguntaSeguridad);
+router.post('/verificar-respuesta', verificarRespuestaSeguridad);
+router.post('/resetear-password', resetearPassword);
+
+// Endpoint para obtener información del usuario
 router.get('/user-info', verificarToken, async (req, res) => {
     try {
         const userInfo = { ...req.usuario };

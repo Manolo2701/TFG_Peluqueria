@@ -12,6 +12,11 @@ export interface Trabajador {
     experiencia?: number;
     horario_laboral?: any;
     fecha_creacion?: string;
+    rol?: string;
+}
+
+export interface AdminPasswordRequest {
+    admin_password?: string;
 }
 
 export interface CrearTrabajadorRequest {

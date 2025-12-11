@@ -9,8 +9,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
-import { ServicioService } from '../../core/services/servicio.service'; // ✅ Solo el servicio
-import { Servicio } from '../../interfaces/servicio.interface'; // ✅ La interfaz desde su archivo
+import { ServicioService } from '../../core/services/servicio.service';
+import { Servicio } from '../../interfaces/servicio.interface';
 
 @Component({
     selector: 'app-servicios',
@@ -98,7 +98,7 @@ export class ServiciosPage implements OnInit {
 
                 let serviciosArray: any[] = [];
 
-                // ✅ CORRECCIÓN: Manejo seguro de diferentes formatos de respuesta
+                // Manejo seguro de diferentes formatos de respuesta
                 if (Array.isArray(response)) {
                     serviciosArray = response;
                 } else if (response && typeof response === 'object') {
@@ -129,7 +129,7 @@ export class ServiciosPage implements OnInit {
             error: (err) => {
                 console.error('❌ Error cargando servicios:', err);
 
-                // ✅ CORRECCIÓN: Usar datos de ejemplo si hay error
+                // Usar datos de ejemplo si hay error
                 console.warn('⚠️ Usando datos de ejemplo debido a error');
                 this.servicios = this.serviciosEjemplo;
                 this.serviciosFiltrados = [...this.servicios];
@@ -145,7 +145,7 @@ export class ServiciosPage implements OnInit {
         });
     }
 
-    // ✅ NUEVO MÉTODO: Validar estructura del servicio INCLUYENDO 'activo'
+    // Validar estructura del servicio incluyendo 'activo'
     private validarServicio(servicio: any): Servicio {
         return {
             id: servicio.id || 0,

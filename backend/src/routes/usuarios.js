@@ -1,5 +1,5 @@
 const express = require('express');
-const autenticarJWT = require('../middleware/auth');
+const verificarToken = require('../middleware/auth');
 const usuarioController = require('../controllers/usuarioController');
 const router = express.Router();
 
@@ -9,18 +9,21 @@ router.get('/public', (req, res) => {
 });
 
 // Ruta para obtener perfil del usuario logueado
-router.get('/perfil', autenticarJWT, usuarioController.obtenerPerfil);
+router.get('/perfil', verificarToken, usuarioController.obtenerPerfil);
 
 // Ruta para actualizar perfil del usuario logueado
-router.put('/perfil', autenticarJWT, usuarioController.actualizarPerfil);
+router.put('/perfil', verificarToken, usuarioController.actualizarPerfil);
 
 // Ruta para obtener todos los usuarios (solo admin)
-router.get('/', autenticarJWT, usuarioController.obtenerUsuarios);
+router.get('/', verificarToken, usuarioController.obtenerUsuarios);
 
-// ✅ NUEVA: Ruta para obtener solo clientes (solo admin)
-router.get('/clientes', autenticarJWT, usuarioController.obtenerClientes);
+// Ruta para obtener solo clientes (solo admin)
+router.get('/clientes', verificarToken, usuarioController.obtenerClientes);
 
 // Ruta para obtener usuario por ID
-router.get('/:id', autenticarJWT, usuarioController.obtenerUsuario);
+router.get('/:id', verificarToken, usuarioController.obtenerUsuario);
+
+// Ruta para obtener el historial de los clientes (solo admin)
+router.get('/:id/historial', verificarToken, usuarioController.obtenerHistorialClienteAdmin);
 
 module.exports = router;

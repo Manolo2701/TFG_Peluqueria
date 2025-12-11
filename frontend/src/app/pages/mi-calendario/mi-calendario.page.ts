@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,10 +18,10 @@ import { MatChipsModule } from '@angular/material/chips';
 
 import { ReservaService, Reserva } from '../../core/services/reserva.service';
 import { CalendarioService } from '../../core/services/calendario.service';
+import { TrabajadorService } from '../../core/services/trabajador.service';
 import { Ausencia } from '../../interfaces/calendario.interface';
 import { ReservaDetallesModalComponent } from '../../components/reserva-detalles-modal/reserva-detalles-modal.component';
 import { ConfirmacionAccionReservaComponent } from '../../components/confirmacion-accion-reserva/confirmacion-accion-reserva.component';
-import { Observable } from 'rxjs';
 
 import { SolicitarAusenciaModalComponent } from '../../components/solicitar-ausencia-modal/solicitar-ausencia-modal.component';
 
@@ -78,14 +78,29 @@ export class MiCalendarioPage implements OnInit {
 
     displayedColumns: string[] = ['hora', 'cliente', 'servicio', 'estado', 'acciones'];
 
+    // Propiedad para determinar si es administrador con perfil
+    esAdminConPerfilTrabajador: boolean = false;
+
+    // Propiedad para manejar el parámetro de reserva desde el dashboard
+    private reservaIdParam: string | null = null;
+
     constructor(
         private reservaService: ReservaService,
         private calendarioService: CalendarioService,
+        private trabajadorService: TrabajadorService,
         private dialog: MatDialog,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private route: ActivatedRoute, // Añadido para manejar query params
+        private router: Router
     ) { }
 
     ngOnInit() {
+        // Suscribirse a los parámetros de consulta para capturar reservaId desde el dashboard
+        this.route.queryParams.subscribe(params => {
+            this.reservaIdParam = params['verReservaId'];
+            console.log('🔍 Parámetro recibido en mi-calendario:', this.reservaIdParam);
+        });
+
         this.verificarAutenticacion();
     }
 
@@ -106,7 +121,31 @@ export class MiCalendarioPage implements OnInit {
             return;
         }
 
+        // Determinar si es admin con perfil
+        this.determinarTipoUsuario();
         this.cargarDatos();
+    }
+
+    // Determinar tipo de usuario
+    private determinarTipoUsuario() {
+        const usuarioStr = localStorage.getItem('usuario');
+        const usuario = usuarioStr ? JSON.parse(usuarioStr) : null;
+
+        if (usuario && usuario.rol === 'administrador') {
+            console.log('👔 Usuario es administrador, verificando perfil de trabajador...');
+
+            // Verificar si tiene perfil de trabajador
+            this.trabajadorService.verificarTienePerfilTrabajador(usuario.id).subscribe({
+                next: (tienePerfil: boolean) => {
+                    this.esAdminConPerfilTrabajador = tienePerfil;
+                    console.log(`✅ Usuario es ${this.esAdminConPerfilTrabajador ? 'admin con perfil de trabajador' : 'admin sin perfil de trabajador'}`);
+                },
+                error: (err) => {
+                    console.error('❌ Error verificando perfil:', err);
+                    this.esAdminConPerfilTrabajador = false;
+                }
+            });
+        }
     }
 
     cargarDatos() {
@@ -129,6 +168,33 @@ export class MiCalendarioPage implements OnInit {
                     console.log('✅ Mis reservas cargadas:', reservas);
                     this.reservas = Array.isArray(reservas) ? reservas : [];
                     this.filtrarReservas();
+
+                    // 🔄 ABRIR MODAL SI HAY PARÁMETRO DEL DASHBOARD
+                    if (this.reservaIdParam) {
+                        const reservaId = Number(this.reservaIdParam);
+                        const reservaEncontrada = this.reservas.find(r => r.id === reservaId);
+
+                        if (reservaEncontrada) {
+                            console.log('✅ Reserva encontrada para abrir modal desde dashboard:', reservaEncontrada);
+
+                            // Pequeño delay para asegurar que la UI esté lista
+                            setTimeout(() => {
+                                this.verDetalles(reservaEncontrada);
+                            }, 100);
+                        } else {
+                            console.warn('⚠️ Reserva no encontrada con ID desde dashboard:', reservaId);
+                            this.snackBar.open('Reserva no encontrada', 'Cerrar', { duration: 3000 });
+                        }
+
+                        // Limpiar el parámetro de la URL para evitar que se repita
+                        this.router.navigate([], {
+                            relativeTo: this.route,
+                            queryParams: {},
+                            replaceUrl: true
+                        });
+                        this.reservaIdParam = null;
+                    }
+
                     resolve();
                 },
                 error: (err) => {
@@ -324,7 +390,7 @@ export class MiCalendarioPage implements OnInit {
             return 'No tienes permisos para esta acción.';
         }
         if (err.status === 404) {
-            return 'Reserva no encontrada.';
+            return 'Reserva no encontrado.';
         }
         return 'Error del servidor. Intenta nuevamente.';
     }
@@ -342,22 +408,30 @@ export class MiCalendarioPage implements OnInit {
         }
     }
 
-    // ACCIONES DE AUSENCIAS
     solicitarAusencia() {
-        const dialogRef = this.dialog.open(SolicitarAusenciaModalComponent, {
-            width: '500px'
-        });
+        const configModal = {
+            width: '500px',
+            data: {
+                esAdministrador: this.esAdminConPerfilTrabajador
+            }
+        };
+
+        const dialogRef = this.dialog.open(SolicitarAusenciaModalComponent, configModal);
 
         dialogRef.afterClosed().subscribe(result => {
             if (result) {
                 this.calendarioService.solicitarAusencia(result).subscribe({
                     next: (response) => {
-                        this.mostrarExito('Ausencia solicitada correctamente');
+                        const mensaje = this.esAdminConPerfilTrabajador
+                            ? '✅ Ausencia registrada correctamente'
+                            : '✅ Ausencia solicitada correctamente. Espera la aprobación.';
+
+                        this.mostrarExito(mensaje);
                         this.cargarAusencias();
                     },
                     error: (error) => {
-                        console.error('Error al solicitar ausencia:', error);
-                        this.mostrarError('Error al solicitar la ausencia');
+                        console.error('❌ Error al solicitar/registrar ausencia:', error);
+                        this.mostrarError('Error al procesar la ausencia');
                     }
                 });
             }

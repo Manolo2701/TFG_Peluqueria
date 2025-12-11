@@ -35,6 +35,13 @@
         </div>
       </div>
 
+      <!-- Enlace para abrir el modal -->
+      <div class="form-group text-right mb-3">
+        <button type="button" class="btn-link text-small" (click)="openForgotPasswordModal()">
+          ¿Has olvidado tu contraseña?
+        </button>
+      </div>
+
       <button
         type="submit"
         class="btn btn-primary btn-block"
@@ -46,6 +53,10 @@
       <div *ngIf="errorMessage" class="alert alert-error">
         {{ errorMessage }}
       </div>
+
+      <div *ngIf="successMessage" class="alert alert-success">
+        {{ successMessage }}
+      </div>
     </form>
 
     <!-- Sección de registro -->
@@ -55,3 +66,10 @@
     </div>
   </div>
 </div>
+
+<!-- Modal de recuperación de contraseña -->
+<app-forgot-password-modal
+  *ngIf="showForgotPasswordModal"
+  (closeModal)="closeForgotPasswordModal()"
+>
+</app-forgot-password-modal>

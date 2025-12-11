@@ -1,5 +1,5 @@
 <div class="mi-perfil-container">
-  <!-- Header idéntico al catálogo y admin-trabajadores -->
+  <!-- Header simplificado sin botón de recargar -->
   <div class="page-header">
     <div class="header-content">
       <div class="header-main">
@@ -10,18 +10,6 @@
           <h1>Mi Perfil</h1>
           <p>Administra tu información personal</p>
         </div>
-      </div>
-      <div class="header-actions">
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="cargarPerfil()"
-          class="refresh-btn"
-          [disabled]="loading"
-        >
-          <mat-icon>refresh</mat-icon>
-          Recargar
-        </button>
       </div>
     </div>
   </div>
@@ -51,24 +39,41 @@
       <div class="stats-cards">
         <mat-card class="stat-card">
           <mat-card-content>
-            <div class="stat-number">{{ primerNombre }}</div>
-            <div class="stat-label">Nombre</div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="stat-card">
-          <mat-card-content>
-            <div class="stat-number">{{ perfilData.email }}</div>
-            <div class="stat-label">Email</div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="stat-card">
-          <mat-card-content>
-            <div class="stat-number">
-              <span class="role-badge" [class]="perfilData.rol">{{ perfilData.rol }}</span>
+            <div class="stat-content">
+              <div class="stat-value nombre">{{ primerNombre }}</div>
+              <div class="stat-label">Nombre</div>
             </div>
-            <div class="stat-label">Rol</div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-content">
+              <div class="stat-value email">{{ perfilData.email }}</div>
+              <div class="stat-label">Email</div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Solo mostrar rol si no es cliente -->
+        <mat-card class="stat-card" *ngIf="perfilData.rol !== 'cliente'">
+          <mat-card-content>
+            <div class="stat-content">
+              <div class="stat-value rol">
+                <span class="role-badge" [class]="perfilData.rol">{{ perfilData.rol }}</span>
+              </div>
+              <div class="stat-label">Rol</div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Tarjeta adicional para equilibrar el diseño si es cliente -->
+        <mat-card class="stat-card" *ngIf="perfilData.rol === 'cliente'">
+          <mat-card-content>
+            <div class="stat-content">
+              <div class="stat-value fecha">{{ formatearFecha(perfilData.fecha_registro) }}</div>
+              <div class="stat-label">Fecha de registro</div>
+            </div>
           </mat-card-content>
         </mat-card>
       </div>
@@ -89,33 +94,74 @@
             <div class="form-row">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Nombre *</mat-label>
-                <input matInput formControlName="nombre" placeholder="Tu nombre" />
+                <input
+                  matInput
+                  formControlName="nombre"
+                  placeholder="Tu nombre"
+                  [class.is-invalid]="nombreControl?.invalid && nombreControl?.touched"
+                />
                 <mat-error *ngIf="nombreControl?.hasError('required')">
                   El nombre es obligatorio
+                </mat-error>
+                <mat-error *ngIf="nombreControl?.hasError('minlength')">
+                  El nombre debe tener al menos 2 caracteres
                 </mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Apellidos</mat-label>
-                <input matInput formControlName="apellidos" placeholder="Tus apellidos" />
+                <mat-label>Apellidos *</mat-label>
+                <input
+                  matInput
+                  formControlName="apellidos"
+                  placeholder="Tus apellidos"
+                  [class.is-invalid]="apellidosControl?.invalid && apellidosControl?.touched"
+                />
+                <mat-error *ngIf="apellidosControl?.hasError('required')">
+                  Los apellidos son obligatorios
+                </mat-error>
+                <mat-error *ngIf="apellidosControl?.hasError('minlength')">
+                  Los apellidos deben tener al menos 2 caracteres
+                </mat-error>
               </mat-form-field>
             </div>
 
             <div class="form-row">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Email *</mat-label>
-                <input matInput formControlName="email" type="email" placeholder="tu@email.com" />
+                <input
+                  matInput
+                  formControlName="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  [class.is-invalid]="emailControl?.invalid && emailControl?.touched"
+                />
                 <mat-error *ngIf="emailControl?.hasError('required')">
                   El email es obligatorio
                 </mat-error>
                 <mat-error *ngIf="emailControl?.hasError('email')">
                   Introduce un email válido
                 </mat-error>
+                <mat-hint>Ejemplo: usuario@dominio.com</mat-hint>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Teléfono</mat-label>
-                <input matInput formControlName="telefono" placeholder="Número de teléfono" />
+                <input
+                  matInput
+                  formControlName="telefono"
+                  placeholder="Número de teléfono"
+                  [class.is-invalid]="telefonoControl?.invalid && telefonoControl?.touched"
+                />
+                <mat-hint>Formatos: 612 34 56 78, 612 345 678, 612345678</mat-hint>
+                <mat-error *ngIf="telefonoControl?.hasError('phoneInvalidFormat')">
+                  Formato inválido. Solo se permiten números, espacios y guiones
+                </mat-error>
+                <mat-error *ngIf="telefonoControl?.hasError('phoneInvalidLength')">
+                  El número debe tener entre 9 y 12 dígitos
+                </mat-error>
+                <mat-error *ngIf="telefonoControl?.hasError('phoneInvalid')">
+                  Número inválido. Formatos aceptados: XXX XX XX XX, XXX XXX XXX o XXXXXXXXX
+                </mat-error>
               </mat-form-field>
             </div>
 
@@ -154,6 +200,9 @@
                   formControlName="currentPassword"
                   type="password"
                   placeholder="Tu contraseña actual"
+                  [class.is-invalid]="
+                    currentPasswordControl?.invalid && currentPasswordControl?.touched
+                  "
                 />
                 <mat-error *ngIf="currentPasswordControl?.hasError('required')">
                   Para cambiar la contraseña, debes introducir la actual
@@ -168,7 +217,15 @@
                     formControlName="newPassword"
                     type="password"
                     placeholder="Nueva contraseña"
+                    [class.is-invalid]="newPasswordControl?.invalid && newPasswordControl?.touched"
                   />
+                  <mat-hint>Mínimo 6 caracteres, con al menos una letra y un número</mat-hint>
+                  <mat-error *ngIf="newPasswordControl?.hasError('minlength')">
+                    La contraseña debe tener al menos 6 caracteres
+                  </mat-error>
+                  <mat-error *ngIf="newPasswordControl?.hasError('pattern')">
+                    La contraseña debe contener al menos una letra y un número
+                  </mat-error>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="form-field">
@@ -178,6 +235,7 @@
                     formControlName="confirmPassword"
                     type="password"
                     placeholder="Repite la nueva contraseña"
+                    [class.is-invalid]="perfilForm.hasError('passwordMismatch')"
                   />
                   <mat-error *ngIf="perfilForm.hasError('passwordMismatch')">
                     Las contraseñas no coinciden
@@ -188,8 +246,8 @@
           </mat-card-content>
         </mat-card>
 
-        <!-- Información de la Cuenta -->
-        <mat-card class="section-card" *ngIf="perfilData">
+        <!-- Información de la Cuenta - Solo para administradores y trabajadores -->
+        <mat-card class="section-card" *ngIf="perfilData && perfilData.rol !== 'cliente'">
           <mat-card-header>
             <mat-icon mat-card-avatar>info</mat-icon>
             <mat-card-title>Información de la Cuenta</mat-card-title>
@@ -202,10 +260,6 @@
                 <span class="info-value">
                   <span class="role-badge" [class]="perfilData.rol">{{ perfilData.rol }}</span>
                 </span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">ID de usuario:</span>
-                <span class="info-value">{{ perfilData.id }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Fecha de registro:</span>
@@ -244,7 +298,7 @@
     </section>
   </div>
 
-  <!-- Footer idéntico al catálogo y admin-trabajadores -->
+  <!-- Footer -->
   <footer class="mi-perfil-footer">
     <div class="footer-content">
       <p>&copy; 2025 Peluquería y Estética Selene. Todos los derechos reservados.</p>

@@ -301,20 +301,24 @@
     </mat-tab>
 
     <!-- TAB 2: MIS AUSENCIAS -->
+    <!-- TAB 2: MIS AUSENCIAS -->
     <mat-tab label="Ausencias">
       <div class="tab-content">
         <div class="header-actions">
           <h3>Mis Ausencias</h3>
+          <!-- Botón con texto dinámico -->
           <button mat-raised-button color="primary" (click)="solicitarAusencia()">
             <mat-icon>add</mat-icon>
-            Solicitar Ausencia
+            {{ esAdminConPerfilTrabajador ? 'Registrar Ausencia' : 'Solicitar Ausencia' }}
           </button>
         </div>
 
         <!-- Lista de ausencias -->
         <div *ngIf="ausencias.length === 0" class="empty-state">
           <mat-icon>event_busy</mat-icon>
-          <p>No tienes ausencias solicitadas.</p>
+          <p>
+            No tienes ausencias {{ esAdminConPerfilTrabajador ? 'registradas' : 'solicitadas' }}.
+          </p>
         </div>
 
         <mat-card *ngFor="let ausencia of ausencias" class="ausencia-card">

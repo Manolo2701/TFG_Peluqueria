@@ -364,12 +364,20 @@
     background: var(--white);
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
-    border-top: 3px solid var(--accent);
     transition: all 0.3s ease;
 
     &:hover {
         transform: translateY(-4px);
         box-shadow: 0 8px 25px rgba(255, 109, 177, 0.3);
+    }
+
+    &.activo {
+        border-top: 4px solid #4CAF50;
+    }
+
+    &.inactivo {
+        border-top: 4px solid #F44336;
+        opacity: 0.9;
     }
 
     mat-card-header {
@@ -457,12 +465,20 @@
     background: var(--white);
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(246, 200, 202, 0.2);
-    border-top: 3px solid var(--primary);
     transition: all 0.3s ease;
 
     &:hover {
         transform: translateY(-4px);
         box-shadow: 0 8px 25px rgba(255, 109, 177, 0.3);
+    }
+
+    &.activo {
+        border-top: 4px solid #4CAF50;
+    }
+
+    &.inactivo {
+        border-top: 4px solid #F44336;
+        opacity: 0.9;
     }
 
     mat-card-header {
@@ -707,7 +723,6 @@
     }
 }
 
-// ✅ MEJORADO: Efectos hover más sutiles
 .stat-card,
 .service-card,
 .product-card {
@@ -719,7 +734,6 @@
     }
 }
 
-// ✅ MEJORADO: Botones con transiciones más fluidas
 button {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 
@@ -728,7 +742,6 @@ button {
     }
 }
 
-// ✅ MEJORADO: Header actions con mejor espaciado
 .header-actions {
     gap: 8px;
 

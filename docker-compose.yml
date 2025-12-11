@@ -28,17 +28,11 @@ services:
   backend:
     build: ./backend
     container_name: backend_peluqueria
+    env_file:
+      - .env 
     environment:
-      NODE_ENV: development
-      PORT: 3000
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: root
-      DB_NAME: peluqueria_selene
-      JWT_SECRET: clave_secreta_tfg_expo_2025
-      JWT_EXPIRES_IN: 7d
-      HOST: 0.0.0.0 
+      NODE_ENV: production
+      DOCKER_ENV: true
     ports:
       - "3000:3000"
     depends_on:

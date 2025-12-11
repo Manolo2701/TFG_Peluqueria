@@ -7,58 +7,114 @@
       <h3>Datos Personales</h3>
 
       <div class="form-row">
+        <!-- Email con prefijo y dominio fijo -->
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Email</mat-label>
-          <input matInput formControlName="email" type="email" />
-          <mat-error *ngIf="trabajadorForm.get('email')?.hasError('required')">
-            Email es requerido
+          <mat-label>Nombre de usuario</mat-label>
+          <input
+            matInput
+            formControlName="emailPrefix"
+            placeholder="Ej: maria.garcia"
+            [class.is-invalid]="emailPrefixControl?.invalid && emailPrefixControl?.touched"
+          />
+          <span matSuffix class="email-suffix">@selene.com</span>
+          <mat-hint>Solo nombre de usuario, sin @ ni dominio</mat-hint>
+          <mat-error *ngIf="emailPrefixControl?.hasError('required')">
+            El nombre de usuario es requerido
           </mat-error>
-          <mat-error *ngIf="trabajadorForm.get('email')?.hasError('email')">
-            Email no válido
+          <mat-error *ngIf="emailPrefixControl?.hasError('minlength')">
+            El nombre de usuario debe tener al menos 3 caracteres
+          </mat-error>
+          <mat-error *ngIf="emailPrefixControl?.hasError('maxlength')">
+            El nombre de usuario no puede exceder 30 caracteres
+          </mat-error>
+          <mat-error *ngIf="emailPrefixControl?.hasError('pattern')">
+            Solo se permiten letras, números, puntos, guiones y guiones bajos
+          </mat-error>
+          <mat-error *ngIf="emailPrefixControl?.hasError('containsAtSign')">
+            No se permite el símbolo @. Solo ingresa el nombre de usuario
           </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="form-field">
           <mat-label>Contraseña</mat-label>
-          <input matInput formControlName="password" type="password" />
-          <mat-error *ngIf="trabajadorForm.get('password')?.hasError('required')">
-            Contraseña es requerida
+          <input
+            matInput
+            formControlName="password"
+            type="password"
+            [class.is-invalid]="passwordControl?.invalid && passwordControl?.touched"
+          />
+          <mat-hint>Mínimo 6 caracteres, con al menos una letra y un número</mat-hint>
+          <mat-error *ngIf="passwordControl?.hasError('required')">
+            La contraseña es requerida
           </mat-error>
-          <mat-error *ngIf="trabajadorForm.get('password')?.hasError('minlength')">
+          <mat-error *ngIf="passwordControl?.hasError('minlength')">
             La contraseña debe tener al menos 6 caracteres
           </mat-error>
-        </mat-form-field>
-      </div>
-
-      <div class="form-row">
-        <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Nombre</mat-label>
-          <input matInput formControlName="nombre" />
-          <mat-error *ngIf="trabajadorForm.get('nombre')?.hasError('required')">
-            Nombre es requerido
-          </mat-error>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Apellidos</mat-label>
-          <input matInput formControlName="apellidos" />
-          <mat-error *ngIf="trabajadorForm.get('apellidos')?.hasError('required')">
-            Apellidos son requeridos
+          <mat-error *ngIf="passwordControl?.hasError('pattern')">
+            La contraseña debe contener al menos una letra y un número
           </mat-error>
         </mat-form-field>
       </div>
 
       <div class="form-row">
+        <!-- Email completo (solo lectura) -->
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Email completo</mat-label>
+          <input matInput formControlName="emailFull" readonly class="email-completo" />
+          <mat-hint>Email que se registrará en el sistema</mat-hint>
+        </mat-form-field>
+
         <mat-form-field appearance="outline" class="form-field">
           <mat-label>Teléfono</mat-label>
-          <input matInput formControlName="telefono" />
+          <input
+            matInput
+            formControlName="telefono"
+            placeholder="Ej: 612 34 56 78"
+            [class.is-invalid]="telefonoControl?.invalid && telefonoControl?.touched"
+          />
+          <mat-hint>Formatos: 612 34 56 78, 612 345 678, 612345678</mat-hint>
+          <mat-error *ngIf="telefonoControl?.hasError('phoneInvalid')">
+            Número inválido. Formatos aceptados: XXX XX XX XX, XXX XXX XXX o XXXXXXXXX
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Nombre *</mat-label>
+          <input
+            matInput
+            formControlName="nombre"
+            [class.is-invalid]="nombreControl?.invalid && nombreControl?.touched"
+          />
+          <mat-error *ngIf="nombreControl?.hasError('required')">
+            El nombre es requerido
+          </mat-error>
+          <mat-error *ngIf="nombreControl?.hasError('minlength')">
+            El nombre debe tener al menos 2 caracteres
+          </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Dirección</mat-label>
-          <textarea matInput formControlName="direccion" rows="2"></textarea>
+          <mat-label>Apellidos *</mat-label>
+          <input
+            matInput
+            formControlName="apellidos"
+            [class.is-invalid]="apellidosControl?.invalid && apellidosControl?.touched"
+          />
+          <mat-error *ngIf="apellidosControl?.hasError('required')">
+            Los apellidos son requeridos
+          </mat-error>
+          <mat-error *ngIf="apellidosControl?.hasError('minlength')">
+            Los apellidos deben tener al menos 2 caracteres
+          </mat-error>
         </mat-form-field>
       </div>
+
+      <mat-form-field appearance="outline" class="form-field-full">
+        <mat-label>Dirección</mat-label>
+        <textarea matInput formControlName="direccion" rows="2"></textarea>
+      </mat-form-field>
     </div>
 
     <!-- Datos de Trabajador -->
@@ -67,7 +123,7 @@
 
       <div class="form-row">
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Categoría</mat-label>
+          <mat-label>Categoría *</mat-label>
           <mat-select formControlName="categoria">
             <mat-option *ngFor="let cat of categorias" [value]="cat">
               {{ cat }}
@@ -80,18 +136,31 @@
 
         <mat-form-field appearance="outline" class="form-field">
           <mat-label>Experiencia (años)</mat-label>
-          <input matInput formControlName="experiencia" type="number" min="0" />
-          <mat-error *ngIf="trabajadorForm.get('experiencia')?.hasError('min')">
+          <input
+            matInput
+            formControlName="experiencia"
+            type="number"
+            min="0"
+            max="50"
+            [class.is-invalid]="experienciaControl?.invalid && experienciaControl?.touched"
+          />
+          <mat-hint>Número de años de experiencia</mat-hint>
+          <mat-error *ngIf="experienciaControl?.hasError('min')">
             La experiencia no puede ser negativa
+          </mat-error>
+          <mat-error *ngIf="experienciaControl?.hasError('max')">
+            La experiencia no puede exceder 50 años
           </mat-error>
         </mat-form-field>
       </div>
 
       <!-- Especialidades con Chips -->
       <div class="form-field-full">
-        <label class="especialidades-label">Especialidades</label>
+        <label class="especialidades-label"
+          >Especialidades ({{ trabajadorForm.get('categoria')?.value }}) *</label
+        >
         <div class="chips-container">
-          <mat-chip-listbox>
+          <mat-chip-listbox multiple aria-label="Especialidades">
             <mat-chip-option
               *ngFor="let esp of especialidadesList"
               [selected]="isEspecialidadSelected(esp)"
@@ -101,9 +170,21 @@
             </mat-chip-option>
           </mat-chip-listbox>
         </div>
-        <div class="selected-count">
+        <div
+          class="selected-count"
+          [class.is-invalid]="especialidadesControl?.invalid && especialidadesControl?.touched"
+        >
           {{ trabajadorForm.get('especialidades')?.value?.length || 0 }} especialidades
-          seleccionadas
+          seleccionadas de {{ especialidadesList.length }}
+        </div>
+        <mat-error
+          *ngIf="especialidadesControl?.invalid && especialidadesControl?.touched"
+          class="especialidades-error"
+        >
+          Debe seleccionar al menos una especialidad
+        </mat-error>
+        <div *ngIf="especialidadesList.length === 0" class="no-especialidades">
+          No hay especialidades disponibles para esta categoría
         </div>
       </div>
 

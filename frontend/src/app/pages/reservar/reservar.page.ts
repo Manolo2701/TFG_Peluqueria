@@ -12,7 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 
 import { ServicioService } from '../../core/services/servicio.service';
-import { Servicio } from '../../interfaces/servicio.interface'; // ✅ CORREGIDO: Importar desde la interfaz
+import { Servicio } from '../../interfaces/servicio.interface';
 import { ReservaService } from '../../core/services/reserva.service';
 import { ConfiguracionService, ConfiguracionNegocio, Festivo } from '../../core/services/configuracion.service';
 import { BusquedaService } from '../../core/services/busqueda.service';
@@ -20,11 +20,14 @@ import { BusquedaService } from '../../core/services/busqueda.service';
 interface DiaSemana {
     fecha: Date;
     nombre: string;
+    nombreCompleto: string;
     numero: string;
     disponible: boolean;
     esFestivo: boolean;
-    horariosDisponibles: { [hora: string]: boolean };
-    clasesHorarios: { [hora: string]: string };
+    horariosManana: { [hora: string]: boolean };
+    horariosTarde: { [hora: string]: boolean };
+    clasesHorariosManana: { [hora: string]: string };
+    clasesHorariosTarde: { [hora: string]: string };
 }
 
 interface Semana {
@@ -71,6 +74,7 @@ export class ReservarPage implements OnInit {
     trabajadorSeleccionado: TrabajadorDisponible | null = null;
     notas: string = '';
     loading = false;
+    loadingConfig = true;
 
     // Datos
     semanaActual: Semana | null = null;
@@ -88,7 +92,7 @@ export class ReservarPage implements OnInit {
     };
     festivos: Festivo[] = [];
 
-    // Horarios por defecto (ahora se generan dinámicamente)
+    // Horarios generados desde configuración
     horariosManana: string[] = [];
     horariosTarde: string[] = [];
 
@@ -101,6 +105,41 @@ export class ReservarPage implements OnInit {
     mostrarSugerencias: boolean = false;
     loadingBusqueda: boolean = false;
 
+    // Mapa de días para conversión
+    private readonly MAPA_DIAS_COMPLETOS: { [key: string]: string } = {
+        'lunes': 'LUN',
+        'martes': 'MAR',
+        'miercoles': 'MIE',
+        'jueves': 'JUE',
+        'viernes': 'VIE',
+        'sabado': 'SAB',
+        'domingo': 'DOM'
+    };
+
+    private readonly MAPA_DIAS_INGLES: { [key: string]: string } = {
+        'LUN': 'lunes',
+        'MAR': 'martes',
+        'MIE': 'miercoles',
+        'JUE': 'jueves',
+        'VIE': 'viernes',
+        'SAB': 'sabado',
+        'DOM': 'domingo'
+    };
+
+    private readonly NOMBRES_DIAS_COMPLETOS: { [key: string]: string } = {
+        'LUN': 'Lunes',
+        'MAR': 'Martes',
+        'MIE': 'Miércoles',
+        'JUE': 'Jueves',
+        'VIE': 'Viernes',
+        'SAB': 'Sábado',
+        'DOM': 'Domingo'
+    };
+
+    // Días que solo abren por la mañana vs días que abren por la tarde
+    private readonly DIAS_SOLO_MANANA: string[] = ['martes', 'jueves', 'sabado'];
+    private readonly DIAS_CON_TARDE: string[] = ['miercoles', 'viernes'];
+
     // Inyectar servicios
     private router = inject(Router);
     private servicioService = inject(ServicioService);
@@ -111,7 +150,6 @@ export class ReservarPage implements OnInit {
     private cdr = inject(ChangeDetectorRef);
 
     ngOnInit() {
-        this.inicializarConValoresPorDefecto();
         this.cargarConfiguracion();
         this.cargarServiciosDisponibles();
     }
@@ -157,16 +195,11 @@ export class ReservarPage implements OnInit {
     // INICIALIZACIÓN
     // ====================
 
-    private inicializarConValoresPorDefecto() {
-        this.festivos = [];
-        this.actualizarHorariosDesdeConfiguracion();
-        this.semanaActual = this.generarSemana(new Date());
-    }
-
     private cargarConfiguracion() {
+        this.loadingConfig = true;
         this.configuracionService.getConfiguracion().subscribe({
             next: (config) => {
-                console.log('✅ Configuración cargada:', config);
+                console.log('✅ Configuración cargada desde BBDD:', config);
                 if (config) {
                     this.configuracion = {
                         ...this.configuracion,
@@ -176,11 +209,21 @@ export class ReservarPage implements OnInit {
                             : this.configuracion.dias_apertura
                     };
                 }
-                this.actualizarHorariosDesdeConfiguracion();
+
+                // Generar horarios basados en la configuración
+                this.generarHorariosDesdeConfiguracion();
+
+                // Generar semana inicial
+                this.semanaActual = this.generarSemana(new Date());
+                this.loadingConfig = false;
+                this.cdr.detectChanges();
             },
             error: (error) => {
                 console.error('❌ Error cargando configuración:', error);
-                this.actualizarHorariosDesdeConfiguracion();
+                this.generarHorariosDesdeConfiguracion();
+                this.semanaActual = this.generarSemana(new Date());
+                this.loadingConfig = false;
+                this.cdr.detectChanges();
             }
         });
     }
@@ -189,24 +232,49 @@ export class ReservarPage implements OnInit {
     // HORARIOS Y CALENDARIO
     // ====================
 
-    private actualizarHorariosDesdeConfiguracion() {
-        if (this.configuracion.horario_apertura && this.configuracion.horario_cierre) {
+    private generarHorariosDesdeConfiguracion() {
+        // Generar horarios de mañana: desde horario_apertura hasta 12:30
+        if (this.configuracion.horario_apertura) {
             this.horariosManana = this.generarHorariosConIntervalo(
                 this.configuracion.horario_apertura,
                 '12:30',
-                10
+                this.configuracion.tiempo_minimo_entre_reservas || 15
             );
+        } else {
+            this.horariosManana = this.generarHorariosConIntervalo('09:30', '12:30', 15);
+        }
+
+        // Generar horarios de tarde: desde 17:00 hasta horario_cierre (pero máximo 19:30)
+        if (this.configuracion.horario_cierre) {
+            const horarioTardeFin = this.obtenerHorarioTardeFin();
             this.horariosTarde = this.generarHorariosConIntervalo(
                 '17:00',
-                '19:30',
-                10
+                horarioTardeFin,
+                this.configuracion.tiempo_minimo_entre_reservas || 15
             );
-            this.regenerarSemana();
         } else {
-            this.horariosManana = this.generarHorariosConIntervalo('09:30', '12:30', 10);
-            this.horariosTarde = this.generarHorariosConIntervalo('17:00', '19:30', 10);
-            this.regenerarSemana();
+            this.horariosTarde = this.generarHorariosConIntervalo('17:00', '19:30', 15);
         }
+
+        console.log('🕐 Horarios generados:', {
+            manana: this.horariosManana,
+            tarde: this.horariosTarde
+        });
+    }
+
+    private obtenerHorarioTardeFin(): string {
+        if (!this.configuracion.horario_cierre) return '19:30';
+
+        const [cierreHora, cierreMinuto] = this.configuracion.horario_cierre.split(':').map(Number);
+        const cierreTotal = cierreHora * 60 + cierreMinuto;
+
+        // Máximo hasta las 19:30
+        if (cierreTotal >= 19 * 60 + 30) {
+            return '19:30';
+        }
+
+        // Si cierra antes de las 19:30, usar la hora de cierre
+        return this.configuracion.horario_cierre;
     }
 
     private generarHorariosConIntervalo(inicio: string, fin: string, intervaloMinutos: number): string[] {
@@ -218,7 +286,7 @@ export class ReservarPage implements OnInit {
         const totalMinutosFin = horaFin * 60 + minutoFin;
 
         if (totalMinutosFin <= totalMinutosInicio) {
-            console.warn('Horario de fin debe ser después del horario de inicio');
+            console.warn('Horario de fin debe ser después del horario de inicio:', { inicio, fin });
             return horarios;
         }
 
@@ -252,26 +320,46 @@ export class ReservarPage implements OnInit {
             dia.setHours(0, 0, 0, 0);
 
             const nombreDia = this.getNombreDia(dia.getDay());
+            const nombreDiaLower = this.convertirDiaInglesAEspanol(nombreDia);
             const esFestivo = this.esFestivo(dia);
-            const horariosDisponibles: { [hora: string]: boolean } = {};
-            const clasesHorarios: { [hora: string]: string } = {};
 
-            const todosHorarios = [...this.horariosManana, ...this.horariosTarde];
+            // Verificar si el día está en los días de apertura configurados
+            const estaAbierto = this.configuracion.dias_apertura.includes(nombreDiaLower);
 
-            todosHorarios.forEach(hora => {
-                const disponible = !esFestivo && this.calcularDisponibilidad(dia, hora);
-                horariosDisponibles[hora] = disponible;
-                clasesHorarios[hora] = disponible ? 'horario-disponible' : 'horario-no-disponible';
-            });
+            const horariosManana: { [hora: string]: boolean } = {};
+            const horariosTarde: { [hora: string]: boolean } = {};
+            const clasesHorariosManana: { [hora: string]: string } = {};
+            const clasesHorariosTarde: { [hora: string]: string } = {};
+
+            // Verificar si el día tiene horario de mañana (todos los días abiertos)
+            if (estaAbierto) {
+                this.horariosManana.forEach(hora => {
+                    const disponible = !esFestivo && this.calcularDisponibilidad(dia, hora, 'manana');
+                    horariosManana[hora] = disponible;
+                    clasesHorariosManana[hora] = disponible ? 'horario-disponible' : 'horario-no-disponible';
+                });
+            }
+
+            // Verificar si el día tiene horario de tarde (solo los días en DIAS_CON_TARDE)
+            if (estaAbierto && this.DIAS_CON_TARDE.includes(nombreDiaLower)) {
+                this.horariosTarde.forEach(hora => {
+                    const disponible = !esFestivo && this.calcularDisponibilidad(dia, hora, 'tarde');
+                    horariosTarde[hora] = disponible;
+                    clasesHorariosTarde[hora] = disponible ? 'horario-disponible' : 'horario-no-disponible';
+                });
+            }
 
             dias.push({
                 fecha: dia,
                 nombre: nombreDia,
+                nombreCompleto: this.NOMBRES_DIAS_COMPLETOS[nombreDia] || nombreDia,
                 numero: dia.getDate().toString(),
-                disponible: !esFestivo && this.esDiaDisponible(dia),
+                disponible: estaAbierto && !esFestivo && this.esDiaDisponible(dia),
                 esFestivo: esFestivo,
-                horariosDisponibles: horariosDisponibles,
-                clasesHorarios: clasesHorarios
+                horariosManana: horariosManana,
+                horariosTarde: horariosTarde,
+                clasesHorariosManana: clasesHorariosManana,
+                clasesHorariosTarde: clasesHorariosTarde
             });
         }
 
@@ -297,7 +385,7 @@ export class ReservarPage implements OnInit {
         return this.festivos.some(festivo => festivo.fecha === fechaStr);
     }
 
-    private calcularDisponibilidad(dia: Date, hora: string): boolean {
+    private calcularDisponibilidad(dia: Date, hora: string, turno: 'manana' | 'tarde'): boolean {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
@@ -310,49 +398,32 @@ export class ReservarPage implements OnInit {
         if (fechaHoraSeleccionada < new Date()) return false;
 
         const nombreDia = this.getNombreDia(dia.getDay());
-        const horarioDia = this.getHorarioComercialParaDia(nombreDia);
+        const nombreDiaLower = this.convertirDiaInglesAEspanol(nombreDia);
 
-        if (!horarioDia) return false;
-
-        return horarioDia.manana.includes(hora) || horarioDia.tarde.includes(hora);
-    }
-
-    private getHorarioComercialParaDia(nombreDia: string): { manana: string[], tarde: string[] } {
-        const diaLowerCase = this.convertirNombreDia(nombreDia);
-
-        if (!Array.isArray(this.configuracion.dias_apertura)) {
-            const diasAperturaDefault = ['martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-            const estaAbierto = diasAperturaDefault.includes(diaLowerCase);
-
-            if (!estaAbierto) return { manana: [], tarde: [] };
-
-            const diasConTarde = ['miercoles', 'viernes'];
-            const tieneTarde = diasConTarde.includes(diaLowerCase);
-
-            return {
-                manana: this.horariosManana,
-                tarde: tieneTarde ? this.horariosTarde : []
-            };
+        // Verificar si el día está abierto según configuración
+        if (!this.configuracion.dias_apertura.includes(nombreDiaLower)) {
+            return false;
         }
 
-        const estaAbierto = this.configuracion.dias_apertura.includes(diaLowerCase);
-        if (!estaAbierto) return { manana: [], tarde: [] };
+        // Para la tarde, verificar si el día está en DIAS_CON_TARDE
+        if (turno === 'tarde' && !this.DIAS_CON_TARDE.includes(nombreDiaLower)) {
+            return false;
+        }
 
-        const diasConTarde = ['miercoles', 'viernes'];
-        const tieneTarde = diasConTarde.includes(diaLowerCase);
-
-        return {
-            manana: this.horariosManana,
-            tarde: tieneTarde ? this.horariosTarde : []
-        };
+        // Verificar si la hora está dentro del horario generado
+        if (turno === 'manana') {
+            return this.horariosManana.includes(hora);
+        } else {
+            return this.horariosTarde.includes(hora);
+        }
     }
 
-    private convertirNombreDia(nombreDia: string): string {
-        const conversiones: { [key: string]: string } = {
-            'LUN': 'lunes', 'MAR': 'martes', 'MIE': 'miercoles',
-            'JUE': 'jueves', 'VIE': 'viernes', 'SAB': 'sabado', 'DOM': 'domingo'
-        };
-        return conversiones[nombreDia] || nombreDia.toLowerCase();
+    private convertirDiaInglesAEspanol(diaIngles: string): string {
+        return this.MAPA_DIAS_INGLES[diaIngles] || diaIngles.toLowerCase();
+    }
+
+    private convertirDiaEspanolAIngles(diaEspanol: string): string {
+        return this.MAPA_DIAS_COMPLETOS[diaEspanol.toLowerCase()] || diaEspanol.toUpperCase();
     }
 
     private getNombreDia(dia: number): string {
@@ -367,16 +438,38 @@ export class ReservarPage implements OnInit {
 
         const diaSemana = fecha.getDay();
         const nombreDia = this.getNombreDia(diaSemana);
-        const horarioDia = this.getHorarioComercialParaDia(nombreDia);
+        const nombreDiaLower = this.convertirDiaInglesAEspanol(nombreDia);
 
-        if (!horarioDia) return false;
+        // Verificar si el día está en los días de apertura
+        const estaAbierto = this.configuracion.dias_apertura.includes(nombreDiaLower);
 
-        return horarioDia.manana.length > 0 || horarioDia.tarde.length > 0;
+        if (!estaAbierto) return false;
+
+        // Verificar si tiene al menos un turno (mañana siempre, tarde solo en DIAS_CON_TARDE)
+        const tieneTarde = this.DIAS_CON_TARDE.includes(nombreDiaLower);
+
+        return this.horariosManana.length > 0 || (tieneTarde && this.horariosTarde.length > 0);
     }
 
-    // ====================
-    // SERVICIOS - REFACTORIZADO PARA USAR BusquedaService
-    // ====================
+    getHorariosMananaParaDia(dia: DiaSemana): string[] {
+        return Object.keys(dia.horariosManana);
+    }
+
+    getHorariosTardeParaDia(dia: DiaSemana): string[] {
+        return Object.keys(dia.horariosTarde);
+    }
+
+    tieneHorarioManana(dia: DiaSemana): boolean {
+        return Object.keys(dia.horariosManana).length > 0;
+    }
+
+    tieneHorarioTarde(dia: DiaSemana): boolean {
+        return Object.keys(dia.horariosTarde).length > 0;
+    }
+
+    // =========
+    // SERVICIOS 
+    // =========
 
     cargarServiciosDisponibles() {
         this.servicioService.getServicios().subscribe({
@@ -396,7 +489,7 @@ export class ReservarPage implements OnInit {
         });
     }
 
-    // ✅ REFACTORIZADO: Usar BusquedaService para búsquedas
+    // Usar BusquedaService para búsquedas
     buscarServicios() {
         this.mostrarSugerencias = false;
 
@@ -431,7 +524,6 @@ export class ReservarPage implements OnInit {
         });
     }
 
-    // ✅ REFACTORIZADO: Usar BusquedaService para sugerencias
     obtenerSugerencias() {
         if (this.searchTerm.trim().length < 2) {
             this.sugerencias = [];
@@ -453,7 +545,6 @@ export class ReservarPage implements OnInit {
         });
     }
 
-    // ✅ MANTENIDO: Filtrado local para cuando no hay búsqueda
     private filtrarServicios() {
         let servicios = this.serviciosDisponibles;
 
@@ -469,7 +560,6 @@ export class ReservarPage implements OnInit {
         this.separarServiciosPorCategoria();
     }
 
-    // ✅ MANTENIDO: Separación por categoría
     private separarServiciosPorCategoria() {
         this.serviciosPeluqueria = this.serviciosFiltrados.filter(s =>
             s.categoria.toLowerCase().includes('peluquería') ||
@@ -503,7 +593,7 @@ export class ReservarPage implements OnInit {
         if (!this.fechaSeleccionada || !this.horaSeleccionada || !this.servicioSeleccionado) return;
 
         this.loading = true;
-        this.trabajadoresDisponibles = []; // Limpiar lista anterior
+        this.trabajadoresDisponibles = [];
 
         const fechaStr = this.formatDate(this.fechaSeleccionada);
 
@@ -516,13 +606,13 @@ export class ReservarPage implements OnInit {
                 this.loading = false;
                 console.log('✅ Respuesta recibida en componente:', response);
 
-                // ✅ VERIFICAR SI ES UN CONFLICTO DE HORARIO (409 convertido a next)
+                // VERIFICAR SI ES UN CONFLICTO DE HORARIO
                 if (response.codigo === 'CONFLICTO_HORARIO_CLIENTE') {
                     console.log('ℹ️ Conflicto de horario detectado (manejado como next):', response);
 
                     this.snackBar.open(response.error, 'Cerrar', {
                         duration: 5000,
-                        panelClass: ['snackbar-warning'] // Cambiar a warning en lugar de error
+                        panelClass: ['snackbar-warning']
                     });
 
                     // Limpiar selección y volver al paso 1
@@ -534,7 +624,7 @@ export class ReservarPage implements OnInit {
                     return;
                 }
 
-                // ✅ VERIFICAR SI ES UN ERROR DE DOBLE RESERVA (para compatibilidad)
+                // VERIFICAR SI ES UN ERROR DE DOBLE RESERVA (para compatibilidad)
                 if (response.error && response.error.includes('Ya tienes una reserva en ese horario')) {
                     console.log('ℹ️ Error de doble reserva (estructura antigua):', response);
 
@@ -551,7 +641,7 @@ export class ReservarPage implements OnInit {
                     return;
                 }
 
-                // ✅ CASO NORMAL: CARGAR TRABAJADORES DISPONIBLES
+                // CARGAR TRABAJADORES DISPONIBLES
                 if (response && response.trabajadores) {
                     this.trabajadoresDisponibles = response.trabajadores.map((t: any) => {
                         let especialidadesArray: string[] = [];
@@ -588,7 +678,7 @@ export class ReservarPage implements OnInit {
             },
             error: (err) => {
                 this.loading = false;
-                // ✅ Esto solo captura errores REALES (500, network, timeout, etc.)
+
                 console.error('❌ Error REAL al cargar trabajadores disponibles:', err);
 
                 let errorMessage = 'Error del sistema al cargar disponibilidad';
@@ -614,8 +704,16 @@ export class ReservarPage implements OnInit {
     // NAVEGACIÓN Y SELECCIÓN
     // ====================
 
-    seleccionarHorario(dia: DiaSemana, hora: string) {
-        if (!this.esHorarioDisponible(dia, hora)) return;
+    seleccionarHorario(dia: DiaSemana, hora: string, turno: 'manana' | 'tarde') {
+        let disponible = false;
+
+        if (turno === 'manana') {
+            disponible = dia.horariosManana[hora] || false;
+        } else {
+            disponible = dia.horariosTarde[hora] || false;
+        }
+
+        if (!disponible) return;
 
         this.fechaSeleccionada = new Date(dia.fecha);
         this.horaSeleccionada = hora;
@@ -627,7 +725,7 @@ export class ReservarPage implements OnInit {
         console.log('🔍 Servicio seleccionado:', {
             id: servicio.id,
             nombre: servicio.nombre,
-            duracion: servicio.duracion, // ✅ Verificar que esto tiene valor
+            duracion: servicio.duracion,
             precio: servicio.precio
         });
 
@@ -640,14 +738,20 @@ export class ReservarPage implements OnInit {
         this.cdr.detectChanges();
     }
 
-    esHorarioDisponible(dia: DiaSemana, hora: string): boolean {
-        return dia.horariosDisponibles[hora] || false;
+    esHorarioDisponible(dia: DiaSemana, hora: string, turno: 'manana' | 'tarde'): boolean {
+        if (turno === 'manana') {
+            return dia.horariosManana[hora] || false;
+        } else {
+            return dia.horariosTarde[hora] || false;
+        }
     }
 
-    getClaseHorarioPrecalculada(dia: DiaSemana, hora: string): string {
+    getClaseHorarioPrecalculada(dia: DiaSemana, hora: string, turno: 'manana' | 'tarde'): string {
         if (dia.esFestivo) return 'horario-festivo';
 
-        const baseClass = dia.clasesHorarios[hora] || 'horario-no-disponible';
+        const baseClass = turno === 'manana'
+            ? dia.clasesHorariosManana[hora] || 'horario-no-disponible'
+            : dia.clasesHorariosTarde[hora] || 'horario-no-disponible';
 
         if (baseClass === 'horario-disponible' && this.fechaSeleccionada && this.horaSeleccionada) {
             const estaSeleccionado =
@@ -753,7 +857,7 @@ export class ReservarPage implements OnInit {
 
                 let errorMsg = err.error?.error || 'Error al crear la reserva';
 
-                // ✅ Manejo específico para conflictos de horario en la creación
+                // Manejo específico para conflictos de horario en la creación
                 if (err.status === 409 || err.error?.error?.includes('Ya tienes una reserva en ese horario')) {
                     errorMsg = err.error.detalles?.mensaje || 'Ya tienes una reserva en ese horario';
 
@@ -762,12 +866,12 @@ export class ReservarPage implements OnInit {
                         panelClass: ['snackbar-warning'] // Cambiar a warning
                     });
 
-                    // Opcional: Limpiar selección para que el usuario elija otro horario
+                    // Limpiar selección para que el usuario elija otro horario
                     this.fechaSeleccionada = null;
                     this.horaSeleccionada = '';
                     this.pasoActual = 1;
                 } else {
-                    // ✅ Error real del sistema
+                    // Error real del sistema
                     this.snackBar.open(errorMsg, 'Cerrar', {
                         duration: 5000,
                         panelClass: ['snackbar-error']
@@ -778,7 +882,7 @@ export class ReservarPage implements OnInit {
             }
         });
     }
-    
+
     validarReservaCompleta(): boolean {
         return !!this.fechaSeleccionada &&
             !!this.horaSeleccionada &&
@@ -812,6 +916,14 @@ export class ReservarPage implements OnInit {
             day: 'numeric'
         };
         return date.toLocaleDateString('es-ES', options);
+    }
+
+    getHorarioTexto(): string {
+        const dias = this.configuracion.dias_apertura
+            .map(dia => this.NOMBRES_DIAS_COMPLETOS[this.convertirDiaEspanolAIngles(dia)] || dia)
+            .join(', ');
+
+        return `Horario según días de apertura (${dias})`;
     }
 
     getCategoriaIcon(categoria: string): string {

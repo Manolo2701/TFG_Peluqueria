@@ -1,6 +1,5 @@
 const Reserva = require('../models/Reserva');
 
-// Controlador para políticas de cancelación
 exports.cancelarReserva = async (req, res) => {
     try {
         const { id } = req.params;
@@ -29,13 +28,13 @@ exports.cancelarReserva = async (req, res) => {
             trabajador_id: reserva.trabajador_id
         });
 
-        // Verificar permisos: cliente solo puede cancelar sus propias reservas
+        // Cliente solo puede cancelar sus propias reservas
         // administradores y trabajadores pueden cancelar cualquier reserva
         if (usuarioRol === 'cliente' && reserva.cliente_id !== usuarioId) {
             return res.status(403).json({ error: 'No tienes permisos para cancelar esta reserva' });
         }
 
-        // ✅ CORRECCIÓN: Verificar que la reserva no esté ya cancelada, completada O RECHAZADA
+        // Verificar que la reserva no esté ya cancelada, completada O rechazada
         if (reserva.estado === 'cancelada') {
             return res.status(400).json({ error: 'La reserva ya está cancelada' });
         }
@@ -50,7 +49,7 @@ exports.cancelarReserva = async (req, res) => {
             });
         }
 
-        // Validar política de cancelación
+        // Validar política de cancelación (para futuro)
         const politicasValidas = ['flexible', 'moderada', 'estricta'];
         const politicaElegida = politica || 'flexible';
 
@@ -131,12 +130,11 @@ exports.obtenerDetallesCancelacion = async (req, res) => {
             return res.status(403).json({ error: 'No tienes permisos para ver esta reserva' });
         }
 
-        // ✅ CORRECCIÓN: También considerar estado "rechazada" como no cancelable
         const puedeCancelar = reserva.estado !== 'cancelada' &&
             reserva.estado !== 'completada' &&
             reserva.estado !== 'rechazada';
 
-        // Si la reserva no está cancelada, calcular penalización potencial
+        // Si la reserva no está cancelada, calcular penalización potencial (para futuro)
         let detallesCancelacion = {};
 
         if (reserva.estado === 'cancelada') {
@@ -154,7 +152,7 @@ exports.obtenerDetallesCancelacion = async (req, res) => {
                 mensaje: 'Esta reserva fue rechazada por el profesional y no puede ser cancelada.'
             };
         } else {
-            // Calcular penalizaciones potenciales para cada política
+            // Calcular penalizaciones potenciales para cada política (para futuro)
             const politicas = Reserva.obtenerPoliticasDisponibles();
             const penalizacionesPotenciales = politicas.map(politica => {
                 const penalizacion = Reserva.calcularPenalizacion(reserva, politica.valor);

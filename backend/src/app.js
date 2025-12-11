@@ -2,20 +2,27 @@
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { testConnection } = require('./config/database');  // ✅ Ruta corregida
+const { testConnection } = require('./config/database');
 require('dotenv').config();
+
+// DEBUG DE VARIABLES DE ENTORNO
+console.log('='.repeat(50));
+console.log('[ENV-DEBUG] Variables cargadas:');
+console.log('[ENV-DEBUG] NODE_ENV:', process.env.NODE_ENV);
+console.log('[ENV-DEBUG] DOCKER_ENV:', process.env.DOCKER_ENV);
+console.log('[ENV-DEBUG] SERVER_IP:', process.env.SERVER_IP || 'NO DEFINIDA');
+console.log('[ENV-DEBUG] FRONTEND_URL:', process.env.FRONTEND_URL || 'NO DEFINIDA');
+console.log('='.repeat(50));
 
 const app = express();
 
 app.set('trust proxy', 1);
 
-// **MIDDLEWARE PARA UTF-8 - AGREGADO AL INICIO**
 app.use((req, res, next) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 });
 
-// MIDDLEWARE CORREGIDO - SOLUCIÓN AL PROBLEMA DEL LOGIN
 app.use(express.json({
   limit: '10mb',
   verify: (req, res, buf) => {
@@ -34,7 +41,6 @@ app.use(express.urlencoded({
   limit: '10mb'
 }));
 
-// Middleware de logging para debug
 app.use((req, res, next) => {
   if (req.method === 'POST' && req.path === '/api/auth/login') {
     console.log('[AUTH] Login request body:', req.body);
@@ -45,32 +51,62 @@ app.use((req, res, next) => {
 
 app.use(helmet());
 
-// **CONFIGURACIÓN CORS MEJORADA - PERMITE CUALQUIER IP EN DESARROLLO**
-// Para producción, configurar FRONTEND_URL en las variables de entorno
+// CONFIGURACIÓN CORS FINAL PARA PRODUCCIÓN DOCKER
 const corsOptions = {
   origin: function (origin, callback) {
-    // En desarrollo, permitir cualquier origen
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[CORS] Desarrollo: Permitido origen: ${origin}`);
-      return callback(null, true);
+    // Si estamos en Docker en producción
+    if (process.env.DOCKER_ENV === 'true' && process.env.NODE_ENV === 'production') {
+      const serverIp = process.env.SERVER_IP;
+
+      // Lista base de orígenes permitidos
+      let allowedOrigins = [
+        'http://nginx',
+        'http://frontend',
+        'http://backend:3000',
+        'http://localhost',
+        'http://localhost:80'
+      ];
+
+      // IP del servidor (si existe)
+      if (serverIp && serverIp !== '' && serverIp !== '') {
+        allowedOrigins.push(`http://${serverIp}`);
+        allowedOrigins.push(`http://${serverIp}:80`);
+      }
+
+      // URLs de FRONTEND_URL
+      if (process.env.FRONTEND_URL) {
+        const urls = process.env.FRONTEND_URL.split(',')
+          .map(url => url.trim())
+          .filter(url => url && url !== 'http://');
+        allowedOrigins = [...allowedOrigins, ...urls];
+      }
+
+      console.log(`[CORS] IP del servidor: ${serverIp}`);
+      console.log(`[CORS] Orígenes permitidos:`, allowedOrigins);
+
+      // Permitir peticiones sin origen (entre contenedores)
+      if (!origin) {
+        console.log('[CORS] Petición interna entre contenedores - PERMITIDA');
+        return callback(null, true);
+      }
+
+      // Verificar si el origen está en la lista
+      const isExactMatch = allowedOrigins.some(allowed => origin === allowed);
+      const isLocalIp = origin.match(/^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/);
+      const isServerIp = serverIp && origin.startsWith(`http://${serverIp}`);
+
+      if (isExactMatch || isLocalIp || isServerIp) {
+        console.log(`[CORS] Origen permitido: ${origin}`);
+        return callback(null, true);
+      }
+
+      console.log(`[CORS] Origen BLOQUEADO: ${origin}`);
+      return callback(new Error('Origen no permitido'), false);
     }
 
-    // En producción, usar la configuración de FRONTEND_URL
-    const allowedOrigins = process.env.FRONTEND_URL
-      ? process.env.FRONTEND_URL.split(',')
-      : [];
-
-    // Si no hay origen (peticiones desde apps móviles, Postman, etc.)
-    if (!origin) return callback(null, true);
-
-    // Verificar si el origen está en la lista de permitidos
-    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
-      console.log(`[CORS] Producción: Origen permitido: ${origin}`);
-      return callback(null, true);
-    } else {
-      console.log(`[CORS] Producción: Origen bloqueado: ${origin}`);
-      return callback(new Error('Origen no permitido por CORS'), false);
-    }
+    // Si no estamos en Docker o estamos en desarrollo, se permite todo
+    console.log(`[CORS] Entorno no productivo - Permitido: ${origin}`);
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -78,14 +114,12 @@ const corsOptions = {
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   preflightContinue: false,
   optionsSuccessStatus: 204,
-  maxAge: 86400 // 24 horas
+  maxAge: 86400
 };
 
 app.use(cors(corsOptions));
 
-// **MIDDLEWARE ADICIONAL PARA UTF-8 - AGREGADO DESPUÉS DE CORS**
 app.use((req, res, next) => {
-  // Forzar UTF-8 en todas las respuestas JSON
   const originalSend = res.send;
   res.send = function (data) {
     if (typeof data === 'object' || (typeof data === 'string' && data.trim().startsWith('{'))) {
@@ -103,7 +137,7 @@ console.log('[SISTEMA] Iniciando servidor Peluquería Selene...');
 console.log('[SISTEMA] Middlewares configurados');
 console.log('[SISTEMA] Configuración UTF-8 aplicada');
 
-// Rutas - ✅ TODAS LAS RUTAS CORREGIDAS
+// Rutas
 const authRoutes = require('./routes/auth');
 const usuarioRoutes = require('./routes/usuarios');
 const servicioRoutes = require('./routes/servicios');
@@ -134,7 +168,7 @@ app.use('/api/dashboard', dashboardRoutes);
 
 console.log('[SISTEMA] Rutas inicializadas');
 
-// Endpoint de test mejorado
+// Endpoint de test
 app.post('/test-json', (req, res) => {
   console.log('[TEST] Request body recibido:', req.body);
   console.log('[TEST] Headers:', req.headers);
@@ -145,7 +179,7 @@ app.post('/test-json', (req, res) => {
   });
 });
 
-// Endpoint de test para UTF-8
+// Endpoint de test (UTF-8)
 app.get('/api/test-encoding', (req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.json({
@@ -160,11 +194,10 @@ app.get('/api/test-encoding', (req, res) => {
   });
 });
 
-// Nuevo endpoint para monitoreo del servicio automático
+// Endpoint de monitoreo del servicio automático
 app.get('/api/reservas/estado-automatico', async (req, res) => {
   try {
-    // Importar dinámicamente para evitar dependencias circulares
-    const ReservaAutoService = require('./services/reservaAutoService');  // ✅ Ruta corregida
+    const ReservaAutoService = require('./services/reservaAutoService');
     const estado = await ReservaAutoService.obtenerEstadoServicio();
     res.json(estado);
   } catch (error) {
@@ -172,6 +205,7 @@ app.get('/api/reservas/estado-automatico', async (req, res) => {
   }
 });
 
+// Endpoint de salud
 app.get('/api/health', async (req, res) => {
   const dbStatus = await testConnection();
   res.json({
@@ -229,7 +263,6 @@ const PORT = process.env.PORT || 3000;
 async function startServer() {
   try {
     console.log('[SISTEMA] Verificando conexión a base de datos...');
-
     const dbConnected = await testConnection();
 
     if (!dbConnected) {
@@ -238,9 +271,8 @@ async function startServer() {
       console.log('[SISTEMA] ✅ Conectado a MySQL - Base de datos lista');
     }
 
-    // Inicializar sistema de cancelación después de que la BD esté lista
     console.log('[SISTEMA] Inicializando sistema de cancelación...');
-    const Reserva = require('./models/Reserva');  // ✅ Ruta corregida
+    const Reserva = require('./models/Reserva');
     const cancelacionSuccess = await Reserva.inicializarSistemaCancelacion();
 
     if (cancelacionSuccess) {
@@ -249,17 +281,14 @@ async function startServer() {
       console.log('[SISTEMA] ⚠️  Sistema de cancelación con errores, pero servidor continúa');
     }
 
-    // Inicializar sistema automático de reservas después de que la BD esté lista
     console.log('[SISTEMA] Inicializando servicio automático de reservas...');
-    const ReservaAutoService = require('./services/reservaAutoService');  // ✅ Ruta corregida
+    const ReservaAutoService = require('./services/reservaAutoService');
 
-    // Esperar un poco antes de iniciar el servicio automático
     setTimeout(() => {
       ReservaAutoService.iniciar();
       console.log('[SISTEMA] ⏰ Servicio automático de reservas iniciado (setInterval)');
-    }, 5000); // Esperar 5 segundos después de la inicialización de la BD
+    }, 5000);
 
-    // Manejo de errores global
     process.on('uncaughtException', (error) => {
       console.error('[SISTEMA] UNCAUGHT EXCEPTION:', error);
     });
@@ -268,17 +297,12 @@ async function startServer() {
       console.error('[SISTEMA] UNHANDLED REJECTION at:', promise, 'reason:', reason);
     });
 
-    // **ESCUCHAR EN TODAS LAS INTERFACES DE RED (0.0.0.0)**
     app.listen(PORT, '0.0.0.0', () => {
       console.log('[SISTEMA] ==========================================');
       console.log('[SISTEMA] 🚀 Servidor corriendo en puerto ' + PORT);
-      console.log('[SISTEMA] 🌐 Accesible desde cualquier dispositivo en la red');
-      console.log('[SISTEMA] ✅ Base de datos inicializada y lista');
-      console.log('[SISTEMA] ✅ Middleware de JSON configurado correctamente');
-      console.log('[SISTEMA] ✅ Sistema de políticas de cancelación listo');
-      console.log('[SISTEMA] ⏰ Servicio automático de reservas configurado');
-      console.log('[SISTEMA] ✅ Configuración UTF-8 activa');
-      console.log('[SISTEMA] ✅ CORS configurado para cualquier origen en desarrollo');
+      console.log(`[SISTEMA] 🌐 Entorno: ${process.env.NODE_ENV}`);
+      console.log(`[SISTEMA] 📍 IP del servidor: ${process.env.SERVER_IP || 'No configurada'}`);
+      console.log('[SISTEMA] ✅ CORS configurado para entornos dockerizados');
       console.log('[SISTEMA] ==========================================');
       console.log('[SISTEMA] 📱 Para acceder desde otros dispositivos:');
       console.log('[SISTEMA] 1. Asegúrate que estén en la misma red');
@@ -292,5 +316,4 @@ async function startServer() {
   }
 }
 
-// Iniciar servidor
 startServer();

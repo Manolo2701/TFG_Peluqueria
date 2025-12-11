@@ -8,9 +8,11 @@ export interface RegisterRequest {
   password: string;
   nombre: string;
   apellidos: string;
-  telefono?: string;  // Opcional
-  direccion?: string; // Opcional
+  telefono?: string;
+  direccion?: string;
   rol?: 'cliente' | 'trabajador' | 'administrador';
+  preguntaSeguridad?: string;    // Nuevo campo
+  respuestaSeguridad?: string;   // Nuevo campo
 }
 
 export interface AuthResponse {
@@ -30,4 +32,28 @@ export interface Usuario {
   nombre: string;
   apellidos: string;
   rol: 'cliente' | 'trabajador' | 'administrador';
+}
+
+// 🔐 Nuevas interfaces para recuperación de contraseña
+export interface SecurityQuestionRequest {
+  email: string;
+}
+
+export interface SecurityQuestionResponse {
+  preguntaSeguridad: string;
+}
+
+export interface VerifySecurityAnswerRequest {
+  email: string;
+  respuestaSeguridad: string;
+}
+
+export interface VerifySecurityAnswerResponse {
+  mensaje: string;
+  resetToken: string;
+}
+
+export interface ResetPasswordRequest {
+  resetToken: string;
+  nuevaPassword: string;
 }

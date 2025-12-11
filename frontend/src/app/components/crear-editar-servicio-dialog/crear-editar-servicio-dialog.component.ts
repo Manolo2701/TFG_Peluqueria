@@ -8,8 +8,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatIconModule } from '@angular/material/icon'; // ✅ AÑADIDO
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'; // ✅ AÑADIDO
+import { MatIconModule } from '@angular/material/icon'; 
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'; 
 
 // Interfaces
 import { Servicio } from '../../interfaces/servicio.interface';
@@ -31,8 +31,8 @@ export interface ServicioDialogData {
         MatButtonModule,
         MatSnackBarModule,
         MatCheckboxModule,
-        MatIconModule, // ✅ AÑADIDO
-        MatProgressSpinnerModule // ✅ AÑADIDO
+        MatIconModule, 
+        MatProgressSpinnerModule 
     ],
     templateUrl: './crear-editar-servicio-dialog.component.html',
     styleUrls: ['./crear-editar-servicio-dialog.component.scss']
@@ -42,7 +42,6 @@ export class CrearEditarServicioDialogComponent implements OnInit {
     isEdit = false;
     loading = false;
 
-    // Categorías predefinidas (puedes ampliarlas)
     categorias: string[] = [
         'Peluquería',
         'Estética',
@@ -76,7 +75,6 @@ export class CrearEditarServicioDialogComponent implements OnInit {
         if (this.servicioForm.valid) {
             this.loading = true;
 
-            // Simular una llamada a la API (en un caso real, aquí llamarías al servicio)
             setTimeout(() => {
                 this.loading = false;
                 this.snackBar.open(

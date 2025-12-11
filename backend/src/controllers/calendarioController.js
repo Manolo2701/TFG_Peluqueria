@@ -11,7 +11,7 @@ const obtenerTrabajadorId = async (req) => {
         console.log(`🔍 [OBTENER_TRABAJADOR_ID] Buscando trabajadorId para usuario: ${req.usuario.id}`);
         console.log(`   Rol: ${req.usuario.rol}, Nombre: ${req.usuario.nombre}`);
 
-        // ✅ CORRECCIÓN: Verificar si ya tenemos el ID y devolverlo DIRECTAMENTE
+        // Verificar si ya tenemos el ID y devolverlo
         if (req.usuario.trabajadorId && typeof req.usuario.trabajadorId === 'number') {
             console.log(`✅ [OBTENER_TRABAJADOR_ID] Usando trabajadorId existente: ${req.usuario.trabajadorId}`);
             return req.usuario.trabajadorId;
@@ -80,7 +80,7 @@ const calendarioController = {
             const trabajadores = await Trabajador.listarTodos();
             console.log(`👥 Total trabajadores encontrados: ${trabajadores.length}`);
 
-            // 🆕 LOG DETALLADO: Mostrar todos los trabajadores
+            // LOG: Mostrar todos los trabajadores
             trabajadores.forEach((t, index) => {
                 console.log(`   ${index + 1}. ${t.nombre} ${t.apellidos} - ID: ${t.id}, Usuario_ID: ${t.usuario_id}`);
             });
@@ -97,7 +97,7 @@ const calendarioController = {
             for (const trabajador of trabajadores) {
                 console.log(`\n--- 🔄 PROCESANDO TRABAJADOR: ${trabajador.nombre} ${trabajador.apellidos} ---`);
 
-                // ✅ VERIFICACIÓN CRÍTICA: Asegurar que tenemos usuario_id
+                // Asegurar que tenemos usuario_id
                 if (!trabajador.usuario_id) {
                     console.log(`❌ ERROR CRÍTICO: trabajador ${trabajador.nombre} NO tiene usuario_id`);
                     console.log(`📋 Datos completos del trabajador:`, trabajador);
@@ -106,11 +106,6 @@ const calendarioController = {
 
                 console.log(`📋 Datos trabajador: ID: ${trabajador.id}, Usuario_ID: ${trabajador.usuario_id}, Nombre: ${trabajador.nombre}`);
 
-                // 🆕 LOG ESPECIAL PARA ANA RODRÍGUEZ
-                if (trabajador.nombre === 'Ana' && trabajador.apellidos.includes('Rodriguez')) {
-                    console.log(`🎯 🎯 🎯 TRABAJADOR ESPECIAL: ANA RODRÍGUEZ DETECTADA 🎯 🎯 🎯`);
-                    console.log(`🎯 ID: ${trabajador.id}, Usuario_ID: ${trabajador.usuario_id}`);
-                }
 
                 // Verificar si el trabajador puede realizar este servicio
                 const esCapaz = CalendarioUtils.puedeRealizarServicio(trabajador, servicio);
@@ -123,11 +118,11 @@ const calendarioController = {
 
                 console.log(`✅ Trabajador PUEDE realizar el servicio`);
 
-                // ✅ VERIFICACIÓN CORREGIDA: Usar trabajador.usuario_id para buscar en ausencia_trabajador
+                // Usar trabajador.usuario_id para buscar en ausencia_trabajador
                 console.log(`🔍 VERIFICANDO AUSENCIA para usuario_id: ${trabajador.usuario_id}, fecha: ${fecha}`);
 
                 try {
-                    // 🆕 LOG DETALLADO: Mostrar la consulta SQL que se ejecutará
+                    // LOG: Mostrar la consulta SQL que se ejecutará
                     console.log(`📝 CONSULTA SQL: SELECT * FROM ausencia_trabajador WHERE trabajador_id = ${trabajador.usuario_id} AND estado = 'aprobado' AND '${fecha}' BETWEEN fecha_inicio AND fecha_fin`);
 
                     const [ausencias] = await pool.execute(
@@ -140,7 +135,7 @@ const calendarioController = {
 
                     console.log(`📊 RESULTADO AUSENCIAS: ${ausencias.length} ausencias encontradas`);
 
-                    // 🆕 LOG DETALLADO: Mostrar todas las ausencias encontradas
+                    // LOG: Mostrar todas las ausencias encontradas
                     if (ausencias.length > 0) {
                         console.log(`📋 DETALLES DE AUSENCIAS ENCONTRADAS:`);
                         ausencias.forEach((ausencia, index) => {
@@ -148,18 +143,6 @@ const calendarioController = {
                         });
                     }
 
-                    // 🆕 LOG ESPECIAL PARA ANA RODRÍGUEZ
-                    if (trabajador.nombre === 'Ana' && trabajador.apellidos.includes('Rodriguez')) {
-                        console.log(`🎯 🎯 🎯 AUSENCIAS DE ANA RODRÍGUEZ:`);
-                        if (ausencias.length === 0) {
-                            console.log(`🎯 NO SE ENCONTRARON AUSENCIAS PARA ANA RODRÍGUEZ EN LA FECHA ${fecha}`);
-                        } else {
-                            console.log(`🎯 ANA RODRÍGUEZ TIENE ${ausencias.length} AUSENCIAS EN ESTA FECHA:`);
-                            ausencias.forEach(ausencia => {
-                                console.log(`🎯   - ${ausencia.tipo}: ${ausencia.fecha_inicio} a ${ausencia.fecha_fin} (${ausencia.estado})`);
-                            });
-                        }
-                    }
 
                     if (ausencias.length > 0) {
                         console.log(`🚫 AUSENCIA DETECTADA para ${trabajador.nombre}:`, {
@@ -171,7 +154,7 @@ const calendarioController = {
                         });
                         console.log(`❌ Trabajador ${trabajador.nombre} EXCLUIDO por ausencia aprobada`);
                         trabajadoresConAusencia++;
-                        continue; // ✅ SALIR DEL BUCLE - trabajador NO disponible
+                        continue; // SALIR DEL BUCLE - trabajador NO disponible
                     }
 
                     console.log(`✅ Trabajador NO tiene ausencias aprobadas`);
@@ -192,18 +175,18 @@ const calendarioController = {
                 const horarioDia = CalendarioUtils.obtenerHorarioParaDia(horarioLaboral, diaSemana);
                 console.log(`📅 Horario para ${diaSemana}:`, horarioDia);
 
-                // ✅ VALIDACIÓN ROBUSTA MEJORADA - DETECCIÓN DE DÍAS SIN TRABAJO
+                // DETECCIÓN DE DÍAS SIN TRABAJO
                 if (!horarioDia) {
                     console.log(`❌ NO HAY HORARIO DEFINIDO para ${trabajador.nombre} el ${diaSemana} - NO TRABAJA ESTE DÍA`);
                     trabajadoresSinHorario++;
                     continue;
                 }
 
-                // ✅ VERIFICAR ESTRUCTURA COMPATIBLE (hora_inicio/hora_fin O inicio/fin)
+                // VERIFICAR ESTRUCTURA COMPATIBLE (hora_inicio/hora_fin O inicio/fin)
                 const horaInicio = horarioDia.hora_inicio || horarioDia.inicio;
                 const horaFin = horarioDia.hora_fin || horarioDia.fin;
 
-                // ✅ NUEVA VALIDACIÓN: Verificar si el horario está vacío o es nulo
+                // Verificar si el horario está vacío o es nulo
                 if (!horaInicio || !horaFin || horaInicio.trim() === '' || horaFin.trim() === '' || horaInicio === 'null' || horaFin === 'null') {
                     console.log(`❌ HORARIO VACÍO O INVÁLIDO para ${trabajador.nombre}:`, horarioDia);
                     console.log(`   hora_inicio: "${horaInicio}", hora_fin: "${horaFin}"`);
@@ -212,7 +195,7 @@ const calendarioController = {
                     continue;
                 }
 
-                // ✅ VALIDAR FORMATO DE HORAS
+                // VALIDAR FORMATO DE HORAS
                 const horaInicioValida = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(horaInicio);
                 const horaFinValida = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(horaFin);
 
@@ -226,7 +209,7 @@ const calendarioController = {
 
                 console.log(`✅ Horario válido: ${horaInicio} - ${horaFin}`);
 
-                // Generar slots disponibles - ✅ AHORA ES COMPATIBLE
+                // Generar slots disponibles
                 const slotsDisponibles = CalendarioUtils.generarSlotsDisponibles(
                     horarioDia,
                     reservas,
@@ -235,7 +218,7 @@ const calendarioController = {
 
                 console.log(`🕒 Slots disponibles generados: ${slotsDisponibles.length}`);
 
-                // ✅ NUEVA VALIDACIÓN: Si no hay slots disponibles, marcar como no disponible
+                // Si no hay slots disponibles, marcar como no disponible
                 const tieneDisponibilidad = slotsDisponibles.length > 0;
 
                 disponibilidad.push({
@@ -264,7 +247,7 @@ const calendarioController = {
                         duracion: r.duracion,
                         servicio: r.servicio_nombre
                     })),
-                    // ✅ NUEVO: Información de diagnóstico
+                    // Información de diagnóstico
                     diagnostico: {
                         tiene_horario: true,
                         horario_valido: true,
@@ -274,7 +257,7 @@ const calendarioController = {
                 });
             }
 
-            // 🆕 RESUMEN DETALLADO
+            // LOG
             console.log(`\n📊 ==========================================`);
             console.log(`📊 RESUMEN DE PROCESAMIENTO`);
             console.log(`📊 ==========================================`);
@@ -347,7 +330,7 @@ const calendarioController = {
         }
     },
 
-    // NUEVO MÉTODO: Obtener disponibilidad rápida (versión simplificada)
+    // Obtener disponibilidad rápida (versión simplificada)
     obtenerDisponibilidadRapida: async (req, res) => {
         try {
             const { fecha, id_servicio } = req.query;
@@ -449,10 +432,10 @@ const calendarioController = {
 
     solicitarAusencia: async (req, res) => {
         try {
-            // ✅ CORRECCIÓN: Usar req.usuario.id directamente
             const usuarioId = req.usuario.id;
+            const usuarioRol = req.usuario.rol;
 
-            console.log(`🔍 [SOLICITAR_AUSENCIA] usuarioId obtenido: ${usuarioId}, tipo: ${typeof usuarioId}`);
+            console.log(`🔍 [SOLICITAR_AUSENCIA] usuarioId obtenido: ${usuarioId}, rol: ${usuarioRol}`);
 
             if (!usuarioId) {
                 return res.status(403).json({
@@ -468,28 +451,34 @@ const calendarioController = {
                 });
             }
 
-            // ✅ Añadir log para verificar los datos antes de crear
-            console.log(`📝 [SOLICITAR_AUSENCIA] Creando ausencia con datos:`, {
+            // DETERMINAR EL ESTADO BASADO EN EL ROL DEL USUARIO
+            let estado = 'pendiente';
+            let mensajeRespuesta = 'Solicitud de ausencia creada exitosamente';
+
+            // Si es administrador, aprobar automáticamente
+            if (usuarioRol === 'administrador') {
+                console.log('👔 Usuario es administrador, aprobando ausencia automáticamente');
+                estado = 'aprobado';
+                mensajeRespuesta = 'Ausencia registrada exitosamente';
+            }
+
+            console.log(`📝 [SOLICITAR_AUSENCIA] Creando ausencia con estado: ${estado}`);
+
+            const ausenciaId = await AusenciaTrabajador.crear({
                 trabajador_id: usuarioId,
                 tipo,
                 fecha_inicio,
                 fecha_fin,
-                motivo
-            });
-
-            const ausenciaId = await AusenciaTrabajador.crear({
-                trabajador_id: usuarioId, // ✅ CORRECCIÓN: usar usuarioId (usuario.id)
-                tipo,
-                fecha_inicio,
-                fecha_fin,
-                motivo
+                motivo,
+                estado: estado // ENVIAR EL ESTADO DETERMINADO
             });
 
             console.log(`✅ [SOLICITAR_AUSENCIA] Ausencia creada con ID: ${ausenciaId}`);
 
             res.status(201).json({
-                mensaje: 'Solicitud de ausencia creada exitosamente',
-                ausencia_id: ausenciaId
+                mensaje: mensajeRespuesta,
+                ausencia_id: ausenciaId,
+                estado: estado // DEVOLVER EL ESTADO PARA EL FRONTEND
             });
 
         } catch (error) {
@@ -531,7 +520,6 @@ const calendarioController = {
             const { id } = req.params;
             const { estado } = req.body;
 
-            // CORRECCIÓN: Cambiar "aprobada" → "aprobado", "rechazada" → "rechazado"
             if (!['aprobado', 'rechazado'].includes(estado)) {
                 return res.status(400).json({
                     error: 'Estado debe ser "aprobado" o "rechazado"'
@@ -561,7 +549,6 @@ const calendarioController = {
     // Obtener mis ausencias (para trabajadores)
     obtenerMisAusencias: async (req, res) => {
         try {
-            // ✅ CORRECCIÓN: Usar req.usuario.id directamente
             const usuarioId = req.usuario.id;
 
             console.log(`🔍 [OBTENER_MIS_AUSENCIAS] usuarioId obtenido: ${usuarioId}, tipo: ${typeof usuarioId}`);

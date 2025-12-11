@@ -78,19 +78,22 @@ export class MisClientesPage implements OnInit {
 
         this.trabajadorService.obtenerMisClientes().subscribe({
             next: (response) => {
-                // ✅ CORRECCIÓN: Convertir totalReservas a número
+                console.log('📦 Respuesta completa del backend:', response);
+                console.log('🔍 Primer cliente detallado:', response.clientes[0]);
+
                 this.clientes = response.clientes.map((cliente: any) => ({
                     id: cliente.id,
                     nombre: cliente.nombre,
                     apellidos: cliente.apellidos,
                     email: cliente.email,
                     telefono: cliente.telefono,
-                    totalReservas: Number(cliente.totalReservas) || 0, // ← CONVERTIR A NÚMERO
+                    totalReservas: Number(cliente.totalReservas) || 0,
                     ultimaVisita: cliente.ultimaVisita,
                     serviciosUtilizados: cliente.serviciosUtilizados || []
                 }));
+
+                console.log('✅ Clientes procesados. Total:', this.clientes.length);
                 this.loading = false;
-                console.log('✅ Clientes cargados:', this.clientes);
             },
             error: (err) => {
                 this.error = err.message;

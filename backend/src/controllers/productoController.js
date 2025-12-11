@@ -1,9 +1,13 @@
 const Producto = require('../models/Producto');
 
+// Obtener todos los productos (con opción de incluir inactivos)
 exports.obtenerProductos = async (req, res) => {
     try {
-        console.log('🛍️ Obteniendo todos los productos');
-        const productos = await Producto.listarTodos();
+        const incluirInactivos = req.query.incluirInactivos === 'true';
+
+        console.log(`🛍️ Obteniendo todos los productos (incluirInactivos: ${incluirInactivos})`);
+
+        const productos = await Producto.listarTodos(incluirInactivos);
 
         res.json({
             total: productos.length,
@@ -15,10 +19,13 @@ exports.obtenerProductos = async (req, res) => {
     }
 };
 
+// Obtener producto por ID (con opción de incluir inactivos)
 exports.obtenerProducto = async (req, res) => {
     try {
         const { id } = req.params;
-        const producto = await Producto.buscarPorId(id);
+        const incluirInactivos = req.query.incluirInactivos === 'true';
+
+        const producto = await Producto.buscarPorId(id, incluirInactivos);
 
         if (!producto) {
             return res.status(404).json({ error: 'Producto no encontrado' });
@@ -31,7 +38,7 @@ exports.obtenerProducto = async (req, res) => {
     }
 };
 
-// ✅ MÉTODO NUEVO: Crear producto
+// Crear producto
 exports.crearProducto = async (req, res) => {
     try {
         console.log('📝 Iniciando creación de producto');
@@ -40,7 +47,8 @@ exports.crearProducto = async (req, res) => {
         const productoId = await Producto.crear(req.body);
         console.log('✅ Producto creado con ID:', productoId);
 
-        const nuevoProducto = await Producto.buscarPorId(productoId);
+        // Para administración, incluir inactivos
+        const nuevoProducto = await Producto.buscarPorId(productoId, true);
         console.log('✅ Producto recuperado:', nuevoProducto);
 
         res.status(201).json({
@@ -54,7 +62,7 @@ exports.crearProducto = async (req, res) => {
     }
 };
 
-// ✅ MÉTODO NUEVO: Actualizar producto
+// Actualizar producto
 exports.actualizarProducto = async (req, res) => {
     try {
         const { id } = req.params;
@@ -63,8 +71,8 @@ exports.actualizarProducto = async (req, res) => {
         console.log('📝 Actualizando producto ID:', id);
         console.log('Datos recibidos:', datosActualizados);
 
-        // Verificar que el producto existe
-        const productoExistente = await Producto.buscarPorId(id);
+        // Verificar que el producto existe (para administración, incluir inactivos)
+        const productoExistente = await Producto.buscarPorId(id, true);
         if (!productoExistente) {
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
@@ -72,8 +80,8 @@ exports.actualizarProducto = async (req, res) => {
         // Actualizar el producto
         await Producto.actualizar(id, datosActualizados);
 
-        // Obtener el producto actualizado
-        const productoActualizado = await Producto.buscarPorId(id);
+        // Obtener el producto actualizado (para administración, incluir inactivos)
+        const productoActualizado = await Producto.buscarPorId(id, true);
 
         res.json({
             mensaje: 'Producto actualizado exitosamente',
@@ -85,15 +93,15 @@ exports.actualizarProducto = async (req, res) => {
     }
 };
 
-// ✅ MÉTODO NUEVO: Eliminar producto
+// Eliminar producto
 exports.eliminarProducto = async (req, res) => {
     try {
         const { id } = req.params;
 
         console.log('🗑️ Eliminando producto ID:', id);
 
-        // Verificar que el producto existe
-        const productoExistente = await Producto.buscarPorId(id);
+        // Verificar que el producto existe (para administración, incluir inactivos)
+        const productoExistente = await Producto.buscarPorId(id, true);
         if (!productoExistente) {
             return res.status(404).json({ error: 'Producto no encontrado' });
         }

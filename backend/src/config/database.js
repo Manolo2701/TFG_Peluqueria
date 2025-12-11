@@ -26,7 +26,6 @@ console.log('   Base de datos:', dbConfig.database);
 
 const pool = mysql.createPool(dbConfig);
 
-// Función de testConnection
 async function testConnection() {
   try {
     const connection = await pool.getConnection();

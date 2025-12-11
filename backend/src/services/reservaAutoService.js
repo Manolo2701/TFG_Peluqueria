@@ -4,7 +4,7 @@ class ReservaAutoService {
     static iniciar() {
         console.log('🔄 Iniciando servicio automático de reservas (setInterval)...');
 
-        // Ejecutar cada minuto usando setInterval nativo
+        // Ejecutar cada dos minutos usando setInterval nativo
         setInterval(async () => {
             try {
                 console.log('⏰ Ejecutando verificación automática de reservas...');
@@ -13,7 +13,7 @@ class ReservaAutoService {
             } catch (error) {
                 console.error('❌ Error en verificación automática:', error);
             }
-        }, 60000); // 60000 ms = 1 minuto
+        }, 120000); // 2 minutos
 
         // Ejecutar una vez inmediatamente al iniciar
         setTimeout(async () => {

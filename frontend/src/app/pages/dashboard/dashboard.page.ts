@@ -17,9 +17,10 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 // Services
 import { DashboardService } from '../../core/services/dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
+import { TrabajadorService } from '../../core/services/trabajador.service';
 
 // Interfaces
-import { DashboardStats, ProximaReserva, ServicioPopular } from '../../interfaces/dashboard.interface';
+import { DashboardStats } from '../../interfaces/dashboard.interface';
 import { Subscription } from 'rxjs';
 
 // Componentes de diálogo
@@ -29,11 +30,8 @@ import { ReservaRapidaDialogComponent } from '../../components/reserva-rapida-di
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    // Angular Common
     CommonModule,
     RouterModule,
-
-    // Angular Material Modules
     MatCardModule,
     MatButtonModule,
     MatListModule,
@@ -55,8 +53,12 @@ export class DashboardPage implements OnInit, OnDestroy {
   error: string | null = null;
   usuario: any = null;
 
-  // ✅ MODIFICADO: Cargar estado desde localStorage
+  // Cargar estado desde localStorage
   vistaTrabajadorActiva = localStorage.getItem('dashboard_vista_trabajador') === 'true';
+
+  //  Controla si el administrador tiene perfil de trabajador
+  adminTienePerfilTrabajador: boolean = false;
+  verificandoPerfil: boolean = false;
 
   // Datos para acciones rápidas
   serviciosDisponibles: any[] = [];
@@ -67,6 +69,7 @@ export class DashboardPage implements OnInit, OnDestroy {
   constructor(
     private dashboardService: DashboardService,
     private authService: AuthService,
+    private trabajadorService: TrabajadorService,
     private router: Router,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar,
@@ -75,27 +78,27 @@ export class DashboardPage implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    // ✅ Verificar parámetros de URL para mensajes de pago
+    // Verificar parámetros de URL para mensajes de pago
     this.verificarEstadoPago();
 
     const userSub = this.authService.usuarioActual$.subscribe(usuario => {
       this.usuario = usuario;
 
-      // ✅ Cargar datos según el rol real Y el estado guardado
-      if (usuario?.rol === 'trabajador') {
-        console.log('🔄 Cargando dashboard para trabajador normal');
-        this.loadDashboardDataTrabajador();
-        // ✅ Forzar vista trabajador para usuarios con rol trabajador
-        this.vistaTrabajadorActiva = true;
-        this.guardarEstadoVista();
-      } else if (usuario?.rol === 'administrador') {
-        console.log('🔄 Cargando dashboard para administrador');
+      if (!usuario) {
+        this.loading = false;
+        this.error = 'No hay usuario autenticado';
+        return;
+      }
 
-        // ✅ Cargar AMBOS conjuntos de datos para evitar recargas
-        this.loadBothDatasets();
+      // Verificar si el administrador tiene perfil de trabajador (ASÍNCRONO)
+      if (usuario.rol === 'administrador') {
+        this.verificarPerfilTrabajador(usuario.id).then(() => {
+          // Después de verificar perfil, cargar datos
+          this.cargarDatosSegunRol(usuario);
+        });
       } else {
-        console.log('🔄 Cargando dashboard para cliente');
-        this.loadDashboardData();
+        // Para otros roles, cargar datos directamente
+        this.cargarDatosSegunRol(usuario);
       }
 
       this.cargarDatosEspecificosRol();
@@ -103,59 +106,117 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.subs.push(userSub);
   }
 
-  // ✅ NUEVO: Método para cargar ambos conjuntos de datos sin bloqueo
+  // Método asíncrono para cargar datos según rol
+  private async cargarDatosSegunRol(usuario: any) {
+    if (usuario.rol === 'trabajador') {
+      console.log('🔄 Cargando dashboard para trabajador normal');
+      this.loadDashboardDataTrabajador();
+      // Forzar vista trabajador para usuarios con rol trabajador
+      this.vistaTrabajadorActiva = true;
+      this.guardarEstadoVista();
+    } else if (usuario.rol === 'administrador') {
+      console.log('🔄 Cargando dashboard para administrador');
+      // Cargar AMBOS conjuntos de datos para evitar recargas
+      this.loadBothDatasets();
+    } else {
+      console.log('🔄 Cargando dashboard para cliente');
+      this.loadDashboardData();
+    }
+  }
+
+  // Método asíncrono para verificar perfil de trabajador
+  private async verificarPerfilTrabajador(usuarioId: number): Promise<void> {
+    this.verificandoPerfil = true;
+
+    try {
+      const tienePerfil = await this.trabajadorService.verificarTienePerfilTrabajador(usuarioId).toPromise();
+      this.adminTienePerfilTrabajador = tienePerfil || false;
+      console.log(`🔍 Administrador ${usuarioId} ${tienePerfil ? 'TIENE' : 'NO TIENE'} perfil de trabajador`);
+
+      // Si no tiene perfil y está en vista trabajador, forzar volver a admin
+      if (!tienePerfil && this.vistaTrabajadorActiva) {
+        this.vistaTrabajadorActiva = false;
+        this.guardarEstadoVista();
+        this.mostrarError('No tienes perfil de trabajador. Volviendo a vista administrador.');
+      }
+    } catch (err) {
+      console.error('❌ Error al verificar perfil de trabajador:', err);
+      this.adminTienePerfilTrabajador = false;
+
+      // En caso de error, asumimos que no tiene perfil
+      if (this.vistaTrabajadorActiva) {
+        this.vistaTrabajadorActiva = false;
+        this.guardarEstadoVista();
+      }
+    } finally {
+      this.verificandoPerfil = false;
+      this.cdRef.detectChanges();
+    }
+  }
+
+  // Método para cargar ambos conjuntos de datos sin bloqueo
   private loadBothDatasets() {
     this.loading = true;
     this.error = null;
+
+    // Contador para saber cuándo ambas peticiones han terminado
+    let peticionesCompletadas = 0;
+    const totalPeticiones = 2; // admin + trabajador (si tiene perfil)
+
+    const checkCompletadas = () => {
+      peticionesCompletadas++;
+      if (peticionesCompletadas >= totalPeticiones) {
+        this.loading = false;
+        this.cdRef.detectChanges();
+      }
+    };
 
     // Cargar datos de administrador
     const adminSub = this.dashboardService.getEstadisticas().subscribe({
       next: (data) => {
         console.log('📊 DATOS ADMIN RECIBIDOS:', data);
         this.stats = this.ensureSafeStats(data);
-        this.checkLoadingComplete();
+        checkCompletadas();
       },
       error: (err) => {
         console.error('❌ ERROR cargando datos admin:', err);
         this.stats = this.createEmptyStats();
-        this.checkLoadingComplete();
+        checkCompletadas();
       }
     });
 
-    // Cargar datos de trabajador (solo si es admin)
-    const trabajadorSub = this.dashboardService.getEstadisticasTrabajador().subscribe({
-      next: (data) => {
-        console.log('📊 DATOS TRABAJADOR RECIBIDOS:', data);
-        this.statsTrabajador = this.ensureSafeStats(data);
-        this.checkLoadingComplete();
-      },
-      error: (err) => {
-        console.error('❌ ERROR cargando datos trabajador:', err);
-        // No es crítico si falla la carga de datos de trabajador
-        this.statsTrabajador = this.createEmptyStats();
-        this.checkLoadingComplete();
-      }
-    });
-
-    this.subs.push(adminSub, trabajadorSub);
-  }
-
-  // ✅ NUEVO: Verificar si ambas cargas han terminado
-  private checkLoadingComplete() {
-    // Asumimos que ambas peticiones han terminado cuando tenemos datos o errores en ambos
-    if (this.stats && this.statsTrabajador) {
-      this.loading = false;
-      this.cdRef.detectChanges();
+    // Cargar datos de trabajador solo si admin tiene perfil
+    if (this.adminTienePerfilTrabajador) {
+      const trabajadorSub = this.dashboardService.getEstadisticasTrabajador().subscribe({
+        next: (data) => {
+          console.log('📊 DATOS TRABAJADOR RECIBIDOS:', data);
+          this.statsTrabajador = this.ensureSafeStats(data);
+          checkCompletadas();
+        },
+        error: (err) => {
+          console.error('❌ ERROR cargando datos trabajador:', err);
+          // Si falla pero admin tiene perfil, crear datos vacíos
+          this.statsTrabajador = this.createEmptyStats();
+          checkCompletadas();
+        }
+      });
+      this.subs.push(trabajadorSub);
+    } else {
+      // Si no tiene perfil, crear statsTrabajador vacíos y contar como completada
+      this.statsTrabajador = this.createEmptyStats();
+      checkCompletadas();
     }
+
+    this.subs.push(adminSub);
   }
 
-  // ✅ NUEVO: Método para guardar el estado de la vista
+  // Método para guardar el estado de la vista
   private guardarEstadoVista() {
     localStorage.setItem('dashboard_vista_trabajador', this.vistaTrabajadorActiva.toString());
     console.log('💾 Estado de vista guardado:', this.vistaTrabajadorActiva ? 'Trabajador' : 'Admin');
   }
 
-  // ✅ Verificar estado de pago desde parámetros de URL
+  // Verificar estado de pago desde parámetros de URL
   private verificarEstadoPago() {
     this.route.queryParams.subscribe(params => {
       const pagoEstado = params['pago'];
@@ -207,19 +268,21 @@ export class DashboardPage implements OnInit, OnDestroy {
         console.log('📊 DATOS RECIBIDOS DEL BACKEND:', data);
         this.stats = this.ensureSafeStats(data);
         this.loading = false;
+        this.cdRef.detectChanges();
       },
       error: (err) => {
         console.error('❌ ERROR cargando dashboard:', err);
         this.error = err.message || 'Error al cargar el dashboard';
         this.loading = false;
         this.mostrarError(err.message);
+        this.cdRef.detectChanges();
       }
     });
 
     this.subs.push(dashboardSub);
   }
 
-  // ✅ MEJORADO: Carga de datos de trabajador con manejo de errores
+  // Carga de datos de trabajador con manejo de errores
   loadDashboardDataTrabajador() {
     this.loading = true;
     this.error = null;
@@ -231,21 +294,17 @@ export class DashboardPage implements OnInit, OnDestroy {
         console.log('✅ [COMPONENTE] Datos recibidos para trabajador:', data);
         this.statsTrabajador = this.ensureSafeStats(data);
         this.loading = false;
-
-        // ✅ FORZAR ACTUALIZACIÓN DE LA VISTA
-        setTimeout(() => {
-          this.cdRef.detectChanges();
-        }, 0);
+        this.cdRef.detectChanges();
       },
       error: (err) => {
         console.error('❌ [COMPONENTE] ERROR cargando vista trabajador:', err);
 
-        // ✅ MEJORADO: Manejo específico de errores
+        // Manejo específico de errores
         if (err.message.includes('No se encontró perfil de trabajador')) {
           this.error = 'No tienes un perfil de trabajador configurado.';
           this.mostrarError('Para usar la vista de trabajador, necesitas tener un perfil de trabajador configurado.');
           this.vistaTrabajadorActiva = false; // Volver a vista admin
-          this.guardarEstadoVista(); // ✅ Guardar el cambio
+          this.guardarEstadoVista();
         } else {
           this.error = err.message || 'Error al cargar la vista de trabajador';
           this.mostrarError(err.message);
@@ -298,7 +357,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.router.navigate(['/admin-trabajadores']);
   }
 
-  // ✅ NUEVA ACCIÓN: Ver todos los clientes registrados
+  // Ver todos los clientes registrados
   verClientesRegistrados() {
     this.router.navigate(['/admin/clientes']);
   }
@@ -352,19 +411,24 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.router.navigate(['/catalogo-productos']);
   }
 
-  // ✅ CORREGIDO: Cambiar vista SIN recargar datos
+  // Cambiar vista SOLO si tiene perfil de trabajador
   cambiarVistaTrabajador() {
+    // Si es administrador y no tiene perfil de trabajador, no permitir cambiar
+    if (this.isAdministrador && !this.adminTienePerfilTrabajador) {
+      this.mostrarError('No tienes un perfil de trabajador configurado.');
+      return;
+    }
+
     // Agregar clase para transición suave
     const dashboardContent = document.querySelector('.dashboard-content');
     if (dashboardContent) {
       dashboardContent.classList.add('smooth-transition');
     }
 
-    // ✅ SIMPLEMENTE CAMBIAR LA VISTA sin recargar datos
     this.vistaTrabajadorActiva = !this.vistaTrabajadorActiva;
     console.log('🔄 Cambiando a vista:', this.vistaTrabajadorActiva ? 'Trabajador' : 'Admin');
 
-    // ✅ GUARDAR ESTADO en localStorage
+    // GUARDAR ESTADO en localStorage
     this.guardarEstadoVista();
 
     // Remover clase después de la animación
@@ -375,7 +439,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     }, 300);
   }
 
-  // ✅ NUEVO: Método para recargar manualmente
+  // Método para recargar manualmente
   recargarDashboard() {
     if (this.isAdministrador) {
       // Para administradores, recargar ambos conjuntos de datos
@@ -411,7 +475,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     });
   }
 
-  // ✅ Crear estadísticas vacías
+  // Crear estadísticas vacías
   private createEmptyStats(): DashboardStats {
     return {
       rol: 'cliente',
@@ -427,7 +491,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     };
   }
 
-  // ✅ Asegurar que los datos del dashboard sean seguros
+  // Asegurar que los datos del dashboard sean seguros
   private ensureSafeStats(data: any): DashboardStats {
     if (!data) {
       return this.createEmptyStats();
@@ -471,14 +535,13 @@ export class DashboardPage implements OnInit, OnDestroy {
     return this.isAdministrador && !this.vistaTrabajadorActiva;
   }
 
-  // ✅ CORREGIDO: Getter para stats que muestra correctamente el rol
   get statsParaMostrar(): DashboardStats {
-    // ✅ CORRECCIÓN: Si es trabajador normal, usar statsTrabajador SIEMPRE
+    // Si es trabajador normal, usar statsTrabajador
     if (this.isTrabajador) {
       return this.statsTrabajador || this.createEmptyStats();
     }
 
-    // ✅ Si admin está en vista trabajador
+    // Si admin está en vista trabajador
     if (this.vistaTrabajadorActiva) {
       return this.statsTrabajador || this.createEmptyStats();
     }
@@ -491,7 +554,6 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.router.navigate(['/reservar']);
   }
 
-  // ✅ CORREGIDO: Aceptar number | undefined
   formatCurrency(amount: number | undefined): string {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',

@@ -8,6 +8,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TrabajadorService } from '../../core/services/trabajador.service';
+import { UsuarioService } from '../../core/services/usuario.service';
+import { AuthService } from '../../core/services/auth.service';
 
 interface ReservaHistorial {
     id: number;
@@ -50,7 +52,9 @@ export class HistorialClienteModalComponent implements OnInit {
     constructor(
         public dialogRef: MatDialogRef<HistorialClienteModalComponent>,
         @Inject(MAT_DIALOG_DATA) public data: { cliente: any },
-        private trabajadorService: TrabajadorService
+        private trabajadorService: TrabajadorService,
+        private usuarioService: UsuarioService,
+        private authService: AuthService
     ) { }
 
     ngOnInit() {
@@ -61,18 +65,37 @@ export class HistorialClienteModalComponent implements OnInit {
         this.loading = true;
         this.error = null;
 
-        this.trabajadorService.obtenerHistorialCliente(this.data.cliente.id).subscribe({
-            next: (response) => {
-                this.historial = response.historial;
-                this.estadisticas = response.estadisticas;
-                this.loading = false;
-            },
-            error: (err) => {
-                this.error = err.message;
-                this.loading = false;
-                console.error('Error cargando historial:', err);
-            }
-        });
+        const rolUsuario = this.authService.getRol();
+
+        if (rolUsuario === 'administrador') {
+            // Para administradores: usar el nuevo endpoint que obtiene TODAS las reservas
+            this.usuarioService.obtenerHistorialCliente(this.data.cliente.id).subscribe({
+                next: (response) => {
+                    this.historial = response.historial;
+                    this.estadisticas = response.estadisticas;
+                    this.loading = false;
+                },
+                error: (err) => {
+                    this.error = err.message;
+                    this.loading = false;
+                    console.error('Error cargando historial (admin):', err);
+                }
+            });
+        } else {
+            // Para trabajadores: usar el endpoint existente que obtiene solo SUS reservas
+            this.trabajadorService.obtenerHistorialCliente(this.data.cliente.id).subscribe({
+                next: (response) => {
+                    this.historial = response.historial;
+                    this.estadisticas = response.estadisticas;
+                    this.loading = false;
+                },
+                error: (err) => {
+                    this.error = err.message;
+                    this.loading = false;
+                    console.error('Error cargando historial:', err);
+                }
+            });
+        }
     }
 
     cerrar() {
@@ -102,20 +125,17 @@ export class HistorialClienteModalComponent implements OnInit {
 
     formatearPrecio(precio: any): string {
         try {
-            // ✅ MÚLTIPLES FORMAS DE CONVERSIÓN SEGURA
             let precioNumero: number;
 
             if (typeof precio === 'number') {
                 precioNumero = precio;
             } else if (typeof precio === 'string') {
-                // Remover símbolos de euro y espacios
                 const precioLimpio = precio.replace(/[^\d,.-]/g, '').replace(',', '.');
                 precioNumero = parseFloat(precioLimpio);
             } else {
                 precioNumero = Number(precio);
             }
 
-            // Verificar si es un número válido
             if (isNaN(precioNumero) || !isFinite(precioNumero)) {
                 console.warn('⚠️ Precio no válido:', precio);
                 return '0.00€';
@@ -138,5 +158,9 @@ export class HistorialClienteModalComponent implements OnInit {
 
     getReservasPendientes(): ReservaHistorial[] {
         return this.historial.filter(r => r.estado === 'pendiente');
+    }
+
+    getReservasCompletadas(): ReservaHistorial[] {
+        return this.historial.filter(r => r.estado === 'completada');
     }
 }

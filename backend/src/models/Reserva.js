@@ -4,7 +4,6 @@ class Reserva {
     // Crear nueva reserva
     static async crear(reservaData) {
         try {
-            // ✅ VALIDACIÓN MEJORADA
             if (!reservaData.cliente_id || !reservaData.servicio_id || !reservaData.fecha_reserva || !reservaData.hora_inicio) {
                 throw new Error('Datos incompletos para crear reserva');
             }
@@ -138,7 +137,6 @@ class Reserva {
         try {
             console.log(`🔍 [ANTI-OVERBOOKING] Verificando: Trabajador ${trabajador_id}, ${fecha_reserva} ${hora_inicio}, ${duracion}min`);
 
-            // ✅ CONSULTA DE EMERGENCIA - MÁS SIMPLE
             const [reservasExistentes] = await pool.execute(`
             SELECT id, hora_inicio, duracion, estado 
             FROM reserva 

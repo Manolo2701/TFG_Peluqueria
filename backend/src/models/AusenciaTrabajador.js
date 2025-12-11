@@ -35,12 +35,11 @@ class AusenciaTrabajador {
         }
     }
 
-    // Obtener ausencias por trabajador (usa usuario_id)
+    // Obtener ausencias por trabajador en base a su ID de usuario
     static async obtenerPorTrabajador(usuarioId) {
         try {
             console.log(`🔍 [AUSENCIA_MODEL] Obteniendo ausencias para usuarioId: ${usuarioId}, tipo: ${typeof usuarioId}`);
 
-            // ✅ VERIFICAR que usuarioId es un número
             if (typeof usuarioId !== 'number') {
                 console.error('❌ [AUSENCIA_MODEL] usuarioId no es un número:', usuarioId);
                 throw new Error('usuarioId debe ser un número');
@@ -61,7 +60,7 @@ class AusenciaTrabajador {
         }
     }
 
-    // Obtener todas las ausencias (para admin)
+    // Obtener todas las ausencias (admin)
     static async obtenerTodas(filtros = {}) {
         try {
             let query = `
@@ -106,7 +105,7 @@ class AusenciaTrabajador {
         }
     }
 
-    // ✅ NUEVO MÉTODO CORREGIDO: Verificar disponibilidad usando usuario_id (trabajador_id en ausencia_trabajador)
+    // Verificar disponibilidad usando usuario_id
     static async verificarDisponibilidad(usuarioId, fecha) {
         try {
             console.log(`🔍 [VERIFICAR_DISPONIBILIDAD] Consultando ausencias para usuario_id ${usuarioId} en fecha ${fecha}`);
@@ -116,7 +115,7 @@ class AusenciaTrabajador {
                  WHERE trabajador_id = ? 
                  AND estado = 'aprobado'
                  AND ? BETWEEN fecha_inicio AND fecha_fin`,
-                [usuarioId, fecha]  // ✅ CORRECTO: usuarioId es el trabajador_id en ausencia_trabajador
+                [usuarioId, fecha]  // usuarioId es el trabajador_id en ausencia_trabajador
             );
 
             console.log(`📊 [VERIFICAR_DISPONIBILIDAD] Encontradas ${rows.length} ausencias aprobadas`);

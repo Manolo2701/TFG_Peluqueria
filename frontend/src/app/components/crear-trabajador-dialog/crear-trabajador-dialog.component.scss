@@ -53,7 +53,7 @@
 }
 
 .chips-container {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 
     mat-chip-option {
         margin: 4px;
@@ -71,6 +71,42 @@
     color: #ad1457;
     margin-top: 8px;
     font-weight: 500;
+
+    &.is-invalid {
+        color: #f44336;
+        font-weight: 600;
+    }
+}
+
+.especialidades-error {
+    font-size: 0.75em;
+    color: #f44336;
+    margin-top: 4px;
+}
+
+.no-especialidades {
+    padding: 12px;
+    background: rgba(233, 30, 99, 0.1);
+    border-radius: 6px;
+    color: #880e4f;
+    text-align: center;
+    font-style: italic;
+    margin-top: 8px;
+}
+
+// Estilos para el email suffix
+.email-suffix {
+    font-size: 0.8em;
+    color: #666;
+    margin-left: 2px; 
+    opacity: 0.8;
+    padding-right: 8px; 
+}
+
+// Email completo (readonly)
+.email-completo {
+    color: #666;
+    background-color: #f5f5f5;
 }
 
 // Estilos para los chips seleccionados
@@ -154,25 +190,39 @@ mat-chip-option[selected] {
 }
 
 .submit-btn {
-    background: linear-gradient(135deg, #ec407a 0%, #ad1457 100%);
+    background: linear-gradient(45deg, var(--secondary), var(--primary-dark));
     color: white;
-    box-shadow: 0 2px 6px rgba(233, 30, 99, 0.3);
+    min-width: 160px;
+    box-shadow: 0 2px 8px rgba(255, 109, 177, 0.3);
 
     &:hover:not([disabled]) {
-        background: linear-gradient(135deg, #d81b60 0%, #880e4f 100%);
-        box-shadow: 0 4px 12px rgba(233, 30, 99, 0.4);
-        transform: translateY(-1px);
+        background: linear-gradient(45deg, var(--primary-dark), var(--secondary));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 109, 177, 0.4);
     }
 
     &[disabled] {
-        background: #f8bbd9;
-        color: #e91e63;
+        background: var(--primary-light);
+        color: var(--text-medium);
     }
 }
 
 // Loading states
 button[disabled] {
     opacity: 0.6;
+}
+
+// Estilos para campos inválidos
+.is-invalid {
+    ::ng-deep {
+        .mat-form-field-outline {
+            color: #f44336 !important;
+        }
+
+        .mat-form-field-label {
+            color: #f44336 !important;
+        }
+    }
 }
 
 // Snackbar styles

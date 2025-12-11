@@ -1,5 +1,5 @@
 ﻿class CalendarioUtils {
-    // ✅ FUNCIÓN MUY SIMPLIFICADA - Solo verificar categorías básicas
+    // Verificar categorías
     static puedeRealizarServicio(trabajador, servicio) {
         try {
             console.log('🔍 [CATEGORÍA] VALIDACIÓN SIMPLIFICADA:');
@@ -10,10 +10,9 @@
             const categoriaTrabajador = this.normalizarTexto(trabajador.categoria);
             const categoriaServicio = this.normalizarTexto(servicio.categoria);
 
-            // ✅ LÓGICA MUY SIMPLE:
             let resultado = false;
 
-            if (categoriaTrabajador === 'ambas') {
+            if (categoriaTrabajador === 'ambas') { // En desuso por ahora
                 resultado = true;
                 console.log('   ✅ Trabajador con categoría "Ambas" - PUEDE realizar cualquier servicio');
             }
@@ -118,14 +117,13 @@
         }
     }
 
-    // ✅ FUNCIÓN CORREGIDA - CAMBIO MÍNIMO PERO CRÍTICO
     static generarSlotsDisponibles(horarioLaboral, reservasExistentes, duracionServicio) {
         const slotsDisponibles = [];
         const duracionMinutos = parseInt(duracionServicio);
 
         console.log('🔍 [DEBUG] Horario laboral recibido:', horarioLaboral);
 
-        // ✅ CORRECCIÓN: Usar nombres de campos compatibles con ambas versiones
+        // Usar nombres de campos compatibles con ambas versiones
         const horaInicio = horarioLaboral?.hora_inicio || horarioLaboral?.inicio;
         const horaFin = horarioLaboral?.hora_fin || horarioLaboral?.fin;
 
@@ -148,7 +146,7 @@
 
         console.log(`⏰ Rango en minutos: ${inicioTotalMinutos} - ${finTotalMinutos}`);
 
-        // ✅ CORRECCIÓN: Asegurar que haya suficiente tiempo para el servicio
+        // Asegurar que haya suficiente tiempo para el servicio
         if (finTotalMinutos - inicioTotalMinutos < duracionMinutos) {
             console.log(`❌ No hay suficiente tiempo para el servicio de ${duracionMinutos}min`);
             return slotsDisponibles;
@@ -216,7 +214,7 @@
         const slotsDisponibles = [];
         const duracionMinutos = parseInt(duracionServicio);
 
-        // ✅ CORRECCIÓN: Usar nombres de campos compatibles con ambas versiones
+        // Usar nombres de campos compatibles con ambas versiones
         const horaInicio = horarioLaboral?.hora_inicio || horarioLaboral?.inicio;
         const horaFin = horarioLaboral?.hora_fin || horarioLaboral?.fin;
 
@@ -260,19 +258,18 @@
         return slotsDisponibles;
     }
 
-    // ✅ FUNCIÓN CORREGIDA - ELIMINAR ERROR LÓGICO
     static haySolapamiento(inicio1, duracion1, inicio2, duracion2) {
         const [horaInicio1, minutoInicio1] = inicio1.split(':').map(Number);
         const [horaInicio2, minutoInicio2] = inicio2.split(':').map(Number);
 
         const minutosInicio1 = horaInicio1 * 60 + minutoInicio1;
-        const minutosFin1 = minutosInicio1 + parseInt(duracion1); // ✅ CORREGIDO: Sin restar 1
+        const minutosFin1 = minutosInicio1 + parseInt(duracion1); 
 
         const minutosInicio2 = horaInicio2 * 60 + minutoInicio2;
-        const minutosFin2 = minutosInicio2 + parseInt(duracion2); // ✅ CORREGIDO: Sin restar 1
+        const minutosFin2 = minutosInicio2 + parseInt(duracion2); 
 
-        // ✅ LÓGICA CORREGIDA: Un slot solapa si:
-        // - Comienza antes de que termine el otro Y termina después de que comience el otro
+
+        // Un slot solapa si comienza antes de que termine el otro Y termina después de que comience el otro
         const seSolapan = minutosInicio1 < minutosFin2 && minutosFin1 > minutosInicio2;
 
         console.log(`🔍 [SOLAPAMIENTO] ${inicio1} (${duracion1}min) vs ${inicio2} (${duracion2}min) → ${seSolapan ? '❌ SOLAPA' : '✅ NO SOLAPA'}`);

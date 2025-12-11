@@ -205,4 +205,13 @@ export class UsuarioService {
         }
         return usuario.rol === 'cliente' || usuario.rol === 'administrador';
     }
+
+    obtenerHistorialCliente(clienteId: number): Observable<any> {
+        return this.http.get(`${this.apiUrl}/usuarios/${clienteId}/historial`).pipe(
+            catchError(error => {
+                console.error('Error al obtener historial del cliente:', error);
+                throw error;
+            })
+        );
+    }
 }

@@ -253,11 +253,11 @@ export class ReservaDetallesModalComponent implements OnInit {
         const fechaReserva = new Date(reserva.fecha_reserva + 'T' + reserva.hora_inicio);
         const esFutura = fechaReserva > ahora;
 
-        // ✅ CORRECCIÓN: No permitir cancelar reservas rechazadas
+        // No permitir cancelar reservas rechazadas
         this.puedeCancelarComoCliente =
           (reserva.estado === 'pendiente' || reserva.estado === 'confirmada') &&
           esFutura &&
-          reserva.estado !== 'rechazada'; // ✅ Nueva condición
+          reserva.estado !== 'rechazada';
 
         this.esModoSoloLectura = !this.puedeCancelarComoCliente;
       }
@@ -387,7 +387,7 @@ export class ReservaDetallesModalComponent implements OnInit {
     const ahora = new Date();
     const fechaReserva = new Date(this.data.reserva.fecha_reserva + 'T' + this.data.reserva.hora_inicio);
 
-    // ✅ CORRECCIÓN: No es cancelable si ya pasó o si está rechazada
+    // No es cancelable si ya pasó o si está rechazada
     return fechaReserva > ahora && this.data.reserva.estado !== 'rechazada';
   }
 

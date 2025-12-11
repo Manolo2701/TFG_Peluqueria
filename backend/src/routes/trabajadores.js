@@ -4,16 +4,15 @@ const trabajadorController = require('../controllers/trabajadorController');
 const verificarToken = require('../middleware/auth');
 const Trabajador = require('../models/Trabajador');
 
-// Middleware para verificar si es trabajador O admin que también es trabajador
+// Middleware para verificar si es trabajador O admin híbrido
 const verificarTrabajador = async (req, res, next) => {
     try {
         console.log(`🔍 [MIDDLEWARE] Verificando acceso para usuario: ${req.usuario.id}, rol: ${req.usuario.rol}, nombre: ${req.usuario.nombre}`);
 
-        // SI es trabajador, permitir acceso directamente
+        // Si es trabajador, permitir acceso directamente
         if (req.usuario.rol === 'trabajador') {
             console.log('✅ [MIDDLEWARE] Acceso concedido: es trabajador');
 
-            // ✅ USAR LA NUEVA FUNCIÓN
             const trabajador = await Trabajador.obtenerPorUsuarioId(req.usuario.id);
             if (trabajador) {
                 console.log(`✅ [MIDDLEWARE] Trabajador encontrado: ID ${trabajador.trabajador_id}`);
@@ -25,10 +24,9 @@ const verificarTrabajador = async (req, res, next) => {
             return next();
         }
 
-        // SI es admin, verificar si también es trabajador
+        // Si es admin, verificar si también es trabajador
         if (req.usuario.rol === 'administrador') {
             console.log('🔍 [MIDDLEWARE] Verificando si admin es también trabajador...');
-            // ✅ USAR LA NUEVA FUNCIÓN
             const trabajador = await Trabajador.obtenerPorUsuarioId(req.usuario.id);
             if (trabajador) {
                 console.log(`✅ [MIDDLEWARE] Admin es también trabajador, ID: ${trabajador.trabajador_id}`);
@@ -48,7 +46,7 @@ const verificarTrabajador = async (req, res, next) => {
     }
 };
 
-// ✅ MIDDLEWARE SIMPLE PARA VERIFICAR ADMIN
+// Verificar si es administrador
 const verificarAdmin = (req, res, next) => {
     if (req.usuario.rol !== 'administrador') {
         return res.status(403).json({
@@ -58,11 +56,67 @@ const verificarAdmin = (req, res, next) => {
     next();
 };
 
-// ✅ RUTAS EXISTENTES (solo para trabajadores)
+// Verificar si es admin o trabajador (rutas de gestión)
+const verificarAdminOTrabajador = (req, res, next) => {
+    if (req.usuario.rol !== 'administrador' && req.usuario.rol !== 'trabajador') {
+        return res.status(403).json({
+            error: 'Acceso denegado. Se requieren permisos de administrador o trabajador.'
+        });
+    }
+    next();
+};
+
+// Verificar si un usuario tiene perfil de trabajador
+router.get('/verificar-perfil/:usuarioId', verificarToken, async (req, res) => {
+    try {
+        const { usuarioId } = req.params;
+        const usuarioAutenticado = req.usuario;
+
+
+        if (usuarioAutenticado.id != usuarioId && usuarioAutenticado.rol !== 'administrador') {
+            return res.status(403).json({ error: 'No autorizado para verificar este perfil' });
+        }
+
+        console.log(`🔍 [RUTA] Verificando perfil de trabajador para usuario: ${usuarioId}`);
+
+        const trabajador = await Trabajador.obtenerPorUsuarioId(usuarioId);
+        const tienePerfil = !!trabajador;
+
+        console.log(`✅ [RUTA] Usuario ${usuarioId} ${tienePerfil ? 'TIENE' : 'NO TIENE'} perfil de trabajador`);
+
+        res.json({
+            tienePerfil: tienePerfil,
+            trabajador: trabajador || null
+        });
+    } catch (error) {
+        console.error('❌ Error en /verificar-perfil:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
 router.use(verificarToken);
+
+// ============================================
+// RUTAS DE ADMINISTRADOR (deben estar PRIMERO)
+// ============================================
+router.post('/admin', verificarAdmin, trabajadorController.crearTrabajador);
+router.get('/admin/:id', verificarAdmin, trabajadorController.obtenerTrabajador);
+router.put('/admin/:id', verificarAdmin, trabajadorController.actualizarTrabajador);
+router.delete('/admin/:id', verificarAdmin, trabajadorController.eliminarTrabajador);
+
+// ============================================
+// RUTAS DE GESTIÓN (Admin y Trabajadores)
+// ============================================
+
+// Listar todos los trabajadores
+router.get('/', verificarAdminOTrabajador, trabajadorController.obtenerTrabajadores);
+
+// ============================================
+// RUTAS PERSONALES DE TRABAJADOR (requieren perfil)
+// ============================================
 router.use(verificarTrabajador);
 
-// Las rutas existentes permanecen igual
+// Rutas que requieren ser trabajador (con perfil)
 router.get('/mis-reservas', trabajadorController.obtenerMisReservas);
 router.get('/mis-clientes', trabajadorController.obtenerMisClientes);
 router.get('/mis-clientes/:clienteId/historial', trabajadorController.obtenerHistorialCliente);
@@ -70,27 +124,5 @@ router.get('/reservas-disponibles', trabajadorController.obtenerReservasDisponib
 router.put('/reservas/:id/tomar', trabajadorController.tomarReserva);
 router.put('/reservas/:id/aceptar', trabajadorController.aceptarReserva);
 router.put('/reservas/:id/rechazar', trabajadorController.rechazarReserva);
-router.get('/', trabajadorController.obtenerTrabajadores);
-
-// ✅ NUEVAS RUTAS DE ADMINISTRADOR (solo admin)
-router.post('/admin', verificarToken, verificarAdmin, (req, res, next) => {
-    console.log('📝 [RUTA] Creando nuevo trabajador');
-    next();
-}, trabajadorController.crearTrabajador);
-
-router.get('/admin/:id', verificarToken, verificarAdmin, (req, res, next) => {
-    console.log(`🔍 [RUTA] Obteniendo trabajador ID: ${req.params.id}`);
-    next();
-}, trabajadorController.obtenerTrabajador);
-
-router.put('/admin/:id', verificarToken, verificarAdmin, (req, res, next) => {
-    console.log(`✏️ [RUTA] Actualizando trabajador ID: ${req.params.id}`);
-    next();
-}, trabajadorController.actualizarTrabajador);
-
-router.delete('/admin/:id', verificarToken, verificarAdmin, (req, res, next) => {
-    console.log(`🗑️ [RUTA] Eliminando trabajador ID: ${req.params.id}`);
-    next();
-}, trabajadorController.eliminarTrabajador);
 
 module.exports = router;

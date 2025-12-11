@@ -1,6 +1,6 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -48,15 +48,25 @@ export class MisReservasPage implements OnInit {
     error: string | null = null;
     filtroActivo: string = 'todas';
 
+    // Propiedad para manejar el parámetro de reserva desde el dashboard
+    private reservaIdParam: string | null = null;
+
     constructor(
         private reservaService: ReservaService,
         private router: Router,
+        private route: ActivatedRoute, // Añadido para manejar query params
         private snackBar: MatSnackBar,
         private dialog: MatDialog,
         private fb: FormBuilder
     ) { }
 
     ngOnInit() {
+        // Suscribirse a los parámetros de consulta para capturar reservaId desde el dashboard
+        this.route.queryParams.subscribe(params => {
+            this.reservaIdParam = params['verReservaId'];
+            console.log('🔍 Parámetro recibido en mis-reservas:', this.reservaIdParam);
+        });
+
         this.cargarMisReservas();
     }
 
@@ -81,6 +91,32 @@ export class MisReservasPage implements OnInit {
 
                 this.filtrarReservas();
                 this.loading = false;
+
+                // 🔄 ABRIR MODAL SI HAY PARÁMETRO DEL DASHBOARD
+                if (this.reservaIdParam) {
+                    const reservaId = Number(this.reservaIdParam);
+                    const reservaEncontrada = this.reservas.find(r => r.id === reservaId);
+
+                    if (reservaEncontrada) {
+                        console.log('✅ Reserva encontrada para abrir modal desde dashboard:', reservaEncontrada);
+
+                        // Pequeño delay para asegurar que la UI esté lista
+                        setTimeout(() => {
+                            this.verDetalles(reservaEncontrada);
+                        }, 100);
+                    } else {
+                        console.warn('⚠️ Reserva no encontrada con ID desde dashboard:', reservaId);
+                        this.snackBar.open('Reserva no encontrada', 'Cerrar', { duration: 3000 });
+                    }
+
+                    // Limpiar el parámetro de la URL para evitar que se repita
+                    this.router.navigate([], {
+                        relativeTo: this.route,
+                        queryParams: {},
+                        replaceUrl: true
+                    });
+                    this.reservaIdParam = null;
+                }
             },
             error: (err) => {
                 console.error('❌ Error cargando mis reservas:', err);
@@ -214,7 +250,7 @@ export class MisReservasPage implements OnInit {
             case 'pendiente': return 'estado-pendiente';
             case 'cancelada': return 'estado-cancelada';
             case 'completada': return 'estado-completada';
-            case 'rechazada': return 'estado-rechazada';  // ✅ NUEVO ESTADO
+            case 'rechazada': return 'estado-rechazada';
             default: return 'estado-desconocido';
         }
     }
@@ -225,7 +261,7 @@ export class MisReservasPage implements OnInit {
             case 'pendiente': return 'schedule';
             case 'cancelada': return 'cancel';
             case 'completada': return 'done_all';
-            case 'rechazada': return 'block';  // ✅ NUEVO ESTADO
+            case 'rechazada': return 'block';
             default: return 'help';
         }
     }

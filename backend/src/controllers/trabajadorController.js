@@ -4,6 +4,7 @@ const Servicio = require('../models/Servicio');
 const Trabajador = require('../models/Trabajador');
 const CalendarioUtils = require('../utils/calendarioUtils');
 const Usuario = require('../models/Usuario');
+const bcrypt = require('bcryptjs');
 
 // Función helper para obtener el ID del trabajador según el tipo de usuario
 const obtenerTrabajadorId = (req) => {
@@ -20,6 +21,44 @@ const obtenerTrabajadorId = (req) => {
 
   console.log('❌ [OBTENER_TRABAJADOR_ID] No se encontró trabajadorId');
   return null;
+};
+
+// Función para obtener categorías válidas desde configuracion_negocio
+const obtenerCategoriasValidas = async () => {
+  try {
+    console.log('🔍 [CATEGORIAS] Obteniendo categorías válidas desde BD');
+
+    // Obtener las categorías desde configuracion_negocio
+    const [rows] = await pool.execute(`
+      SELECT categorias_especialidades 
+      FROM configuracion_negocio 
+      WHERE id = 1
+    `);
+
+    if (!rows[0] || !rows[0].categorias_especialidades) {
+      console.log('⚠️ [CATEGORIAS] No se encontraron categorías en BD, usando valores por defecto');
+      return ['Peluquería', 'Estética'];
+    }
+
+    let categoriasData;
+    try {
+      if (typeof rows[0].categorias_especialidades === 'string') {
+        categoriasData = JSON.parse(rows[0].categorias_especialidades);
+      } else {
+        categoriasData = rows[0].categorias_especialidades;
+      }
+
+      const categorias = Object.keys(categoriasData);
+      console.log(`✅ [CATEGORIAS] Categorías cargadas desde BD: ${categorias.join(', ')}`);
+      return categorias;
+    } catch (parseError) {
+      console.error('❌ [CATEGORIAS] Error parseando categorias_especialidades:', parseError);
+      return ['Peluquería', 'Estética'];
+    }
+  } catch (error) {
+    console.error('❌ [CATEGORIAS] Error obteniendo categorías:', error);
+    return ['Peluquería', 'Estética'];
+  }
 };
 
 // Función para verificar si un trabajador puede realizar un servicio
@@ -55,7 +94,7 @@ const verificarEspecialidad = async (trabajadorId, servicioId) => {
 };
 
 const trabajadorController = {
-  // 1. Obtener MIS reservas asignadas específicamente a mí - CON CAMPOS DE CANCELACIÓN
+  // 1. Obtener mis reservas (trabajador)
   obtenerMisReservas: async (req, res) => {
     try {
       console.log('🎯 [TRABAJADOR] Obteniendo reservas para trabajador');
@@ -69,14 +108,14 @@ const trabajadorController = {
 
       console.log(`🔍 [CONTROLADOR] Buscando reservas EXCLUSIVAS para trabajador_id: ${trabajador_id}`);
 
-      // ✅ CONSULTA ACTUALIZADA - INCLUIR EXPLÍCITAMENTE CAMPOS DE CANCELACIÓN
+      // Campos de cancelación
       const [rows] = await pool.execute(`
       SELECT 
         r.*,
-        r.motivo_cancelacion,  -- ✅ INCLUIR EXPLÍCITAMENTE
-        r.politica_cancelacion, -- ✅ INCLUIR EXPLÍCITAMENTE  
-        r.fecha_cancelacion,    -- ✅ INCLUIR EXPLÍCITAMENTE
-        r.penalizacion_aplicada, -- ✅ INCLUIR EXPLÍCITAMENTE
+        r.motivo_cancelacion, 
+        r.politica_cancelacion, -- Para futuro
+        r.fecha_cancelacion,    
+        r.penalizacion_aplicada, -- Para futuro
         u_cliente.nombre as cliente_nombre,
         u_cliente.apellidos as cliente_apellidos, 
         u_cliente.telefono as cliente_telefono,
@@ -100,7 +139,6 @@ const trabajadorController = {
 
       console.log(`📊 [CONTROLADOR] Encontradas ${rows.length} reservas para trabajador ${trabajador_id}`);
 
-      // ✅ LOG DETALLADO PARA VERIFICAR CAMPOS DE CANCELACIÓN
       if (rows.length > 0) {
         rows.forEach((reserva, index) => {
           if (reserva.estado === 'cancelada') {
@@ -129,7 +167,7 @@ const trabajadorController = {
           notas: r.notas,
           precio: r.servicio_precio,
 
-          // ✅ CAMPOS DE CANCELACIÓN EXPLÍCITOS
+          // Campos cancelación
           motivo_cancelacion: r.motivo_cancelacion,
           politica_cancelacion: r.politica_cancelacion,
           fecha_cancelacion: r.fecha_cancelacion,
@@ -201,7 +239,7 @@ const trabajadorController = {
     }
   },
 
-  // 2. Obtener reservas DISPONIBLES (sin trabajador asignado) - CON FILTRO DE ESPECIALIDAD
+  // 2. Obtener reservas DISPONIBLES (sin trabajador asignado) --- SIN USAE
   obtenerReservasDisponibles: async (req, res) => {
     try {
       const trabajador_id = obtenerTrabajadorId(req);
@@ -255,7 +293,7 @@ const trabajadorController = {
     }
   },
 
-  // 3. Tomar una reserva disponible - CON VERIFICACIÓN DE ESPECIALIDAD
+  // 3. Tomar una reserva disponible - CON VERIFICACIÓN DE ESPECIALIDAD --- SIN APLICAR
   tomarReserva: async (req, res) => {
     try {
       const { id } = req.params;
@@ -277,7 +315,7 @@ const trabajadorController = {
         return res.status(400).json({ error: 'Esta reserva ya fue tomada por otro trabajador' });
       }
 
-      // ✅ VERIFICACIÓN CRÍTICA: Especialidad
+      // Especialidad
       const puedeRealizar = await verificarEspecialidad(trabajador_id, reserva.servicio_id);
       if (!puedeRealizar) {
         return res.status(400).json({
@@ -318,7 +356,7 @@ const trabajadorController = {
     }
   },
 
-  // 4. Aceptar reserva - CON VERIFICACIÓN DE ESPECIALIDAD
+  // 4. Aceptar reserva 
   aceptarReserva: async (req, res) => {
     try {
       const { id } = req.params;
@@ -338,7 +376,7 @@ const trabajadorController = {
         return res.status(403).json({ error: 'No tienes permisos para aceptar esta reserva' });
       }
 
-      // ✅ VERIFICACIÓN CRÍTICA: Especialidad
+      // Especialidad
       const puedeRealizar = await verificarEspecialidad(trabajador_id, reserva.servicio_id);
       if (!puedeRealizar) {
         return res.status(400).json({
@@ -367,7 +405,7 @@ const trabajadorController = {
     }
   },
 
-  // 5. Rechazar reserva - CON VERIFICACIÓN DE ESPECIALIDAD
+  // 5. Rechazar reserva
   rechazarReserva: async (req, res) => {
     try {
       const { id } = req.params;
@@ -388,7 +426,7 @@ const trabajadorController = {
         return res.status(403).json({ error: 'No tienes permisos para rechazar esta reserva' });
       }
 
-      // ✅ VERIFICACIÓN CRÍTICA: Especialidad
+      // Especialidad
       const puedeRealizar = await verificarEspecialidad(trabajador_id, reserva.servicio_id);
       if (!puedeRealizar) {
         return res.status(400).json({
@@ -400,7 +438,7 @@ const trabajadorController = {
         return res.status(400).json({ error: 'La reserva no está pendiente' });
       }
 
-      // ✅ CORRECCIÓN COMPLETA: Cambiar estado a "rechazada" manteniendo el trabajador_id
+      // Cambiar estado a "rechazada"
       const fechaRechazo = new Date().toLocaleString('es-ES', {
         year: 'numeric',
         month: '2-digit',
@@ -419,7 +457,6 @@ const trabajadorController = {
       console.log(`   - Motivo: ${motivo}`);
       console.log(`   - Notas actualizadas: ${notasActualizadas.substring(0, 100)}...`);
 
-      // ✅ CONSULTA CORREGIDA: Mantener trabajador_id, cambiar estado a "rechazada"
       const [result] = await pool.execute(
         'UPDATE reserva SET estado = "rechazada", notas_internas = ?, motivo_cancelacion = ? WHERE id = ?',
         [notasActualizadas, motivo, id]
@@ -445,7 +482,7 @@ const trabajadorController = {
     }
   },
 
-  // ✅ AGREGAR MÉTODO PARA OBTENER TRABAJADORES
+  // MÉTODO PARA OBTENER TRABAJADORES
   obtenerTrabajadores: async (req, res) => {
     try {
       console.log('📋 [TRABAJADOR] Obteniendo lista de trabajadores');
@@ -474,7 +511,6 @@ const trabajadorController = {
         return res.status(403).json({ error: 'No estás registrado como trabajador' });
       }
 
-      // Consulta para obtener los clientes que han tenido reservas con este trabajador
       const [clientes] = await pool.execute(`
       SELECT 
         u.id,
@@ -482,18 +518,82 @@ const trabajadorController = {
         u.apellidos,
         u.email,
         u.telefono,
-        COUNT(r.id) as total_reservas,
-        MAX(r.fecha_reserva) as ultima_visita,
-        GROUP_CONCAT(DISTINCT s.nombre) as servicios_utilizados
+        -- Contar SOLO reservas activas (no canceladas ni rechazadas)
+        (
+          SELECT COUNT(*) 
+          FROM reserva r2 
+          WHERE r2.cliente_id = u.id 
+            AND r2.trabajador_id = ? 
+            AND r2.estado NOT IN ('cancelada', 'rechazada')
+        ) as total_reservas,
+        -- Última visita de reservas activas
+        (
+          SELECT MAX(fecha_reserva)
+          FROM reserva r3
+          WHERE r3.cliente_id = u.id 
+            AND r3.trabajador_id = ? 
+            AND r3.estado NOT IN ('cancelada', 'rechazada')
+        ) as ultima_visita,
+        -- Servicios de reservas activas (sin duplicados)
+        (
+          SELECT GROUP_CONCAT(DISTINCT s2.nombre)
+          FROM reserva r4
+          JOIN servicio s2 ON r4.servicio_id = s2.id
+          WHERE r4.cliente_id = u.id 
+            AND r4.trabajador_id = ? 
+            AND r4.estado NOT IN ('cancelada', 'rechazada')
+        ) as servicios_utilizados
       FROM usuario u
-      JOIN reserva r ON u.id = r.cliente_id
-      JOIN servicio s ON r.servicio_id = s.id
-      WHERE r.trabajador_id = ? AND r.estado != 'rechazada'
-      GROUP BY u.id, u.nombre, u.apellidos, u.email, u.telefono
+      WHERE EXISTS (
+        SELECT 1 
+        FROM reserva r5 
+        WHERE r5.cliente_id = u.id 
+          AND r5.trabajador_id = ? 
+          -- Incluir cliente si tiene AL MENOS UNA reserva con este trabajador
+      )
       ORDER BY total_reservas DESC, ultima_visita DESC
-    `, [trabajador_id]);
+    `, [trabajador_id, trabajador_id, trabajador_id, trabajador_id]);
 
       console.log(`✅ [TRABAJADOR] Encontrados ${clientes.length} clientes para el trabajador`);
+
+      // DEPURACIÓN DETALLADA
+      console.log('🔍 [DEBUG] Estados de reserva en la BD:');
+      const [estados] = await pool.execute(`
+      SELECT DISTINCT estado, COUNT(*) as cantidad
+      FROM reserva
+      WHERE trabajador_id = ?
+      GROUP BY estado
+    `, [trabajador_id]);
+
+      estados.forEach(e => {
+        console.log(`   - ${e.estado}: ${e.cantidad} reservas`);
+      });
+
+      // Mostrar datos de los primeros clientes
+      if (clientes.length > 0) {
+        console.log('🔍 [DEBUG] Datos de clientes desde BD:');
+        for (let i = 0; i < Math.min(5, clientes.length); i++) {
+          const cliente = clientes[i];
+          console.log(`  ${i + 1}. ${cliente.nombre} ${cliente.apellidos}:`);
+          console.log(`     - total_reservas (desde subconsulta): ${cliente.total_reservas}`);
+          console.log(`     - telefono: ${cliente.telefono}`);
+          console.log(`     - servicios: ${cliente.servicios_utilizados}`);
+
+          // Verificar reservas reales de este cliente
+          const [reservasCliente] = await pool.execute(`
+          SELECT id, estado, fecha_reserva, servicio_id
+          FROM reserva 
+          WHERE cliente_id = ? AND trabajador_id = ?
+          ORDER BY fecha_reserva DESC
+        `, [cliente.id, trabajador_id]);
+
+          console.log(`     - Reservas totales (todas): ${reservasCliente.length}`);
+          console.log(`     - Desglose de estados:`);
+          reservasCliente.forEach(r => {
+            console.log(`       * Reserva ${r.id}: ${r.estado} (${r.fecha_reserva})`);
+          });
+        }
+      }
 
       // Formatear la respuesta
       const clientesFormateados = clientes.map(cliente => ({
@@ -502,9 +602,11 @@ const trabajadorController = {
         apellidos: cliente.apellidos,
         email: cliente.email,
         telefono: cliente.telefono,
-        totalReservas: cliente.total_reservas,
+        totalReservas: Number(cliente.total_reservas) || 0,
         ultimaVisita: cliente.ultima_visita,
-        serviciosUtilizados: cliente.servicios_utilizados ? cliente.servicios_utilizados.split(',') : []
+        serviciosUtilizados: cliente.servicios_utilizados
+          ? cliente.servicios_utilizados.split(',').filter(s => s.trim() !== '')
+          : []
       }));
 
       res.json({
@@ -518,7 +620,6 @@ const trabajadorController = {
     }
   },
 
-  // AGREGAR este método al final del archivo, antes del module.exports
   obtenerHistorialCliente: async (req, res) => {
     try {
       console.log('📋 [TRABAJADOR] Obteniendo historial de cliente específico');
@@ -529,40 +630,45 @@ const trabajadorController = {
         return res.status(403).json({ error: 'No estás registrado como trabajador' });
       }
 
-      // ✅ CONSULTA CORREGIDA - sin r.precio
       const [reservas] = await pool.execute(`
-            SELECT 
-                r.id,
-                r.fecha_reserva,
-                r.hora_inicio,
-                r.duracion,
-                r.estado,
-                r.notas,
-                r.fecha_creacion,
-                s.nombre as servicio_nombre,
-                s.descripcion as servicio_descripcion,
-                s.categoria as servicio_categoria,
-                s.precio as servicio_precio, 
-                u.nombre as cliente_nombre,
-                u.apellidos as cliente_apellidos,
-                u.telefono as cliente_telefono
-            FROM reserva r
-            JOIN servicio s ON r.servicio_id = s.id
-            JOIN usuario u ON r.cliente_id = u.id
-            WHERE r.trabajador_id = ? AND r.cliente_id = ?
-            ORDER BY r.fecha_reserva DESC, r.hora_inicio DESC
-        `, [trabajador_id, clienteId]);
+      SELECT 
+        r.id,
+        r.fecha_reserva,
+        r.hora_inicio,
+        r.duracion,
+        r.estado,
+        r.notas,
+        r.fecha_creacion,
+        s.nombre as servicio_nombre,
+        s.descripcion as servicio_descripcion,
+        s.categoria as servicio_categoria,
+        s.precio as servicio_precio, 
+        u.nombre as cliente_nombre,
+        u.apellidos as cliente_apellidos,
+        u.telefono as cliente_telefono
+      FROM reserva r
+      JOIN servicio s ON r.servicio_id = s.id
+      JOIN usuario u ON r.cliente_id = u.id
+      WHERE r.trabajador_id = ? AND r.cliente_id = ?
+      ORDER BY r.fecha_reserva DESC, r.hora_inicio DESC
+    `, [trabajador_id, clienteId]);
 
       console.log(`✅ [TRABAJADOR] Encontradas ${reservas.length} reservas para el cliente ${clienteId}`);
 
-      // Calcular estadísticas
+      // Calcular estadísticas CORREGIDAS
       const totalReservas = reservas.length;
       const reservasConfirmadas = reservas.filter(r => r.estado === 'confirmada').length;
+      const reservasPendientes = reservas.filter(r => r.estado === 'pendiente').length;
+      const reservasCanceladas = reservas.filter(r => r.estado === 'cancelada').length;
+      const reservasRechazadas = reservas.filter(r => r.estado === 'rechazada').length;
+      const reservasCompletadas = reservas.filter(r => r.estado === 'completada').length;
+
+      // Total ingresos de reservas confirmadas y completadas
       const totalIngresos = reservas
-        .filter(r => r.estado === 'confirmada')
+        .filter(r => r.estado === 'confirmada' || r.estado === 'completada')
         .reduce((total, r) => total + (Number(r.servicio_precio) || 0), 0);
 
-      // ✅ Formatear la respuesta CORREGIDA
+      // Formatear la respuesta
       const historialFormateado = reservas.map(reserva => ({
         id: reserva.id,
         fecha: reserva.fecha_reserva,
@@ -570,7 +676,7 @@ const trabajadorController = {
         duracion: reserva.duracion,
         estado: reserva.estado,
         notas: reserva.notas,
-        precio: Number(reserva.servicio_precio) || 0,  // ✅ CONVERTIR A NÚMERO
+        precio: Number(reserva.servicio_precio) || 0,
         fechaCreacion: reserva.fecha_creacion,
         servicio: {
           nombre: reserva.servicio_nombre,
@@ -589,9 +695,14 @@ const trabajadorController = {
         estadisticas: {
           totalReservas,
           reservasConfirmadas,
-          reservasCanceladas: totalReservas - reservasConfirmadas,
+          reservasPendientes,
+          reservasCanceladas,
+          reservasRechazadas,
+          reservasCompletadas,
           totalIngresos,
-          promedioIngreso: reservasConfirmadas > 0 ? totalIngresos / reservasConfirmadas : 0
+          promedioIngreso: (reservasConfirmadas + reservasCompletadas) > 0
+            ? totalIngresos / (reservasConfirmadas + reservasCompletadas)
+            : 0
         },
         total: historialFormateado.length,
         historial: historialFormateado
@@ -642,15 +753,27 @@ const trabajadorController = {
         });
       }
 
+      // Validar categoría
+      if (categoria) {
+        const categoriasPermitidas = await obtenerCategoriasValidas();
+        if (!categoriasPermitidas.includes(categoria)) {
+          return res.status(400).json({
+            error: `Categoría inválida. Categorías permitidas: ${categoriasPermitidas.join(', ')}`
+          });
+        }
+      }
+
       // Crear usuario con rol de trabajador
       const usuarioData = {
         email,
-        password, // El modelo debe hashear la password
+        password,
         nombre,
         apellidos,
         telefono: telefono || null,
         direccion: direccion || null,
-        rol: 'trabajador'
+        rol: 'trabajador',
+        preguntaSeguridad: null,
+        respuestaSeguridadHash: null
       };
 
       console.log('📝 [ADMIN] Creando usuario...');
@@ -706,7 +829,6 @@ const trabajadorController = {
   },
 
   // Actualizar trabajador
-  // Actualizar trabajador - MÉTODO CORREGIDO
   actualizarTrabajador: async (req, res) => {
     try {
       const { id } = req.params;
@@ -722,81 +844,278 @@ const trabajadorController = {
         categoria,
         descripcion,
         experiencia,
-        horario_laboral
+        horario_laboral,
+        // Nueva contraseña
+        newPassword
       } = req.body;
 
-      console.log(`✏️ [ADMIN] Actualizando trabajador ID: ${id}`, req.body);
+      console.log(`✏️ [ADMIN] Actualizando trabajador ID: ${id}`);
+      console.log('📋 [ADMIN] Datos recibidos:', {
+        email, nombre, apellidos, telefono, direccion,
+        especialidades, categoria, experiencia, newPassword
+      });
 
-      // Obtener trabajador existente
+      // 1. Obtener trabajador existente
       const trabajadorExistente = await Trabajador.buscarPorId(id);
       if (!trabajadorExistente) {
         return res.status(404).json({ error: 'Trabajador no encontrado' });
       }
 
-      console.log('🔍 [ADMIN] Trabajador existente:', trabajadorExistente);
+      console.log('✅ [ADMIN] Trabajador encontrado:', {
+        id: trabajadorExistente.id,
+        usuario_id: trabajadorExistente.usuario_id,
+        rol: trabajadorExistente.rol,
+        nombre: trabajadorExistente.nombre,
+        email: trabajadorExistente.email
+      });
 
-      // Validar y preparar datos de usuario
-      const datosUsuario = {};
-      if (email && email !== trabajadorExistente.email) {
-        // Verificar si el email ya existe
-        const usuarioExistente = await Usuario.buscarPorEmail(email);
-        if (usuarioExistente && usuarioExistente.id !== trabajadorExistente.usuario_id) {
-          return res.status(400).json({ error: 'Ya existe un usuario con este email' });
-        }
-        datosUsuario.email = email;
+      // 2. Obtener el usuario completo para verificar su rol
+      const [usuarios] = await pool.execute(
+        'SELECT * FROM usuario WHERE id = ?',
+        [trabajadorExistente.usuario_id]
+      );
+
+      if (usuarios.length === 0) {
+        return res.status(404).json({ error: 'Usuario asociado no encontrado' });
       }
-      if (nombre) datosUsuario.nombre = nombre;
-      if (apellidos) datosUsuario.apellidos = apellidos;
-      if (telefono !== undefined) datosUsuario.telefono = telefono;
-      if (direccion !== undefined) datosUsuario.direccion = direccion;
 
-      // Actualizar datos de usuario
-      if (Object.keys(datosUsuario).length > 0) {
-        console.log('📝 [ADMIN] Actualizando datos de usuario...', datosUsuario);
-        await Usuario.actualizar(trabajadorExistente.usuario_id, datosUsuario);
-        console.log('✅ [ADMIN] Usuario actualizado correctamente');
+      const usuarioDB = usuarios[0];
+      const esAdministrador = usuarioDB.rol === 'administrador';
+      console.log(esAdministrador);
+
+      console.log(`🔍 [ADMIN] Rol del usuario en BD: ${usuarioDB.rol}, esAdministrador: ${esAdministrador}`);
+
+      // 3. Si es administrador, NO permitir cambiar NADA de usuario (ni datos personales NI contraseña)
+      if (esAdministrador) {
+        console.log('⚠️ [ADMIN] Trabajador es administrador - SOLO datos profesionales');
+
+        // Verificar si se intenta cambiar datos de usuario (incluyendo contraseña)
+        const datosUsuarioProhibidos = email || nombre || apellidos || telefono || direccion || newPassword;
+
+        if (datosUsuarioProhibidos) {
+          console.log('❌ [ADMIN] Intento de modificar datos personales/contraseña de administrador');
+          console.log('📋 [ADMIN] Datos prohibidos detectados:', {
+            email, nombre, apellidos, telefono, direccion, newPassword
+          });
+          return res.status(403).json({
+            error: 'No se pueden modificar los datos personales ni la contraseña de un administrador. Solo puede editar información profesional.'
+          });
+        }
+
+        console.log('✅ [ADMIN] No hay datos de usuario para actualizar (administrador)');
+      }
+
+      // 4. Preparar datos de usuario (solo si NO es administrador)
+      const datosUsuario = {};
+      if (!esAdministrador) {
+        console.log('✅ [ADMIN] Trabajador NO es administrador - permitiendo cambios');
+
+        // 4.1. Validar email
+        if (email && email !== trabajadorExistente.email) {
+          // Verificar que el email tenga el dominio correcto
+          if (!email.endsWith('@selene.com')) {
+            return res.status(400).json({
+              error: 'El email debe terminar en @selene.com'
+            });
+          }
+
+          const usuarioExistente = await Usuario.buscarPorEmail(email);
+          if (usuarioExistente && usuarioExistente.id !== trabajadorExistente.usuario_id) {
+            return res.status(400).json({ error: 'Ya existe un usuario con este email' });
+          }
+          datosUsuario.email = email;
+          console.log('📧 [ADMIN] Email actualizado:', email);
+        }
+
+        // 4.2. Validar y asignar nombre
+        if (nombre) {
+          if (nombre.length < 2) {
+            return res.status(400).json({
+              error: 'El nombre debe tener al menos 2 caracteres'
+            });
+          }
+          datosUsuario.nombre = nombre;
+          console.log('👤 [ADMIN] Nombre actualizado:', nombre);
+        }
+
+        // 4.3. Validar y asignar apellidos
+        if (apellidos) {
+          if (apellidos.length < 2) {
+            return res.status(400).json({
+              error: 'Los apellidos deben tener al menos 2 caracteres'
+            });
+          }
+          datosUsuario.apellidos = apellidos;
+          console.log('👥 [ADMIN] Apellidos actualizados:', apellidos);
+        }
+
+        // 4.4. Validar y asignar teléfono
+        if (telefono !== undefined) {
+          if (telefono && telefono.trim() !== '') {
+            const cleaned = telefono.replace(/\s+/g, '').replace(/-/g, '');
+            const phonePattern = /^(\+34|0034|34)?[6789]\d{8}$/;
+            if (!phonePattern.test(cleaned)) {
+              return res.status(400).json({
+                error: 'Número de teléfono inválido. Formatos aceptados: XXX XX XX XX, XXX XXX XXX o XXXXXXXXX'
+              });
+            }
+          }
+          datosUsuario.telefono = telefono;
+          console.log('📞 [ADMIN] Teléfono actualizado:', telefono);
+        }
+
+        // 4.5. Asignar dirección
+        if (direccion !== undefined) {
+          datosUsuario.direccion = direccion;
+          console.log('🏠 [ADMIN] Dirección actualizada:', direccion);
+        }
+
+        // 4.6. Cambiar contraseña si se proporciona
+        if (newPassword) {
+          console.log('🔑 [ADMIN] Cambiando contraseña del trabajador');
+
+          // Validar nueva contraseña
+          const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{6,}$/;
+          if (!passwordRegex.test(newPassword)) {
+            return res.status(400).json({
+              error: 'La contraseña debe tener al menos 6 caracteres y contener al menos una letra y un número'
+            });
+          }
+
+          // Cambiar contraseña del trabajador
+          const passwordHash = await bcrypt.hash(newPassword, 10);
+          datosUsuario.password = passwordHash;
+          console.log('✅ [ADMIN] Contraseña actualizada (hash generado)');
+        }
+      }
+
+      // 5. Actualizar datos de usuario (solo si hay cambios y NO es administrador)
+      if (Object.keys(datosUsuario).length > 0 && !esAdministrador) {
+        console.log('📝 [ADMIN] Actualizando datos de usuario en BD:', datosUsuario);
+        const actualizado = await Usuario.actualizar(trabajadorExistente.usuario_id, datosUsuario);
+        if (actualizado) {
+          console.log('✅ [ADMIN] Usuario actualizado correctamente en BD');
+        } else {
+          console.error('❌ [ADMIN] Error al actualizar usuario en BD');
+          return res.status(500).json({ error: 'Error al actualizar datos del usuario' });
+        }
       } else {
         console.log('ℹ️ [ADMIN] No hay datos de usuario para actualizar');
       }
 
-      // Preparar datos de trabajador
+      // 6. Preparar datos de trabajador (siempre se pueden actualizar, incluso para administradores)
       const datosTrabajador = {};
+      let hayCambiosTrabajador = false;
+
+      // 6.1. Especialidades
       if (especialidades !== undefined) {
-        // Convertir array a string JSON si es necesario
-        datosTrabajador.especialidades = Array.isArray(especialidades)
-          ? JSON.stringify(especialidades)
-          : especialidades;
-        console.log('🔄 [ADMIN] Especialidades procesadas:', datosTrabajador.especialidades);
+        let especialidadesArray;
+
+        if (Array.isArray(especialidades)) {
+          especialidadesArray = especialidades;
+        } else if (typeof especialidades === 'string') {
+          try {
+            especialidadesArray = JSON.parse(especialidades);
+          } catch (e) {
+            especialidadesArray = [especialidades];
+          }
+        } else {
+          return res.status(400).json({ error: 'Formato de especialidades inválido' });
+        }
+
+        // Validar que hay al menos una especialidad
+        if (!Array.isArray(especialidadesArray) || especialidadesArray.length === 0) {
+          return res.status(400).json({ error: 'Debe seleccionar al menos una especialidad' });
+        }
+
+        datosTrabajador.especialidades = JSON.stringify(especialidadesArray);
+        hayCambiosTrabajador = true;
+        console.log('🔄 [ADMIN] Especialidades actualizadas:', especialidadesArray);
       }
-      if (categoria !== undefined) datosTrabajador.categoria = categoria;
-      if (descripcion !== undefined) datosTrabajador.descripcion = descripcion;
-      if (experiencia !== undefined) datosTrabajador.experiencia = parseInt(experiencia) || 0;
+
+      // 6.2. Categoría
+      if (categoria !== undefined) {
+        // Obtener categorías válidas desde la BD
+        const categoriasPermitidas = await obtenerCategoriasValidas();
+
+        console.log(`🔍 [ADMIN] Validando categoría "${categoria}" contra:`, categoriasPermitidas);
+
+        if (!categoriasPermitidas.includes(categoria)) {
+          return res.status(400).json({
+            error: `Categoría inválida. Categorías permitidas: ${categoriasPermitidas.join(', ')}`
+          });
+        }
+
+        datosTrabajador.categoria = categoria;
+        hayCambiosTrabajador = true;
+        console.log('📂 [ADMIN] Categoría actualizada:', categoria);
+      }
+
+      // 6.3. Descripción
+      if (descripcion !== undefined) {
+        datosTrabajador.descripcion = descripcion;
+        hayCambiosTrabajador = true;
+        console.log('📝 [ADMIN] Descripción actualizada');
+      }
+
+      // 6.4. Experiencia
+      if (experiencia !== undefined) {
+        const expNum = parseInt(experiencia);
+        if (isNaN(expNum) || expNum < 0 || expNum > 50) {
+          return res.status(400).json({ error: 'La experiencia debe ser un número entre 0 y 50' });
+        }
+        datosTrabajador.experiencia = expNum;
+        hayCambiosTrabajador = true;
+        console.log('📊 [ADMIN] Experiencia actualizada:', expNum);
+      }
+
+      // 6.5. Horario laboral
       if (horario_laboral !== undefined) {
-        // Validar que horario_laboral sea un JSON válido
         try {
           if (typeof horario_laboral === 'string' && horario_laboral.trim() !== '') {
-            JSON.parse(horario_laboral); // Solo validar, no asignar
+            JSON.parse(horario_laboral);
           }
           datosTrabajador.horario_laboral = horario_laboral;
+          hayCambiosTrabajador = true;
+          console.log('⏰ [ADMIN] Horario laboral actualizado');
         } catch (e) {
-          console.error('❌ [ADMIN] Error parseando horario laboral:', e);
-          return res.status(400).json({ error: 'Formato de horario laboral inválido. Debe ser JSON válido.' });
+          return res.status(400).json({
+            error: 'Formato de horario laboral inválido. Debe ser JSON válido.'
+          });
         }
       }
 
-      // Actualizar datos de trabajador
-      if (Object.keys(datosTrabajador).length > 0) {
-        console.log('👨‍💼 [ADMIN] Actualizando perfil de trabajador...', datosTrabajador);
-        await Trabajador.actualizarPerfil(trabajadorExistente.usuario_id, datosTrabajador);
-        console.log('✅ [ADMIN] Perfil trabajador actualizado correctamente');
+      // 7. Actualizar datos de trabajador (si hay cambios)
+      if (hayCambiosTrabajador) {
+        console.log('👨‍💼 [ADMIN] Actualizando perfil de trabajador en BD:', datosTrabajador);
+        const perfilActualizado = await Trabajador.actualizarPerfil(trabajadorExistente.usuario_id, datosTrabajador);
+        if (perfilActualizado) {
+          console.log('✅ [ADMIN] Perfil trabajador actualizado correctamente en BD');
+        } else {
+          console.error('❌ [ADMIN] Error al actualizar perfil de trabajador en BD');
+          return res.status(500).json({ error: 'Error al actualizar datos del trabajador' });
+        }
       } else {
         console.log('ℹ️ [ADMIN] No hay datos de trabajador para actualizar');
       }
 
-      // Obtener trabajador actualizado
+      // 8. Obtener trabajador actualizado
       const trabajadorActualizado = await Trabajador.buscarPorId(id);
 
+      if (!trabajadorActualizado) {
+        return res.status(500).json({ error: 'Error al obtener trabajador actualizado' });
+      }
+
       console.log('✅ [ADMIN] Trabajador actualizado exitosamente');
+      console.log('📋 [ADMIN] Trabajador resultante:', {
+        id: trabajadorActualizado.id,
+        nombre: trabajadorActualizado.nombre,
+        email: trabajadorActualizado.email,
+        rol: trabajadorActualizado.rol,
+        especialidades: trabajadorActualizado.especialidades,
+        categoria: trabajadorActualizado.categoria
+      });
+
       res.json({
         mensaje: 'Trabajador actualizado exitosamente',
         trabajador: trabajadorActualizado
@@ -809,7 +1128,6 @@ const trabajadorController = {
       });
     }
   },
-
 
   // Eliminar/desactivar trabajador
   eliminarTrabajador: async (req, res) => {
@@ -844,6 +1162,26 @@ const trabajadorController = {
     } catch (error) {
       console.error('❌ Error en eliminarTrabajador:', error);
       res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
+    }
+  },
+
+  verificarPerfilTrabajador: async (req, res) => {
+    try {
+      const { usuarioId } = req.params;
+      console.log(`🔍 [CONTROLADOR] Verificando perfil de trabajador para usuario: ${usuarioId}`);
+
+      const trabajador = await Trabajador.obtenerPorUsuarioId(usuarioId);
+      const tienePerfil = !!trabajador;
+
+      console.log(`✅ [CONTROLADOR] Usuario ${usuarioId} ${tienePerfil ? 'TIENE' : 'NO TIENE'} perfil de trabajador`);
+
+      res.json({
+        tienePerfil: tienePerfil,
+        trabajador: trabajador || null
+      });
+    } catch (error) {
+      console.error('❌ Error en verificarPerfilTrabajador:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
     }
   }
 };

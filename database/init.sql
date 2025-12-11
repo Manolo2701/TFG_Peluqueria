@@ -15,7 +15,7 @@ USE peluqueria_selene;
 CREATE TABLE IF NOT EXISTS usuario (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
+    password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
     nombre VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100),
     telefono VARCHAR(20),
@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS usuario (
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    pregunta_seguridad VARCHAR(255) DEFAULT NULL,
+    respuesta_seguridad_hash VARCHAR(255) DEFAULT NULL,
+    reset_token VARCHAR(255) DEFAULT NULL,
+    reset_token_expires TIMESTAMP NULL DEFAULT NULL,
     INDEX idx_email (email),
     INDEX idx_rol (rol)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -166,6 +170,7 @@ CREATE TABLE IF NOT EXISTS configuracion_negocio (
     tiempo_minimo_entre_reservas INT DEFAULT 15,
     maximo_reservas_por_dia INT DEFAULT 50,
     politica_cancelacion_default ENUM('flexible','moderada','estricta') DEFAULT 'moderada',
+    categorias_especialidades JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -192,7 +197,35 @@ INSERT IGNORE INTO politica_cancelacion (id, nombre, descripcion, horas_limite, 
 
 -- Configuración del negocio
 INSERT IGNORE INTO configuracion_negocio (id, nombre_negocio, dias_apertura) VALUES 
-(1, 'Peluquería Selene', '["lunes", "martes", "miercoles", "jueves", "viernes", "sabado"]');
+(1, 'Peluquería Selene', '["martes", "miercoles", "jueves", "viernes", "sabado"]');
+
+-- =============================================
+-- CONFIGURACIÓN DE CATEGORÍAS Y ESPECIALIDADES PREDETERMINADAS
+-- =============================================
+
+UPDATE configuracion_negocio
+SET categorias_especialidades = '{
+  "Peluquería": [
+    "Cortes de cabello",
+    "Coloración",
+    "Mechas",
+    "Tratamientos capilares",
+    "Peinados"
+  ],
+  "Estética": [
+    "Maquillaje",
+    "Depilación",
+    "Cuidado facial",
+    "Uñas",
+    "Masajes relajantes",
+    "Masajes terapéuticos"
+  ],
+  "Prueba": [
+    "pruebaEsp1",
+    "pruebaEsp2"
+  ]
+}'
+WHERE id = 1;
 
 -- Servicios de Peluquería Selene (EXACTAMENTE como los tienes)
 INSERT IGNORE INTO servicio (id, nombre, descripcion, precio, duracion, categoria) VALUES
@@ -245,45 +278,103 @@ INSERT IGNORE INTO producto (id, nombre, precio, stock) VALUES
 
 -- =============================================
 -- USUARIOS Y TRABAJADORES CON HASHES BCrypt CORRECTOS
+-- Y HORARIOS LABORALES PREDEFINIDOS
 -- =============================================
 
--- Usuario administrador (Josefa - pelu.selene@gmail.com / pelu123)
+-- Usuario administrador (Josefa - ID 1)
 INSERT IGNORE INTO usuario (id, email, password, nombre, apellidos, rol) VALUES
 (1, 'pelu.selene@gmail.com', '$2a$12$T4CGNfLrQgYrUPAl315YDeiLGHqSD4mk1WSIt6FgO2R76w8XMSlbW', 'Josefa', 'SM', 'administrador');
 
--- Registrar al administrador también como trabajador de ESTÉTICA
-INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia) VALUES
-(1, 'Estética general', 'Estética', 'Administradora principal y esteticista con amplia experiencia en todos los servicios de estética.', 8);
+-- Nuevo usuario administrador (ID 2)
+INSERT IGNORE INTO usuario (id, email, password, nombre, apellidos, rol) VALUES
+(2, 'adminnormal@gmail.com', '$2a$12$xWZSF656W3H1Dg6GhkWDNe8ntd.GadvEWKPZhI7HVbEcOAexlnFuO', 'admin', 'ad', 'administrador');
 
--- Nuevos trabajadores con hashes bcrypt CORRECTOS
--- Peluquera 1: Ana Rodríguez (ana123)
+-- Peluquera 1: Ana Rodríguez → ID 3
 INSERT IGNORE INTO usuario (id, email, password, nombre, apellidos, telefono, rol) VALUES
-(2, 'ana.rodriguez@selene.com', '$2a$12$Cu6bzGMRJTEHklZeysD.h.EpFf1JvLSaL0dOgVuiy7LwU9tGUdyl.', 'Ana', 'Rodríguez', '+34 612 345 678', 'trabajador');
+(3, 'ana.rodriguez@selene.com', '$2a$12$Cu6bzGMRJTEHklZeysD.h.EpFf1JvLSaL0dOgVuiy7LwU9tGUdyl.', 'Ana', 'Rodríguez', '+34 612 345 678', 'trabajador');
 
--- Peluquera 2: Marta López (mart123)  
+-- Peluquera 2: Marta López → ID 4
 INSERT IGNORE INTO usuario (id, email, password, nombre, apellidos, telefono, rol) VALUES
-(3, 'marta.lopez@selene.com', '$2a$12$HQFgQnul7mhFL0IsJiU1B.EIoOu7Xh5YwkSsM7jvstfIbqR5TNc3y', 'Marta', 'López', '+34 623 456 789', 'trabajador');
+(4, 'marta.lopez@selene.com', '$2a$12$HQFgQnul7mhFL0IsJiU1B.EIoOu7Xh5YwkSsM7jvstfIbqR5TNc3y', 'Marta', 'López', '+34 623 456 789', 'trabajador');
 
--- Esteticista: Laura García (lau123) - Nota: cambiamos a lau123 para que sean 3 letras
+-- Esteticista: Laura García → ID 5
 INSERT IGNORE INTO usuario (id, email, password, nombre, apellidos, telefono, rol) VALUES
-(4, 'laura.garcia@selene.com', '$2a$12$qudJWwadOwaDLHUfOx6lTuI59MSAzkM5Fwhrw3q3PG5SYMTu5Laqe', 'Laura', 'García', '+34 634 567 890', 'trabajador');
+(5, 'laura.garcia@selene.com', '$2a$12$qudJWwadOwaDLHUfOx6lTuI59MSAzkM5Fwhrw3q3PG5SYMTu5Laqe', 'Laura', 'García', '+34 634 567 890', 'trabajador');
 
--- Registrar los nuevos trabajadores
--- Ana Rodríguez - Peluquera
-INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia) VALUES
-(2, 'Cortes y tintes', 'Peluquería', 'Especialista en cortes modernos y tintes personalizados. Más de 5 años de experiencia en peluquería unisex.', 5);
+-- Registrar los trabajadores en tabla trabajador CON HORARIOS PREDEFINIDOS
+-- Josefa - ID usuario 1 (Administradora/Esteticista)
+INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia, horario_laboral) VALUES
+(1, '["Estética general"]', 'Estética', 'Administradora principal y esteticista con amplia experiencia en todos los servicios de estética.', 8,
+'{"martes": {"inicio": "09:30", "fin": "13:00"},
+  "miercoles": {"inicio": "09:30", "fin": "20:00"},
+  "jueves": {"inicio": "09:30", "fin": "13:00"},
+  "viernes": {"inicio": "09:30", "fin": "20:00"},
+  "sabado": {"inicio": "09:30", "fin": "13:00"}}'
+);
 
--- Marta López - Peluquera
-INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia) VALUES
-(3, 'Peinados y recogidos', 'Peluquería', 'Especialista en peinados para eventos y recogidos elegantes. Formada en las últimas tendencias de peluquería.', 4);
+-- Ana Rodríguez - ID usuario 3 (Peluquera)
+INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia, horario_laboral) VALUES
+(3, '["Cortes y tintes"]', 'Peluquería', 'Especialista en cortes modernos y tintes personalizados. Más de 5 años de experiencia en peluquería unisex.', 5,
+'{"martes": {"inicio": "09:30", "fin": "20:00"},
+  "miercoles": {"inicio": "09:30", "fin": "13:00"},
+  "jueves": {"inicio": "09:30", "fin": "20:00"},
+  "viernes": {"inicio": "09:30", "fin": "13:00"},
+  "sabado": {"inicio": "09:30", "fin": "13:00"}}'
+);
 
--- Laura García - Esteticista
-INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia) VALUES
-(4, 'Depilación y cuidados faciales', 'Estética', 'Especialista en depilación con cera y tratamientos faciales personalizados. Formada en las mejores técnicas de estética.', 6);
+-- Marta López - ID usuario 4 (Peluquera)
+INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia, horario_laboral) VALUES
+(4, '["Peinados y recogidos"]', 'Peluquería', 'Especialista en peinados para eventos y recogidos elegantes. Formada en las últimas tendencias de peluquería.', 4,
+'{"martes": {"inicio": "09:30", "fin": "13:00"},
+  "miercoles": {"inicio": "09:30", "fin": "20:00"},
+  "jueves": {"inicio": "09:30", "fin": "13:00"},
+  "viernes": {"inicio": "09:30", "fin": "20:00"}}'
+);
+
+-- Laura García - ID usuario 5 (Esteticista)
+INSERT IGNORE INTO trabajador (usuario_id, especialidades, categoria, descripcion, experiencia, horario_laboral) VALUES
+(5, '["Depilación y cuidados faciales"]', 'Estética', 'Especialista en depilación con cera y tratamientos faciales personalizados. Formada en las mejores técnicas de estética.', 6,
+'{"miercoles": {"inicio": "09:30", "fin": "13:00"},
+  "jueves": {"inicio": "09:30", "fin": "20:00"},
+  "viernes": {"inicio": "09:30", "fin": "13:00"},
+  "sabado": {"inicio": "09:30", "fin": "20:00"}}'
+);
+
+-- =============================================
+-- ACTUALIZAR TRABAJADORES EXISTENTES QUE NO TIENEN HORARIOS
+-- (Para asegurar que todos tienen horarios predeterminados)
+-- =============================================
+
+-- Actualizar trabajadores existentes que no tienen horario laboral
+UPDATE trabajador 
+SET horario_laboral = 
+    CASE categoria
+        WHEN 'Estética' THEN 
+            '{"lunes": {"inicio": "09:30", "fin": "13:00"},
+              "martes": {"inicio": "09:30", "fin": "20:00"},
+              "miercoles": {"inicio": "09:30", "fin": "13:00"},
+              "jueves": {"inicio": "09:30", "fin": "20:00"},
+              "viernes": {"inicio": "09:30", "fin": "13:00"}}'
+        WHEN 'Peluquería' THEN 
+            '{"lunes": {"inicio": "09:30", "fin": "20:00"},
+              "martes": {"inicio": "09:30", "fin": "13:00"},
+              "miercoles": {"inicio": "09:30", "fin": "20:00"},
+              "jueves": {"inicio": "09:30", "fin": "13:00"},
+              "viernes": {"inicio": "09:30", "fin": "20:00"}}'
+        ELSE 
+            '{"lunes": {"inicio": "09:30", "fin": "17:00"},
+              "martes": {"inicio": "09:30", "fin": "17:00"},
+              "miercoles": {"inicio": "09:30", "fin": "17:00"},
+              "jueves": {"inicio": "09:30", "fin": "17:00"},
+              "viernes": {"inicio": "09:30", "fin": "17:00"}}'
+    END
+WHERE horario_laboral IS NULL OR horario_laboral = 'null' OR JSON_LENGTH(horario_laboral) = 0;
 
 -- Mensaje de finalización
 SELECT '✅ Base de datos Peluquería Selene inicializada correctamente' as status;
 SELECT '✅ Administrador registrado también como trabajador de Estética' as trabajador_status;
 SELECT '✅ 3 nuevos trabajadores creados: 2 peluqueras y 1 esteticista' as nuevos_trabajadores;
+SELECT '✅ Horarios laborales predeterminados asignados a todos los trabajadores' as horarios_status;
+SELECT '✅ Horarios existentes actualizados donde era necesario' as actualizacion_status;
 
 SET FOREIGN_KEY_CHECKS = 1;

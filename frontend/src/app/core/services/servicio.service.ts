@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, map, Observable, of } from 'rxjs';
 import { Servicio } from '../../interfaces/servicio.interface';
 import { environment } from '../../../environments/environment';
@@ -11,13 +11,18 @@ export class ServicioService {
     private http = inject(HttpClient);
     private apiUrl = environment.apiUrl;
 
-    getServicios(): Observable<Servicio[]> {
-        return this.http.get<any>(`${this.apiUrl}/servicios`).pipe(
+    getServicios(incluirInactivos: boolean = false): Observable<Servicio[]> {
+        let params = new HttpParams();
+        if (incluirInactivos) {
+            params = params.set('incluirInactivos', 'true');
+        }
+
+        return this.http.get<any>(`${this.apiUrl}/servicios`, { params }).pipe(
             map(response => {
-                console.log('🔍 Respuesta completa del backend:', response);
+                console.log(`🔍 Respuesta completa del backend (incluirInactivos: ${incluirInactivos}):`, response);
 
                 if (response && Array.isArray(response.servicios)) {
-                    console.log('✅ Servicios encontrados:', response.servicios.length);
+                    console.log(`✅ Servicios encontrados: ${response.servicios.length} (incluirInactivos: ${incluirInactivos})`);
                     return response.servicios;
                 }
                 else if (Array.isArray(response)) {
@@ -34,6 +39,11 @@ export class ServicioService {
                 return of([]);
             })
         );
+    }
+
+    // Método específico para configuración completa
+    getTodosServicios(): Observable<Servicio[]> {
+        return this.getServicios(true); // Incluir inactivos
     }
 
     getServiciosPorCategoria(categoria: string): Observable<Servicio[]> {

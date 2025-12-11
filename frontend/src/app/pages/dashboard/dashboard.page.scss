@@ -503,7 +503,6 @@
 // CORRECCIONES ESPECÍFICAS
 // ====================
 
-// ✅ CORREGIDO: Asegurar que el role-badge muestre correctamente "trabajador"
 .trabajador-dashboard {
   .role-badge.trabajador {
     background: var(--accent) !important;
@@ -511,7 +510,6 @@
   }
 }
 
-// ✅ MEJORADO: Transiciones suaves entre vistas
 .admin-dashboard,
 .trabajador-dashboard,
 .cliente-dashboard {
@@ -519,7 +517,6 @@
   opacity: 1;
 }
 
-// ✅ NUEVO: Clase para manejar la transición sin recarga
 .smooth-transition {
   .dashboard-content {
     animation: smoothSwitch 0.3s ease-in-out;
@@ -538,7 +535,6 @@
   }
 }
 
-// ✅ MEJORADO: Estados de carga más suaves
 .loading-state {
   mat-spinner {
     animation: gentlePulse 2s ease-in-out infinite;
@@ -557,7 +553,6 @@
   }
 }
 
-// ✅ MEJORADO: Efectos hover más sutiles
 .stat-card,
 .reserva-card,
 .servicio-card {
@@ -569,7 +564,6 @@
   }
 }
 
-// ✅ MEJORADO: Botones con transiciones más fluidas
 button {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 
@@ -578,7 +572,6 @@ button {
   }
 }
 
-// ✅ MEJORADO: Header actions con mejor espaciado
 .header-actions {
   gap: 8px;
 
@@ -587,7 +580,6 @@ button {
   }
 }
 
-// ✅ CORREGIDO: Asegurar que los badges muestren el color correcto
 .role-badge {
   &.cliente {
     background: var(--primary-light) !important;

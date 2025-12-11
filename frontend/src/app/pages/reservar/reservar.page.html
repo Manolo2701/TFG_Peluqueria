@@ -13,13 +13,13 @@
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="loading" class="loading-state">
+  <div *ngIf="loadingConfig" class="loading-state">
     <mat-spinner diameter="40"></mat-spinner>
-    <p>Cargando configuración...</p>
+    <p>Cargando configuración del establecimiento...</p>
   </div>
 
   <!-- Contenido cuando no está loading -->
-  <div *ngIf="!loading">
+  <div *ngIf="!loadingConfig">
     <!-- Indicador de pasos -->
     <div class="pasos-indicador">
       <div
@@ -106,9 +106,9 @@
                       <button
                         *ngFor="let hora of horariosManana; trackBy: trackByHora"
                         mat-raised-button
-                        [class]="getClaseHorarioPrecalculada(dia, hora)"
-                        (click)="seleccionarHorario(dia, hora)"
-                        [disabled]="!esHorarioDisponible(dia, hora)"
+                        [class]="getClaseHorarioPrecalculada(dia, hora, 'manana')"
+                        (click)="seleccionarHorario(dia, hora, 'manana')"
+                        [disabled]="!esHorarioDisponible(dia, hora, 'manana')"
                         class="horario-btn compacto"
                       >
                         {{ hora }}
@@ -136,9 +136,9 @@
                       <button
                         *ngFor="let hora of horariosTarde; trackBy: trackByHora"
                         mat-raised-button
-                        [class]="getClaseHorarioPrecalculada(dia, hora)"
-                        (click)="seleccionarHorario(dia, hora)"
-                        [disabled]="!esHorarioDisponible(dia, hora)"
+                        [class]="getClaseHorarioPrecalculada(dia, hora, 'tarde')"
+                        (click)="seleccionarHorario(dia, hora, 'tarde')"
+                        [disabled]="!esHorarioDisponible(dia, hora, 'tarde')"
                         class="horario-btn compacto"
                       >
                         {{ hora }}

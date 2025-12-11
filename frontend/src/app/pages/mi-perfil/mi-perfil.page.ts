@@ -48,12 +48,6 @@ export class MiPerfilPage implements OnInit, OnDestroy {
     error: string | null = null;
     private subs: Subscription[] = [];
 
-    // Obtener el primer nombre para mostrar
-    get primerNombre(): string {
-        if (!this.perfilData?.nombre) return 'Usuario';
-        return this.perfilData.nombre.split(' ')[0] || 'Usuario';
-    }
-
     constructor(
         private fb: FormBuilder,
         private usuarioService: UsuarioService,
@@ -64,15 +58,18 @@ export class MiPerfilPage implements OnInit, OnDestroy {
         console.log('🔧 [MI-PERFIL] URL de API:', environment.apiUrl);
 
         this.perfilForm = this.fb.group({
-            nombre: ['', [Validators.required]],
-            apellidos: [''],
+            nombre: ['', [Validators.required, Validators.minLength(2)]],
+            apellidos: ['', [Validators.required, Validators.minLength(2)]],
             email: ['', [Validators.required, Validators.email]],
-            telefono: [''],
+            telefono: ['', [this.phoneValidator]],
             direccion: [''],
             currentPassword: [''],
-            newPassword: [''],
+            newPassword: ['', [
+                Validators.minLength(6),
+                Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/)
+            ]],
             confirmPassword: ['']
-        }, { validators: this.passwordMatchValidator });
+        }, { validators: [this.passwordMatchValidator, this.passwordChangeValidator] });
     }
 
     ngOnInit(): void {
@@ -104,16 +101,71 @@ export class MiPerfilPage implements OnInit, OnDestroy {
         this.subs.push(userSub);
     }
 
+    // Validador de teléfono (igual que en registro)
+    phoneValidator(control: AbstractControl): ValidationErrors | null {
+        const value = control.value;
+
+        if (!value || value.trim() === '') {
+            return null; // Teléfono es opcional
+        }
+
+        // Limpiar espacios y guiones
+        const cleaned = value.replace(/\s+/g, '').replace(/-/g, '');
+
+        // Verificar que solo contenga números y opcionalmente prefijo
+        const phonePattern = /^(\+34|0034|34)?[6789]\d{8}$/;
+
+        if (!phonePattern.test(cleaned)) {
+            return { phoneInvalid: true };
+        }
+
+        // Contar solo los dígitos (sin prefijo)
+        const digitsOnly = cleaned.replace(/\D/g, '');
+
+        if (digitsOnly.length < 9 || digitsOnly.length > 12) {
+            return { phoneInvalidLength: true };
+        }
+
+        return null;
+    }
+
+    // Validador para coincidencia de contraseñas
     passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
         const newPassword = control.get('newPassword')?.value;
         const confirmPassword = control.get('confirmPassword')?.value;
 
-        if (newPassword || confirmPassword) {
-            if (newPassword !== confirmPassword) {
-                return { passwordMismatch: true };
-            }
+        if (newPassword && confirmPassword && newPassword !== confirmPassword) {
+            return { passwordMismatch: true };
         }
         return null;
+    }
+
+    // Validador para cambio de contraseña
+    passwordChangeValidator(control: AbstractControl): ValidationErrors | null {
+        const newPassword = control.get('newPassword')?.value;
+        const confirmPassword = control.get('confirmPassword')?.value;
+        const currentPassword = control.get('currentPassword')?.value;
+
+        // Si se está intentando cambiar la contraseña
+        if (newPassword || confirmPassword) {
+            // Se requiere la contraseña actual
+            if (!currentPassword) {
+                return { currentPasswordRequired: true };
+            }
+
+            // Ambas contraseñas nuevas deben estar presentes
+            if (!newPassword || !confirmPassword) {
+                return { bothPasswordsRequired: true };
+            }
+        }
+
+        return null;
+    }
+
+    // Obtener el primer nombre para mostrar
+    get primerNombre(): string {
+        if (!this.perfilData?.nombre) return 'Usuario';
+        return this.perfilData.nombre.split(' ')[0] || 'Usuario';
     }
 
     cargarPerfil(): void {
@@ -150,7 +202,11 @@ export class MiPerfilPage implements OnInit, OnDestroy {
         if (!fecha) return 'No disponible';
         try {
             const date = new Date(fecha);
-            return date.toLocaleDateString('es-ES');
+            return date.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
         } catch {
             return fecha;
         }
@@ -172,16 +228,17 @@ export class MiPerfilPage implements OnInit, OnDestroy {
     onSubmit(): void {
         if (this.perfilForm.invalid) {
             this.mostrarError('Por favor, corrige los errores en el formulario');
+
+            // Marcar todos los campos como tocados para mostrar errores
+            Object.keys(this.perfilForm.controls).forEach(key => {
+                const control = this.perfilForm.get(key);
+                control?.markAsTouched();
+            });
+
             return;
         }
 
         const formValue = this.perfilForm.value;
-
-        // Validar que si se quiere cambiar la contraseña, se proporcione la actual
-        if ((formValue.newPassword || formValue.confirmPassword) && !formValue.currentPassword) {
-            this.mostrarError('Debes proporcionar tu contraseña actual para cambiarla');
-            return;
-        }
 
         this.guardando = true;
         console.log('🔧 [MI-PERFIL] Enviando datos para actualizar:', formValue);
@@ -190,8 +247,8 @@ export class MiPerfilPage implements OnInit, OnDestroy {
             nombre: formValue.nombre,
             apellidos: formValue.apellidos,
             email: formValue.email,
-            telefono: formValue.telefono,
-            direccion: formValue.direccion
+            telefono: formValue.telefono || '',
+            direccion: formValue.direccion || ''
         };
 
         // Solo incluir passwords si se están cambiando
@@ -217,6 +274,7 @@ export class MiPerfilPage implements OnInit, OnDestroy {
                     confirmPassword: ''
                 });
                 this.mostrarCambioPassword = false;
+                this.perfilForm.updateValueAndValidity();
 
                 // Recargar perfil para obtener datos actualizados
                 this.cargarPerfil();
@@ -251,8 +309,16 @@ export class MiPerfilPage implements OnInit, OnDestroy {
         return this.perfilForm.get('nombre');
     }
 
+    get apellidosControl() {
+        return this.perfilForm.get('apellidos');
+    }
+
     get emailControl() {
         return this.perfilForm.get('email');
+    }
+
+    get telefonoControl() {
+        return this.perfilForm.get('telefono');
     }
 
     get newPasswordControl() {

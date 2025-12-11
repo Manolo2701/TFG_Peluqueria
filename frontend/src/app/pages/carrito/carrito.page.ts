@@ -129,7 +129,7 @@ export class CarritoPage implements OnInit, OnDestroy {
         return this.carrito.reduce((total, item) => total + item.cantidad, 0);
     }
 
-    // ✅ MÉTODOS PARA ENVÍO
+    // MÉTODOS PARA ENVÍO
     calcularEnvio(): string {
         const costoEnvio = this.getCostoEnvio();
         return costoEnvio === 0 ? 'Gratuito' : this.formatCurrency(costoEnvio);
@@ -157,7 +157,7 @@ export class CarritoPage implements OnInit, OnDestroy {
             return;
         }
 
-        // ✅ Verificar stock REAL
+        // Verificar stock REAL
         if (nuevaCantidad > (item.producto?.stock || 0)) {
             this.mostrarError(`No hay suficiente stock. Stock disponible: ${item.producto?.stock || 0}`);
             return;
@@ -263,7 +263,7 @@ export class CarritoPage implements OnInit, OnDestroy {
                 precio: item.producto?.precio || 0,
                 nombre: item.producto?.nombre || 'Producto'
             })),
-            total: this.getTotalConEnvio() // ✅ Usar total con envío
+            total: this.getTotalConEnvio()
         };
 
         console.log('💰 Total con envío:', this.formatCurrency(this.getTotalConEnvio()));
@@ -276,12 +276,12 @@ export class CarritoPage implements OnInit, OnDestroy {
                 this.loading = false;
 
                 if (response.success && response.approvalUrl) {
-                    
+
                     if (response.paypalReal) {
                         this.mostrarExito('Redirigiendo a PayPal...');
                         console.log('🌐 PayPal REAL: Redirigiendo a:', response.approvalUrl);
-                        
-                        // ✅ GUARDAR DATOS PARA EL RECIBO
+
+                        // GUARDAR DATOS PARA EL RECIBO
                         sessionStorage.setItem('ultimaCompraTotal', this.getTotalConEnvio().toString());
                         sessionStorage.setItem('ultimaCompraCarrito', JSON.stringify(this.carrito));
                         sessionStorage.setItem('paypalOrderId', response.orderID);
@@ -293,26 +293,42 @@ export class CarritoPage implements OnInit, OnDestroy {
 
                         this.carrito = [];
 
-                        // ✅ REDIRIGIR A PAYPAL REAL
                         setTimeout(() => {
                             window.location.href = response.approvalUrl;
                         }, 1500);
 
                     } else {
-                        // Modo simulación
+                        // Modo simulación - Redirigir a la página de confirmación local CON PARÁMETROS
                         this.mostrarExito('¡Compra realizada exitosamente! (Modo simulación)');
-                        
+
+                        // Guardar datos para el recibo
                         sessionStorage.setItem('ultimaCompraTotal', this.getTotalConEnvio().toString());
                         sessionStorage.setItem('ultimaCompraCarrito', JSON.stringify(this.carrito));
+                        sessionStorage.setItem('simulacionCompra', 'true');
 
+                        // Generar IDs de simulación
+                        const ventaId = response.venta_id || Math.floor(Math.random() * 100) + 1;
+                        const ordenId = response.orderID || `PED-${Date.now()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
+                        sessionStorage.setItem('simulacion_venta_id', ventaId.toString());
+                        sessionStorage.setItem('simulacion_orden', ordenId);
+
+                        // Vaciar carrito
                         this.carritoService.vaciarCarrito().subscribe(() => {
                             console.log('✅ Carrito vaciado localmente');
                         });
 
                         this.carrito = [];
 
+                        // Redirigir a la página de confirmación de compra CON PARÁMETROS DE QUERY
                         setTimeout(() => {
-                            window.location.href = response.approvalUrl;
+                            this.router.navigate(['/confirmacion-compra'], {
+                                queryParams: {
+                                    venta_id: ventaId,
+                                    orden: ordenId,
+                                    from: 'mis-compras'
+                                }
+                            });
                         }, 1000);
                     }
 

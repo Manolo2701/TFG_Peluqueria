@@ -124,7 +124,7 @@ export class ConfirmacionCompraPage implements OnInit {
         return estados[estado] || estado;
     }
 
-    // ✅ MÉTODOS PARA ENVÍO
+    // MÉTODOS PARA ENVÍO
     calcularEnvio(): string {
         const costoEnvio = this.getCostoEnvio();
         return costoEnvio === 0 ? 'Gratuito' : this.formatCurrency(costoEnvio);

@@ -113,12 +113,19 @@
         <div *ngIf="!serviciosLoading && !serviciosError" class="content">
           <!-- Estadísticas Rápidas -->
           <div class="section" *ngIf="serviciosFiltrados.length > 0">
-            <h2>📊 Estadísticas</h2>
+            <h2>📊 Estadísticas de Servicios</h2>
             <div class="stats-grid">
               <mat-card class="stat-card">
                 <mat-card-content>
-                  <div class="stat-number">{{ serviciosFiltrados.length }}</div>
-                  <div class="stat-label">Servicios encontrados</div>
+                  <div class="stat-number">{{ serviciosActivos.length }}</div>
+                  <div class="stat-label">Servicios Activos</div>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="stat-card">
+                <mat-card-content>
+                  <div class="stat-number">{{ serviciosInactivos.length }}</div>
+                  <div class="stat-label">Servicios Inactivos</div>
                 </mat-card-content>
               </mat-card>
 
@@ -131,18 +138,27 @@
             </div>
           </div>
 
-          <!-- Grid de Servicios -->
-          <div class="section">
-            <h2>💎 Lista de Servicios</h2>
-            <div class="services-grid" *ngIf="serviciosFiltrados.length > 0">
-              <mat-card *ngFor="let servicio of serviciosFiltrados" class="service-card">
+          <!-- SERVICIOS ACTIVOS -->
+          <div class="section" *ngIf="serviciosActivos.length > 0">
+            <h2>
+              <mat-icon class="tab-icon" style="color: #4caf50">check_circle</mat-icon>
+              Servicios Activos ({{ serviciosActivos.length }})
+            </h2>
+            <div class="services-grid">
+              <mat-card *ngFor="let servicio of serviciosActivos" class="service-card activo">
                 <mat-card-header>
                   <mat-icon mat-card-avatar class="service-icon">spa</mat-icon>
                   <mat-card-title>{{ servicio.nombre }}</mat-card-title>
                   <mat-card-subtitle>
-                    <mat-chip [color]="getCategoriaColor(servicio.categoria)" selected>
-                      {{ servicio.categoria | titlecase }}
-                    </mat-chip>
+                    <div style="display: flex; gap: 8px">
+                      <mat-chip [color]="getCategoriaColor(servicio.categoria)" selected>
+                        {{ servicio.categoria | titlecase }}
+                      </mat-chip>
+                      <mat-chip color="primary" selected>
+                        <mat-icon>check_circle</mat-icon>
+                        Activo
+                      </mat-chip>
+                    </div>
                   </mat-card-subtitle>
                 </mat-card-header>
 
@@ -185,28 +201,84 @@
                 </mat-card-actions>
               </mat-card>
             </div>
+          </div>
 
-            <!-- Empty State -->
-            <div *ngIf="serviciosFiltrados.length === 0" class="empty-state">
-              <mat-icon>spa</mat-icon>
-              <h3 *ngIf="!terminoBusquedaServicios">No hay servicios registrados</h3>
-              <h3 *ngIf="terminoBusquedaServicios">No se encontraron servicios</h3>
-              <p *ngIf="!terminoBusquedaServicios">
-                Comienza agregando tu primer servicio al catálogo.
-              </p>
-              <p *ngIf="terminoBusquedaServicios">
-                No hay servicios que coincidan con "{{ terminoBusquedaServicios }}"
-              </p>
-              <button
-                mat-raised-button
-                color="primary"
-                (click)="crearServicio()"
-                [disabled]="!isAdministrador"
-              >
-                <mat-icon>add</mat-icon>
-                Crear Primer Servicio
-              </button>
+          <!-- SERVICIOS INACTIVOS -->
+          <div class="section" *ngIf="serviciosInactivos.length > 0">
+            <h2>
+              <mat-icon class="tab-icon" style="color: #f44336">cancel</mat-icon>
+              Servicios Inactivos ({{ serviciosInactivos.length }})
+            </h2>
+            <div class="services-grid">
+              <mat-card *ngFor="let servicio of serviciosInactivos" class="service-card inactivo">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar class="service-icon">spa</mat-icon>
+                  <mat-card-title>{{ servicio.nombre }}</mat-card-title>
+                  <mat-card-subtitle>
+                    <div style="display: flex; gap: 8px">
+                      <mat-chip [color]="getCategoriaColor(servicio.categoria)" selected>
+                        {{ servicio.categoria | titlecase }}
+                      </mat-chip>
+                      <mat-chip color="warn" selected>
+                        <mat-icon>cancel</mat-icon>
+                        Inactivo
+                      </mat-chip>
+                    </div>
+                  </mat-card-subtitle>
+                </mat-card-header>
+
+                <mat-card-content>
+                  <p class="service-description" *ngIf="servicio.descripcion">
+                    {{ servicio.descripcion }}
+                  </p>
+
+                  <div class="service-details">
+                    <div class="detail-item">
+                      <mat-icon>schedule</mat-icon>
+                      <span>{{ servicio.duracion }} min</span>
+                    </div>
+                    <div class="detail-item">
+                      <mat-icon>euro</mat-icon>
+                      <span>{{ formatCurrency(servicio.precio) }}</span>
+                    </div>
+                  </div>
+                </mat-card-content>
+
+                <mat-card-actions align="end">
+                  <button
+                    mat-button
+                    color="primary"
+                    (click)="editarServicio(servicio)"
+                    [disabled]="!isAdministrador"
+                  >
+                    <mat-icon>edit</mat-icon>
+                    Editar
+                  </button>
+                </mat-card-actions>
+              </mat-card>
             </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="serviciosFiltrados.length === 0" class="empty-state">
+            <mat-icon>spa</mat-icon>
+            <h3 *ngIf="!terminoBusquedaServicios">No hay servicios registrados</h3>
+            <h3 *ngIf="terminoBusquedaServicios">No se encontraron servicios</h3>
+            <p *ngIf="!terminoBusquedaServicios">
+              Comienza agregando tu primer servicio al catálogo.
+            </p>
+            <p *ngIf="terminoBusquedaServicios">
+              No hay servicios que coincidan con "{{ terminoBusquedaServicios }}"
+            </p>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="crearServicio()"
+              [disabled]="!isAdministrador"
+            >
+              <mat-icon>add</mat-icon>
+              Crear Primer Servicio
+            </button>
           </div>
         </div>
       </div>
@@ -303,36 +375,52 @@
         <div *ngIf="!productosLoading && !productosError" class="content">
           <!-- Estadísticas Rápidas -->
           <div class="section" *ngIf="productosFiltrados.length > 0">
-            <h2>📊 Estadísticas</h2>
+            <h2>📊 Estadísticas de Productos</h2>
             <div class="stats-grid">
               <mat-card class="stat-card">
                 <mat-card-content>
-                  <div class="stat-number">{{ productosFiltrados.length }}</div>
-                  <div class="stat-label">Productos encontrados</div>
+                  <div class="stat-number">{{ productosActivos.length }}</div>
+                  <div class="stat-label">Productos Activos</div>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="stat-card">
+                <mat-card-content>
+                  <div class="stat-number">{{ productosInactivos.length }}</div>
+                  <div class="stat-label">Productos Inactivos</div>
                 </mat-card-content>
               </mat-card>
 
               <mat-card class="stat-card">
                 <mat-card-content>
                   <div class="stat-number">{{ getTotalStock() }}</div>
-                  <div class="stat-label">Stock Total</div>
+                  <div class="stat-label">Stock Total (Activos)</div>
                 </mat-card-content>
               </mat-card>
             </div>
           </div>
 
-          <!-- Grid de Productos -->
-          <div class="section">
-            <h2>🛍️ Lista de Productos</h2>
-            <div class="products-grid" *ngIf="productosFiltrados.length > 0">
-              <mat-card *ngFor="let producto of productosFiltrados" class="product-card">
+          <!-- PRODUCTOS ACTIVOS -->
+          <div class="section" *ngIf="productosActivos.length > 0">
+            <h2>
+              <mat-icon class="tab-icon" style="color: #4caf50">check_circle</mat-icon>
+              Productos Activos ({{ productosActivos.length }})
+            </h2>
+            <div class="products-grid">
+              <mat-card *ngFor="let producto of productosActivos" class="product-card activo">
                 <mat-card-header>
                   <mat-icon mat-card-avatar class="product-icon">shopping_bag</mat-icon>
                   <mat-card-title>{{ producto.nombre }}</mat-card-title>
                   <mat-card-subtitle>
-                    <mat-chip [color]="producto.stock > 0 ? 'primary' : 'warn'" selected>
-                      {{ producto.stock > 0 ? 'En stock' : 'Sin stock' }}
-                    </mat-chip>
+                    <div style="display: flex; gap: 8px">
+                      <mat-chip [color]="producto.stock > 0 ? 'primary' : 'warn'" selected>
+                        {{ producto.stock > 0 ? 'En stock' : 'Sin stock' }}
+                      </mat-chip>
+                      <mat-chip color="primary" selected>
+                        <mat-icon>check_circle</mat-icon>
+                        Activo
+                      </mat-chip>
+                    </div>
                   </mat-card-subtitle>
                 </mat-card-header>
 
@@ -371,28 +459,80 @@
                 </mat-card-actions>
               </mat-card>
             </div>
+          </div>
 
-            <!-- Empty State -->
-            <div *ngIf="productosFiltrados.length === 0" class="empty-state">
-              <mat-icon>shopping_bag</mat-icon>
-              <h3 *ngIf="!terminoBusquedaProductos">No hay productos registrados</h3>
-              <h3 *ngIf="terminoBusquedaProductos">No se encontraron productos</h3>
-              <p *ngIf="!terminoBusquedaProductos">
-                Comienza agregando tu primer producto al catálogo.
-              </p>
-              <p *ngIf="terminoBusquedaProductos">
-                No hay productos que coincidan con "{{ terminoBusquedaProductos }}"
-              </p>
-              <button
-                mat-raised-button
-                color="primary"
-                (click)="crearProducto()"
-                [disabled]="!isAdministrador"
-              >
-                <mat-icon>add</mat-icon>
-                Crear Primer Producto
-              </button>
+          <!-- PRODUCTOS INACTIVOS -->
+          <div class="section" *ngIf="productosInactivos.length > 0">
+            <h2>
+              <mat-icon class="tab-icon" style="color: #f44336">cancel</mat-icon>
+              Productos Inactivos ({{ productosInactivos.length }})
+            </h2>
+            <div class="products-grid">
+              <mat-card *ngFor="let producto of productosInactivos" class="product-card inactivo">
+                <mat-card-header>
+                  <mat-icon mat-card-avatar class="product-icon">shopping_bag</mat-icon>
+                  <mat-card-title>{{ producto.nombre }}</mat-card-title>
+                  <mat-card-subtitle>
+                    <div style="display: flex; gap: 8px">
+                      <mat-chip [color]="producto.stock > 0 ? 'primary' : 'warn'" selected>
+                        {{ producto.stock > 0 ? 'En stock' : 'Sin stock' }}
+                      </mat-chip>
+                      <mat-chip color="warn" selected>
+                        <mat-icon>cancel</mat-icon>
+                        Inactivo
+                      </mat-chip>
+                    </div>
+                  </mat-card-subtitle>
+                </mat-card-header>
+
+                <mat-card-content>
+                  <div class="product-details">
+                    <div class="detail-item">
+                      <mat-icon>euro</mat-icon>
+                      <span>{{ formatCurrency(producto.precio) }}</span>
+                    </div>
+                    <div class="detail-item" [class.low-stock]="producto.stock <= 5">
+                      <mat-icon>inventory_2</mat-icon>
+                      <span>{{ producto.stock }} unidades</span>
+                    </div>
+                  </div>
+                </mat-card-content>
+
+                <mat-card-actions align="end">
+                  <button
+                    mat-button
+                    color="primary"
+                    (click)="editarProducto(producto)"
+                    [disabled]="!isAdministrador"
+                  >
+                    <mat-icon>edit</mat-icon>
+                    Editar
+                  </button>
+                </mat-card-actions>
+              </mat-card>
             </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="productosFiltrados.length === 0" class="empty-state">
+            <mat-icon>shopping_bag</mat-icon>
+            <h3 *ngIf="!terminoBusquedaProductos">No hay productos registrados</h3>
+            <h3 *ngIf="terminoBusquedaProductos">No se encontraron productos</h3>
+            <p *ngIf="!terminoBusquedaProductos">
+              Comienza agregando tu primer producto al catálogo.
+            </p>
+            <p *ngIf="terminoBusquedaProductos">
+              No hay productos que coincidan con "{{ terminoBusquedaProductos }}"
+            </p>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="crearProducto()"
+              [disabled]="!isAdministrador"
+            >
+              <mat-icon>add</mat-icon>
+              Crear Primer Producto
+            </button>
           </div>
         </div>
       </div>

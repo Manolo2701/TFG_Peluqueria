@@ -108,7 +108,7 @@ export class CalendarioPage implements OnInit {
                 console.log('📅 Fechas únicas en las reservas:', [...new Set(reservas.map(r => r.fecha_reserva))]);
                 console.log('🔍 Primera reserva ejemplo:', reservas[0]);
 
-                // ✅ VALIDACIÓN CRÍTICA - Asegurar que sea array
+                // Asegurar que sea array
                 if (!reservas || !Array.isArray(reservas)) {
                     console.warn('⚠️ La API no devolvió un array, inicializando vacío');
                     this.reservas = [];
@@ -205,13 +205,13 @@ export class CalendarioPage implements OnInit {
         console.log(`📊 Filtradas ${this.reservasFiltradas.length} reservas (estado: ${this.filtroEstado})`);
     }
 
-    // ✅ NUEVO MÉTODO: Cambiar filtro de estado
+    // Cambiar filtro de estado
     onFiltroEstadoChange(filtro: string) {
         this.filtroEstado = filtro;
         this.filtrarReservas();
     }
 
-    // ✅ NUEVO MÉTODO: Contar reservas por estado
+    // Contar reservas por estado
     contarReservasPorEstado(estado: string): number {
         if (!this.reservas || !Array.isArray(this.reservas)) {
             return 0;
@@ -245,7 +245,7 @@ export class CalendarioPage implements OnInit {
         }
     }
 
-    // ✅ MÉTODO: Formatear fecha a YYYY-MM-DD en hora local
+    // Formatear fecha a YYYY-MM-DD en hora local
     formatDateToLocal(date: Date): string {
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -292,7 +292,7 @@ export class CalendarioPage implements OnInit {
                 reserva,
                 usuarioActual,
                 esVistaTrabajador: false, // Calendario general es siempre vista admin
-                contexto: 'calendario-general' // ✅ Contexto específico para solo lectura
+                contexto: 'calendario-general'
             },
             panelClass: 'reserva-detalles-modal'
         });

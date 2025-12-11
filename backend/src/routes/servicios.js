@@ -7,7 +7,7 @@ router.get('/', servicioController.obtenerServicios);
 router.get('/categoria/:categoria', servicioController.obtenerServiciosPorCategoria);
 router.get('/:id', servicioController.obtenerServicio);
 
-// ✅ RUTAS NUEVAS: CRUD completo para administración
+// CRUD completo para administración
 router.post('/', servicioController.crearServicio);
 router.put('/:id', servicioController.actualizarServicio);
 router.delete('/:id', servicioController.eliminarServicio);

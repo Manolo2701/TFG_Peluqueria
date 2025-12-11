@@ -1,60 +1,163 @@
 <h2 mat-dialog-title>Editar Trabajador</h2>
 
 <mat-dialog-content>
+  <div *ngIf="esAdministradorHibrido" class="admin-notice">
+    <mat-icon>admin_panel_settings</mat-icon>
+    <span>
+      Este usuario es administrador. Solo se pueden editar los datos profesionales (categoría,
+      especialidades, experiencia, descripción y horario).
+    </span>
+  </div>
+
   <form [formGroup]="trabajadorForm" class="form-container">
-    <!-- Datos de Usuario -->
-    <div class="form-section">
+    <!-- Datos de Usuario - SOLO para NO administradores híbridos -->
+    <div class="form-section" *ngIf="!esAdministradorHibrido">
       <h3>Datos Personales</h3>
 
       <div class="form-row">
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Email</mat-label>
-          <input matInput formControlName="email" type="email" />
-          <mat-error *ngIf="trabajadorForm.get('email')?.hasError('required')">
-            Email es requerido
+          <mat-label>Nombre de usuario</mat-label>
+          <input
+            matInput
+            formControlName="emailPrefix"
+            placeholder="Ej: maria.garcia"
+            [class.is-invalid]="emailPrefixControl?.invalid && emailPrefixControl?.touched"
+          />
+          <span matSuffix class="email-suffix">@selene.com</span>
+          <mat-hint>Solo nombre de usuario, sin @ ni dominio</mat-hint>
+          <mat-error *ngIf="emailPrefixControl?.hasError('required')">
+            El nombre de usuario es requerido
           </mat-error>
-          <mat-error *ngIf="trabajadorForm.get('email')?.hasError('email')">
-            Email no válido
+          <mat-error *ngIf="emailPrefixControl?.hasError('minlength')">
+            El nombre de usuario debe tener al menos 3 caracteres
+          </mat-error>
+          <mat-error *ngIf="emailPrefixControl?.hasError('maxlength')">
+            El nombre de usuario no puede exceder 30 caracteres
+          </mat-error>
+          <mat-error *ngIf="emailPrefixControl?.hasError('pattern')">
+            Solo se permiten letras, números, puntos, guiones y guiones bajos
+          </mat-error>
+          <mat-error *ngIf="emailPrefixControl?.hasError('containsAtSign')">
+            No se permite el símbolo @. Solo ingresa el nombre de usuario
           </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Nombre</mat-label>
-          <input matInput formControlName="nombre" />
-          <mat-error *ngIf="trabajadorForm.get('nombre')?.hasError('required')">
-            Nombre es requerido
+          <mat-label>Email completo</mat-label>
+          <input matInput formControlName="emailFull" readonly class="email-completo" />
+          <mat-hint>Email que se registrará en el sistema</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Nombre *</mat-label>
+          <input
+            matInput
+            formControlName="nombre"
+            [class.is-invalid]="nombreControl?.invalid && nombreControl?.touched"
+          />
+          <mat-error *ngIf="nombreControl?.hasError('required')">
+            El nombre es requerido
+          </mat-error>
+          <mat-error *ngIf="nombreControl?.hasError('minlength')">
+            El nombre debe tener al menos 2 caracteres
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Apellidos *</mat-label>
+          <input
+            matInput
+            formControlName="apellidos"
+            [class.is-invalid]="apellidosControl?.invalid && apellidosControl?.touched"
+          />
+          <mat-error *ngIf="apellidosControl?.hasError('required')">
+            Los apellidos son requeridos
+          </mat-error>
+          <mat-error *ngIf="apellidosControl?.hasError('minlength')">
+            Los apellidos deben tener al menos 2 caracteres
           </mat-error>
         </mat-form-field>
       </div>
 
       <div class="form-row">
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Apellidos</mat-label>
-          <input matInput formControlName="apellidos" />
-          <mat-error *ngIf="trabajadorForm.get('apellidos')?.hasError('required')">
-            Apellidos son requeridos
+          <mat-label>Teléfono</mat-label>
+          <input
+            matInput
+            formControlName="telefono"
+            placeholder="Ej: 612 34 56 78"
+            [class.is-invalid]="telefonoControl?.invalid && telefonoControl?.touched"
+          />
+          <mat-hint>Formatos: 612 34 56 78, 612 345 678, 612345678</mat-hint>
+          <mat-error *ngIf="telefonoControl?.hasError('phoneInvalid')">
+            Número inválido. Formatos aceptados: XXX XX XX XX, XXX XXX XXX o XXXXXXXXX
           </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Teléfono</mat-label>
-          <input matInput formControlName="telefono" />
+          <mat-label>Dirección</mat-label>
+          <textarea matInput formControlName="direccion" rows="2"></textarea>
         </mat-form-field>
       </div>
-
-      <mat-form-field appearance="outline" class="form-field-full">
-        <mat-label>Dirección</mat-label>
-        <textarea matInput formControlName="direccion" rows="2"></textarea>
-      </mat-form-field>
     </div>
 
-    <!-- Datos de Trabajador -->
+    <!-- Cambio de Contraseña - SOLO para NO administradores híbridos -->
+    <div class="form-section" *ngIf="!esAdministradorHibrido && mostrarBotonPassword">
+      <h3>Seguridad</h3>
+
+      <div class="password-toggle">
+        <button type="button" mat-button (click)="toggleCambioPassword()" class="toggle-btn">
+          <mat-icon>{{ mostrarCambioPassword ? 'remove' : 'add' }}</mat-icon>
+          {{ mostrarCambioPassword ? 'Ocultar cambio de contraseña' : 'Cambiar contraseña' }}
+        </button>
+      </div>
+
+      <div *ngIf="mostrarCambioPassword" class="password-fields">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Nueva contraseña</mat-label>
+            <input
+              matInput
+              formControlName="newPassword"
+              type="password"
+              placeholder="Nueva contraseña del trabajador"
+              [class.is-invalid]="newPasswordControl?.invalid && newPasswordControl?.touched"
+            />
+            <mat-hint>Mínimo 6 caracteres, con al menos una letra y un número</mat-hint>
+            <mat-error *ngIf="newPasswordControl?.hasError('minlength')">
+              La contraseña debe tener al menos 6 caracteres
+            </mat-error>
+            <mat-error *ngIf="newPasswordControl?.hasError('pattern')">
+              La contraseña debe contener al menos una letra y un número
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Confirmar contraseña</mat-label>
+            <input
+              matInput
+              formControlName="confirmPassword"
+              type="password"
+              placeholder="Repite la nueva contraseña"
+              [class.is-invalid]="trabajadorForm.hasError('passwordMismatch')"
+            />
+            <mat-error *ngIf="trabajadorForm.hasError('passwordMismatch')">
+              Las contraseñas no coinciden
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <!-- Datos de Trabajador - PARA TODOS (incluidos administradores híbridos) -->
     <div class="form-section">
       <h3>Información Profesional</h3>
 
       <div class="form-row">
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Categoría</mat-label>
+          <mat-label>Categoría *</mat-label>
           <mat-select formControlName="categoria">
             <mat-option *ngFor="let cat of categorias" [value]="cat">
               {{ cat }}
@@ -63,34 +166,68 @@
           <mat-error *ngIf="trabajadorForm.get('categoria')?.hasError('required')">
             Categoría es requerida
           </mat-error>
+          <mat-error *ngIf="trabajadorForm.get('categoria')?.hasError('categoriaInvalida')">
+            La categoría seleccionada no es válida
+          </mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="form-field">
           <mat-label>Experiencia (años)</mat-label>
-          <input matInput formControlName="experiencia" type="number" min="0" />
-          <mat-error *ngIf="trabajadorForm.get('experiencia')?.hasError('min')">
+          <input
+            matInput
+            formControlName="experiencia"
+            type="number"
+            min="0"
+            max="50"
+            [class.is-invalid]="experienciaControl?.invalid && experienciaControl?.touched"
+          />
+          <mat-hint>Número de años de experiencia</mat-hint>
+          <mat-error *ngIf="experienciaControl?.hasError('min')">
             La experiencia no puede ser negativa
+          </mat-error>
+          <mat-error *ngIf="experienciaControl?.hasError('max')">
+            La experiencia no puede exceder 50 años
           </mat-error>
         </mat-form-field>
       </div>
 
-      <!-- Especialidades con Chips -->
+      <!-- Especialidades -->
       <div class="form-field-full">
-        <label class="especialidades-label">Especialidades</label>
+        <label class="especialidades-label"
+          >Especialidades ({{ trabajadorForm.get('categoria')?.value }}) *</label
+        >
         <div class="chips-container">
-          <mat-chip-listbox>
+          <mat-chip-listbox multiple aria-label="Especialidades">
             <mat-chip-option
               *ngFor="let esp of especialidadesList"
               [selected]="isEspecialidadSelected(esp)"
               (click)="toggleEspecialidad(esp)"
+              [disabled]="loading"
             >
               {{ esp }}
             </mat-chip-option>
           </mat-chip-listbox>
         </div>
-        <div class="selected-count">
+        <div
+          class="selected-count"
+          [class.is-invalid]="especialidadesControl?.invalid && especialidadesControl?.touched"
+        >
           {{ trabajadorForm.get('especialidades')?.value?.length || 0 }} especialidades
-          seleccionadas
+          seleccionadas de {{ especialidadesList.length }}
+        </div>
+        <mat-error
+          *ngIf="especialidadesControl?.invalid && especialidadesControl?.touched"
+          class="especialidades-error"
+        >
+          <span *ngIf="especialidadesControl?.hasError('required')"
+            >Debe seleccionar al menos una especialidad</span
+          >
+          <span *ngIf="especialidadesControl?.hasError('especialidadesInvalidas')"
+            >Algunas especialidades seleccionadas no son válidas para esta categoría</span
+          >
+        </mat-error>
+        <div *ngIf="especialidadesList.length === 0" class="no-especialidades">
+          No hay especialidades disponibles para esta categoría
         </div>
       </div>
 
@@ -105,7 +242,7 @@
       </mat-form-field>
     </div>
 
-    <!-- Horario Laboral Visual -->
+    <!-- Horario Laboral - PARA TODOS (incluidos administradores híbridos) -->
     <div class="form-section">
       <h3>Horario Laboral</h3>
       <p class="horario-subtitle">Selecciona los días y horarios de trabajo</p>

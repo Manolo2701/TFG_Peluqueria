@@ -1,11 +1,20 @@
 const { pool } = require('../config/database');
 
 class Producto {
-    static async listarTodos() {
+    // Obtener productos con opción de incluir inactivos
+    static async listarTodos(incluirInactivos = false) {
         try {
-            const [rows] = await pool.execute(
-                'SELECT * FROM producto WHERE activo = true ORDER BY nombre'
-            );
+            let query = 'SELECT * FROM producto';
+
+            if (!incluirInactivos) {
+                query += ' WHERE activo = true';
+            }
+
+            query += ' ORDER BY nombre';
+
+            const [rows] = await pool.execute(query);
+
+            console.log(`✅ Productos encontrados: ${rows.length} (incluirInactivos: ${incluirInactivos})`);
             return rows;
         } catch (error) {
             console.error('Error en Producto.listarTodos:', error);
@@ -13,12 +22,16 @@ class Producto {
         }
     }
 
-    static async buscarPorId(id) {
+    // Buscar por ID con opción de incluir inactivos
+    static async buscarPorId(id, incluirInactivos = false) {
         try {
-            const [rows] = await pool.execute(
-                'SELECT * FROM producto WHERE id = ? AND activo = true',
-                [id]
-            );
+            let query = 'SELECT * FROM producto WHERE id = ?';
+
+            if (!incluirInactivos) {
+                query += ' AND activo = true';
+            }
+
+            const [rows] = await pool.execute(query, [id]);
             return rows[0];
         } catch (error) {
             console.error('Error en Producto.buscarPorId:', error);
@@ -39,7 +52,7 @@ class Producto {
         }
     }
 
-    // ✅ MÉTODO NUEVO: Crear producto
+    // Crear producto
     static async crear(productoData) {
         try {
             const { nombre, precio, stock, activo = true } = productoData;
@@ -57,7 +70,7 @@ class Producto {
         }
     }
 
-    // ✅ MÉTODO NUEVO: Actualizar producto
+    // Actualizar producto
     static async actualizar(id, productoData) {
         try {
             const { nombre, precio, stock, activo } = productoData;
@@ -76,7 +89,7 @@ class Producto {
         }
     }
 
-    // ✅ MÉTODO NUEVO: Eliminar producto (borrado lógico)
+    // Eliminar producto (borrado lógico)
     static async eliminar(id) {
         try {
             const [result] = await pool.execute(

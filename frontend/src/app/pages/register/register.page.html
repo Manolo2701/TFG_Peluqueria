@@ -4,7 +4,7 @@
     <p class="text-center text-medium mb-2">Únete a Peluquería & Estética Selene</p>
 
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-      <!-- Nombre y Apellidos en misma fila -->
+      <!-- Nombre y Apellidos -->
       <div class="form-row">
         <div class="form-group">
           <label for="nombre">Nombre *</label>
@@ -51,13 +51,16 @@
           id="email"
           formControlName="email"
           class="form-control"
-          placeholder="tu@email.com"
+          placeholder="ejemplo@email.com"
           [class.is-invalid]="email.invalid && email.touched"
         />
         <div class="invalid-feedback" *ngIf="email.invalid && email.touched">
           <span *ngIf="email.errors?.['required']">El email es requerido</span>
-          <span *ngIf="email.errors?.['email']">Por favor ingresa un email válido</span>
+          <span *ngIf="email.errors?.['email'] || email.errors?.['emailInvalid']"
+            >Por favor ingresa un email válido</span
+          >
         </div>
+        <small class="form-text text-muted">Ejemplo: usuario@dominio.com</small>
       </div>
 
       <!-- Contraseña -->
@@ -68,7 +71,7 @@
           id="password"
           formControlName="password"
           class="form-control"
-          placeholder="Mínimo 6 caracteres"
+          placeholder="Mínimo 6 caracteres con letra y número"
           [class.is-invalid]="password.invalid && password.touched"
         />
         <div class="invalid-feedback" *ngIf="password.invalid && password.touched">
@@ -76,7 +79,13 @@
           <span *ngIf="password.errors?.['minlength']"
             >La contraseña debe tener al menos 6 caracteres</span
           >
+          <span *ngIf="password.errors?.['pattern']">
+            La contraseña debe contener al menos una letra y un número
+          </span>
         </div>
+        <small class="form-text text-muted">
+          Mínimo 6 caracteres, con al menos una letra y un número
+        </small>
       </div>
 
       <!-- Teléfono -->
@@ -87,8 +96,28 @@
           id="telefono"
           formControlName="telefono"
           class="form-control"
-          placeholder="Tu número de teléfono"
+          placeholder="Ej: 612 345 678, 612 34 56 78 o 612345678"
+          [class.is-invalid]="telefono.invalid && telefono.touched"
         />
+        <div class="invalid-feedback" *ngIf="telefono.invalid && telefono.touched">
+          <span *ngIf="telefono.errors?.['phoneInvalidFormat']">
+            Formato inválido. Solo se permiten números, espacios y guiones
+          </span>
+          <span *ngIf="telefono.errors?.['phoneInvalidLength']">
+            El número debe tener entre 9 y 12 dígitos
+          </span>
+          <span *ngIf="telefono.errors?.['phoneInvalid']">
+            Número inválido. Formatos aceptados:<br />
+            • XXX XX XX XX (ej: 612 34 56 78)<br />
+            • XXX XXX XXX (ej: 612 345 678)<br />
+            • XXXXXXXXX (ej: 612345678)<br />
+            • Con prefijo: +34, 0034 o 34
+          </span>
+        </div>
+        <small class="form-text text-muted">
+          Formatos aceptados: 612 34 56 78, 612 345 678, 612345678<br />
+          Con o sin prefijo (+34, 0034, 34)
+        </small>
       </div>
 
       <!-- Dirección -->
@@ -98,9 +127,60 @@
           id="direccion"
           formControlName="direccion"
           class="form-control"
-          placeholder="Tu dirección completa"
+          placeholder="Tu dirección completa (opcional)"
           rows="3"
         ></textarea>
+      </div>
+
+      <!-- Pregunta de Seguridad -->
+      <div class="form-group">
+        <label for="preguntaSeguridad">Pregunta de Seguridad *</label>
+        <select
+          id="preguntaSeguridad"
+          formControlName="preguntaSeguridad"
+          class="form-control"
+          [class.is-invalid]="preguntaSeguridad.invalid && preguntaSeguridad.touched"
+        >
+          <option *ngFor="let question of securityQuestions" [value]="question">
+            {{ question }}
+          </option>
+        </select>
+        <div
+          class="invalid-feedback"
+          *ngIf="preguntaSeguridad.invalid && preguntaSeguridad.touched"
+        >
+          <span *ngIf="preguntaSeguridad.errors?.['required']"
+            >La pregunta de seguridad es requerida</span
+          >
+        </div>
+        <small class="form-text text-muted">
+          Esta pregunta se usará para recuperar tu contraseña en caso de olvido
+        </small>
+      </div>
+
+      <!-- Respuesta de Seguridad -->
+      <div class="form-group">
+        <label for="respuestaSeguridad">Respuesta de Seguridad *</label>
+        <input
+          type="text"
+          id="respuestaSeguridad"
+          formControlName="respuestaSeguridad"
+          class="form-control"
+          placeholder="Tu respuesta secreta"
+          [class.is-invalid]="respuestaSeguridad.invalid && respuestaSeguridad.touched"
+        />
+        <div
+          class="invalid-feedback"
+          *ngIf="respuestaSeguridad.invalid && respuestaSeguridad.touched"
+        >
+          <span *ngIf="respuestaSeguridad.errors?.['required']">La respuesta es requerida</span>
+          <span *ngIf="respuestaSeguridad.errors?.['minlength']"
+            >La respuesta debe tener al menos 3 caracteres</span
+          >
+        </div>
+        <small class="form-text text-muted">
+          Recuerda bien esta respuesta, será necesaria para recuperar tu cuenta
+        </small>
       </div>
 
       <button

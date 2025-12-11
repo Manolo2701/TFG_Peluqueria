@@ -4,7 +4,7 @@ const calendarioController = require('../controllers/calendarioController');
 const verificarToken = require('../middleware/auth');
 const Trabajador = require('../models/Trabajador');
 
-// Mismo middleware que en trabajadores.js
+// Middleware para verificar si es trabajador O admin híbrido
 const verificarTrabajador = async (req, res, next) => {
     try {
         console.log(`🔍 [CALENDARIO] Verificando acceso para usuario: ${req.usuario.id}, rol: ${req.usuario.rol}`);
@@ -38,15 +38,15 @@ const verificarTrabajador = async (req, res, next) => {
 router.get('/disponibilidad', calendarioController.obtenerDisponibilidad);
 router.get('/disponibilidad-rapida', calendarioController.obtenerDisponibilidadRapida);
 
-// Rutas protegidas para trabajadores (incluye admin-trabajadores)
+// Rutas protegidas para trabajadores y admin híbridos
 router.get('/mi-calendario', verificarToken, verificarTrabajador, calendarioController.obtenerMiCalendario);
 router.post('/solicitar-ausencia', verificarToken, verificarTrabajador, calendarioController.solicitarAusencia);
 
-// Rutas de admin permanecen igual
+// Rutas de admin 
 router.get('/ausencias', verificarToken, calendarioController.obtenerTodasAusencias);
 router.put('/ausencias/:id/gestionar', verificarToken, calendarioController.gestionarAusencia);
 
-// Obtener MIS ausencias (para trabajadores y admin-trabajadores)
+// Obtener mis ausencias
 router.get('/mis-ausencias', verificarToken, verificarTrabajador, calendarioController.obtenerMisAusencias);
 
 module.exports = router;

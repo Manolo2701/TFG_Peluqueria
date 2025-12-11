@@ -4,11 +4,12 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { LoginRequest } from '../../interfaces/auth.interface';
+import { ForgotPasswordModalComponent } from '../../components/forgot-password-modal/forgot-password-modal.component';
 
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, ForgotPasswordModalComponent],
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss'
 })
@@ -26,14 +27,13 @@ export class LoginPage implements OnInit {
   loading = false;
   errorMessage = '';
   successMessage = '';
+  showForgotPasswordModal = false;
 
   ngOnInit() {
-    // Verificar si viene de un registro exitoso
     this.route.queryParams.subscribe(params => {
       if (params['registered'] === 'true') {
         this.successMessage = '¡Cuenta creada exitosamente! Por favor inicia sesión.';
 
-        // Limpiar los parámetros de la URL
         this.router.navigate([], {
           relativeTo: this.route,
           queryParams: {},
@@ -63,5 +63,13 @@ export class LoginPage implements OnInit {
         }
       });
     }
+  }
+
+  openForgotPasswordModal(): void {
+    this.showForgotPasswordModal = true;
+  }
+
+  closeForgotPasswordModal(): void {
+    this.showForgotPasswordModal = false;
   }
 }

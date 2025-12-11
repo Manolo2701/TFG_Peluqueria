@@ -1,7 +1,18 @@
 ﻿import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { LoginRequest, AuthResponse, Usuario, RegisterRequest, RegisterResponse } from '../../interfaces/auth.interface';
+import {
+  LoginRequest,
+  AuthResponse,
+  Usuario,
+  RegisterRequest,
+  RegisterResponse,
+  SecurityQuestionRequest,
+  SecurityQuestionResponse,
+  VerifySecurityAnswerRequest,
+  VerifySecurityAnswerResponse,
+  ResetPasswordRequest
+} from '../../interfaces/auth.interface';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -23,7 +34,7 @@ export class AuthService {
   }
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    console.log('🔗 URL de login:', `${this.apiUrl}/auth/login`); // Para debug
+    console.log('🔗 URL de login:', `${this.apiUrl}/auth/login`); 
     return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, credentials).pipe(
       tap(response => {
         console.log('✅ Login exitoso:', response);
@@ -34,6 +45,30 @@ export class AuthService {
 
   register(userData: RegisterRequest): Observable<RegisterResponse> {
     return this.http.post<RegisterResponse>(`${this.apiUrl}/auth/registro`, userData);
+  }
+
+  // Obtener pregunta de seguridad
+  obtenerPreguntaSeguridad(email: string): Observable<SecurityQuestionResponse> {
+    return this.http.post<SecurityQuestionResponse>(
+      `${this.apiUrl}/auth/obtener-pregunta`,
+      { email }
+    );
+  }
+
+  // Verificar respuesta de seguridad
+  verificarRespuestaSeguridad(data: VerifySecurityAnswerRequest): Observable<VerifySecurityAnswerResponse> {
+    return this.http.post<VerifySecurityAnswerResponse>(
+      `${this.apiUrl}/auth/verificar-respuesta`,
+      data
+    );
+  }
+
+  // 🔐 Resetear contraseña con token
+  resetearPassword(data: ResetPasswordRequest): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/auth/resetear-password`,
+      data
+    );
   }
 
   logout(): void {

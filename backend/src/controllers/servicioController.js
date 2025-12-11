@@ -1,10 +1,14 @@
 const Servicio = require('../models/Servicio');
 
-// Obtener todos los servicios
+// Obtener todos los servicios (con opción de incluir inactivos)
 exports.obtenerServicios = async (req, res) => {
   try {
-    console.log('🔍 Obteniendo todos los servicios');
-    const servicios = await Servicio.listarTodos();
+    const incluirInactivos = req.query.incluirInactivos === 'true';
+
+    console.log(`🔍 Obteniendo todos los servicios (incluirInactivos: ${incluirInactivos})`);
+
+    const servicios = await Servicio.listarTodos(incluirInactivos);
+
     res.json({
       total: servicios.length,
       servicios
@@ -21,15 +25,11 @@ exports.crearServicio = async (req, res) => {
     console.log('📝 Iniciando creación de servicio');
     console.log('Datos recibidos:', req.body);
 
-    // TEMPORAL: Comentar la verificación de admin para diagnóstico
-    // if (req.usuario.rol !== 'administrador') {
-    //   return res.status(403).json({ error: 'No tienes permisos para esta acción' });
-    // }
-
     const servicioId = await Servicio.crear(req.body);
     console.log('✅ Servicio creado con ID:', servicioId);
 
-    const nuevoServicio = await Servicio.buscarPorId(servicioId);
+    // Para administración, incluir inactivos
+    const nuevoServicio = await Servicio.buscarPorId(servicioId, true);
     console.log('✅ Servicio recuperado:', nuevoServicio);
 
     res.status(201).json({
@@ -43,11 +43,13 @@ exports.crearServicio = async (req, res) => {
   }
 };
 
-// Obtener servicios por categoría
+// Obtener servicios por categoría (con opción de incluir inactivos)
 exports.obtenerServiciosPorCategoria = async (req, res) => {
   try {
     const { categoria } = req.params;
-    const servicios = await Servicio.buscarPorCategoria(categoria);
+    const incluirInactivos = req.query.incluirInactivos === 'true';
+
+    const servicios = await Servicio.buscarPorCategoria(categoria, incluirInactivos);
 
     res.json({
       categoria,
@@ -59,11 +61,13 @@ exports.obtenerServiciosPorCategoria = async (req, res) => {
   }
 };
 
-// Obtener servicio por ID
+// Obtener servicio por ID (con opción de incluir inactivos)
 exports.obtenerServicio = async (req, res) => {
   try {
     const { id } = req.params;
-    const servicio = await Servicio.buscarPorId(id);
+    const incluirInactivos = req.query.incluirInactivos === 'true';
+
+    const servicio = await Servicio.buscarPorId(id, incluirInactivos);
 
     if (!servicio) {
       return res.status(404).json({ error: 'Servicio no encontrado' });
@@ -75,7 +79,7 @@ exports.obtenerServicio = async (req, res) => {
   }
 };
 
-// ✅ MÉTODO NUEVO: Actualizar servicio
+// Actualizar servicio
 exports.actualizarServicio = async (req, res) => {
   try {
     const { id } = req.params;
@@ -84,8 +88,8 @@ exports.actualizarServicio = async (req, res) => {
     console.log('📝 Actualizando servicio ID:', id);
     console.log('Datos recibidos:', datosActualizados);
 
-    // Verificar que el servicio existe
-    const servicioExistente = await Servicio.buscarPorId(id);
+    // Verificar que el servicio existe (para administración, incluir inactivos)
+    const servicioExistente = await Servicio.buscarPorId(id, true);
     if (!servicioExistente) {
       return res.status(404).json({ error: 'Servicio no encontrado' });
     }
@@ -93,8 +97,8 @@ exports.actualizarServicio = async (req, res) => {
     // Actualizar el servicio
     await Servicio.actualizar(id, datosActualizados);
 
-    // Obtener el servicio actualizado
-    const servicioActualizado = await Servicio.buscarPorId(id);
+    // Obtener el servicio actualizado (para administración, incluir inactivos)
+    const servicioActualizado = await Servicio.buscarPorId(id, true);
 
     res.json({
       mensaje: 'Servicio actualizado exitosamente',
@@ -106,15 +110,15 @@ exports.actualizarServicio = async (req, res) => {
   }
 };
 
-// ✅ MÉTODO NUEVO: Eliminar servicio
+// Eliminar servicio
 exports.eliminarServicio = async (req, res) => {
   try {
     const { id } = req.params;
 
     console.log('🗑️ Eliminando servicio ID:', id);
 
-    // Verificar que el servicio existe
-    const servicioExistente = await Servicio.buscarPorId(id);
+    // Verificar que el servicio existe (para administración, incluir inactivos)
+    const servicioExistente = await Servicio.buscarPorId(id, true);
     if (!servicioExistente) {
       return res.status(404).json({ error: 'Servicio no encontrado' });
     }

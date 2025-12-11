@@ -4,26 +4,201 @@
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, var(--accent) 0%, var(--white) 100%);
-    /* Nuevo gradiente */
     padding: 20px;
+
+    .register-card {
+        background: var(--white);
+        padding: 2.5rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(246, 200, 202, 0.3);
+        width: 100%;
+        max-width: 500px;
+        border-top: 4px solid var(--secondary);
+
+        h2 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--secondary);
+            font-weight: 600;
+            font-size: 1.75rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+
+            .form-group {
+                flex: 1;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+
+            label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+                color: #333;
+
+                &::after {
+                    content: ' *';
+                    color: #dc3545;
+                    display: none;
+                }
+
+                &.required::after {
+                    display: inline;
+                }
+            }
+
+            .form-control {
+                width: 100%;
+                padding: 0.75rem;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                font-size: 1rem;
+                transition: border-color 0.3s;
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--secondary);
+                    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+                }
+
+                &.is-invalid {
+                    border-color: #dc3545;
+                    padding-right: calc(1.5em + 0.75rem);
+                    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+                    background-repeat: no-repeat;
+                    background-position: right calc(0.375em + 0.1875rem) center;
+                    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+                }
+
+                &[type="password"] {
+                    font-family: monospace;
+                }
+            }
+
+            select.form-control {
+                appearance: none;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-chevron-down' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 0.75rem center;
+                background-size: 16px 12px;
+                padding-right: 2.5rem;
+            }
+
+            textarea.form-control {
+                resize: vertical;
+                min-height: 100px;
+            }
+
+            .invalid-feedback {
+                display: block;
+                font-size: 0.85rem;
+                color: #dc3545;
+                margin-top: 0.25rem;
+            }
+
+            .form-text {
+                font-size: 0.85rem;
+                color: #6c757d;
+                margin-top: 0.25rem;
+                display: block;
+            }
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+
+            &-primary {
+                background-color: var(--secondary);
+                color: white;
+
+                &:hover:not(:disabled) {
+                    background-color: #d81b60;
+                    transform: translateY(-2px);
+                }
+
+                &:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+            }
+
+            &-secondary {
+                background-color: #6c757d;
+                color: white;
+
+                &:hover {
+                    background-color: #5a6268;
+                }
+            }
+
+            &-block {
+                display: block;
+                width: 100%;
+            }
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+
+            &-error {
+                background-color: #f8d7da;
+                border: 1px solid #f5c6cb;
+                color: #721c24;
+            }
+
+            &-success {
+                background-color: #d4edda;
+                border: 1px solid #c3e6cb;
+                color: #155724;
+            }
+        }
+
+        .login-link {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #eee;
+            text-align: center;
+        }
+    }
 }
 
-.register-card {
-    background: var(--white);
-    padding: 2.5rem;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(246, 200, 202, 0.3);
-    width: 100%;
-    max-width: 500px;
-    border-top: 4px solid var(--secondary);
-    /* Línea superior rosa vibrante */
+// Responsive
+@media (max-width: 768px) {
+    .register-container {
+        padding: 10px;
 
-    h2 {
-        text-align: center;
-        margin-bottom: 1rem;
-        color: var(--secondary);
-        /* Rosa vibrante */
-        font-weight: 600;
-        font-size: 1.75rem;
+        .register-card {
+            padding: 1.5rem;
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+
+                .form-group {
+                    width: 100%;
+                    margin-right: 0;
+                    margin-bottom: 1rem;
+
+                    &:last-child {
+                        margin-bottom: 0;
+                    }
+                }
+            }
+        }
     }
 }

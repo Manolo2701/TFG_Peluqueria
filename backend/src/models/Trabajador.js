@@ -6,7 +6,7 @@ class Trabajador {
       console.log(`🔍 [TRABAJADOR] Obteniendo perfil para trabajadorId: ${trabajadorId}`);
 
       const [rows] = await pool.execute(`
-      SELECT u.id as usuario_id, u.nombre, u.apellidos, u.email, u.telefono,
+      SELECT u.id as usuario_id, u.nombre, u.apellidos, u.email, u.telefono, u.rol,
              t.id as trabajador_id, t.especialidades, t.categoria, t.descripcion, t.experiencia, t.horario_laboral
       FROM usuario u
       JOIN trabajador t ON u.id = t.usuario_id
@@ -26,7 +26,7 @@ class Trabajador {
       console.log(`🔍 [TRABAJADOR] Obteniendo trabajador por usuario_id: ${usuarioId}`);
 
       const [rows] = await pool.execute(`
-      SELECT u.id as usuario_id, u.nombre, u.apellidos, u.email, u.telefono,
+      SELECT u.id as usuario_id, u.nombre, u.apellidos, u.email, u.telefono, u.rol,
              t.id as trabajador_id, t.especialidades, t.categoria, t.descripcion, t.experiencia, t.horario_laboral
       FROM usuario u
       JOIN trabajador t ON u.id = t.usuario_id
@@ -46,23 +46,20 @@ class Trabajador {
       console.log(`🔍 [TRABAJADOR] Listando todos los trabajadores activos`);
 
       const [rows] = await pool.execute(`
-        SELECT 
-            t.id, 
-            u.id as usuario_id,  -- ✅ CRÍTICO: Asegurar que tenemos usuario_id
-            u.nombre, u.apellidos, u.email, u.telefono,
-            t.especialidades, t.categoria, t.descripcion, t.experiencia, t.horario_laboral
-        FROM usuario u
-        LEFT JOIN trabajador t ON u.id = t.usuario_id
-        WHERE (u.rol = 'trabajador' OR u.rol = 'administrador') AND u.activo = true
-        ORDER BY u.nombre, u.apellidos
-      `);
+      SELECT 
+          t.id, 
+          u.id as usuario_id,
+          u.nombre, u.apellidos, u.email, u.telefono, u.rol,
+          t.especialidades, t.categoria, t.descripcion, t.experiencia, t.horario_laboral
+      FROM usuario u
+      LEFT JOIN trabajador t ON u.id = t.usuario_id
+      WHERE (u.rol = 'trabajador' OR u.rol = 'administrador') 
+        AND u.activo = true
+        AND t.id IS NOT NULL
+      ORDER BY u.nombre, u.apellidos
+    `);
 
-      console.log(`👥 [TRABAJADOR] Trabajadores encontrados:`, rows.map(r => ({
-        nombre: r.nombre,
-        usuario_id: r.usuario_id,
-        trabajador_id: r.id
-      })));
-
+      console.log(`👥 [TRABAJADOR] Trabajadores con perfil: ${rows.length}`);
       return rows;
     } catch (error) {
       console.error('Error listando trabajadores:', error);
@@ -73,15 +70,15 @@ class Trabajador {
   static async buscarPorEspecialidad(especialidad) {
     try {
       const [rows] = await pool.execute(`
-        SELECT u.id as usuario_id, u.nombre, u.apellidos, u.email, u.telefono,
-               t.especialidades, t.categoria, t.descripcion, t.experiencia, t.horario_laboral
-        FROM usuario u
-        LEFT JOIN trabajador t ON u.id = t.usuario_id
-        WHERE u.rol = 'trabajador' AND u.activo = true
-        AND (JSON_SEARCH(t.especialidades, 'one', ?) IS NOT NULL 
-             OR t.especialidades LIKE ?)
-        ORDER BY u.nombre, u.apellidos
-      `, [`%${especialidad}%`, `%${especialidad}%`]);
+      SELECT u.id as usuario_id, u.nombre, u.apellidos, u.email, u.telefono, u.rol,
+             t.especialidades, t.categoria, t.descripcion, t.experiencia, t.horario_laboral
+      FROM usuario u
+      LEFT JOIN trabajador t ON u.id = t.usuario_id
+      WHERE u.rol = 'trabajador' AND u.activo = true
+      AND (JSON_SEARCH(t.especialidades, 'one', ?) IS NOT NULL 
+           OR t.especialidades LIKE ?)
+      ORDER BY u.nombre, u.apellidos
+    `, [`%${especialidad}%`, `%${especialidad}%`]);
       return rows;
     } catch (error) {
       console.error('Error buscando trabajadores por especialidad:', error);
@@ -100,7 +97,6 @@ class Trabajador {
         [usuarioId]
       );
 
-      // ✅ CORRECCIÓN CRÍTICA: Manejar horario_laboral vacío
       let horarioLaboralValue = horario_laboral;
       if (horario_laboral === '' || horario_laboral === null || horario_laboral === undefined) {
         horarioLaboralValue = null;
@@ -154,12 +150,12 @@ class Trabajador {
     try {
       console.log(`🔍 [TRABAJADOR] Buscando trabajador por usuario_id: ${usuarioId}`);
       const [rows] = await pool.execute(
-        'SELECT t.*, u.nombre, u.apellidos FROM trabajador t JOIN usuario u ON t.usuario_id = u.id WHERE t.usuario_id = ?',
+        'SELECT t.*, u.nombre, u.apellidos, u.rol FROM trabajador t JOIN usuario u ON t.usuario_id = u.id WHERE t.usuario_id = ?',
         [usuarioId]
       );
       console.log(`📊 [TRABAJADOR] Resultado de búsqueda: ${rows.length} trabajadores encontrados`);
       if (rows.length > 0) {
-        console.log(`✅ [TRABAJADOR] Trabajador encontrado: ${rows[0].nombre} (ID: ${rows[0].id})`);
+        console.log(`✅ [TRABAJADOR] Trabajador encontrado: ${rows[0].nombre} (ID: ${rows[0].id}, Rol: ${rows[0].rol})`);
       }
       return rows[0];
     } catch (error) {
@@ -189,6 +185,10 @@ class Trabajador {
     `, [trabajadorId]);
 
       console.log(`📊 [MODELO TRABAJADOR] Resultado para ID ${trabajadorId}:`, rows[0] ? 'Encontrado' : 'No encontrado');
+
+      if (rows[0]) {
+        console.log(`📊 [MODELO TRABAJADOR] Rol del trabajador: ${rows[0].rol}`);
+      }
 
       return rows[0];
     } catch (error) {

@@ -46,7 +46,7 @@ exports.procesarVenta = async (req, res) => {
         // Calcular total
         const total = carritoItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
 
-        // ✅ CREAR VENTA
+        // CREAR VENTA
         const [ventaResult] = await connection.execute(
             'INSERT INTO venta (cliente_id, total, estado, metodo_pago, fecha_venta) VALUES (?, ?, "completada", "transferencia", NOW())',
             [usuarioId, total]
@@ -55,14 +55,14 @@ exports.procesarVenta = async (req, res) => {
         const ventaId = ventaResult.insertId;
         console.log('✅ Venta creada con ID:', ventaId);
 
-        // ✅ CREAR DETALLES Y ACTUALIZAR STOCK
+        // CREAR DETALLES Y ACTUALIZAR STOCK
         for (const item of carritoItems) {
             await connection.execute(
                 'INSERT INTO venta_detalle (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)',
                 [ventaId, item.producto_id, item.cantidad, item.precio, item.subtotal]
             );
 
-            // ✅ RESTAR STOCK REAL
+            // RESTAR STOCK REAL
             await connection.execute(
                 'UPDATE producto SET stock = stock - ? WHERE id = ?',
                 [item.cantidad, item.producto_id]
@@ -71,7 +71,7 @@ exports.procesarVenta = async (req, res) => {
             console.log(`✅ Stock actualizado: producto ${item.producto_id}, -${item.cantidad} unidades`);
         }
 
-        // ✅ VACIAR CARRITO
+        // VACIAR CARRITO
         await connection.execute(
             'DELETE FROM carrito_item WHERE usuario_id = ?',
             [usuarioId]
@@ -132,7 +132,6 @@ exports.obtenerMisVentas = async (req, res) => {
     }
 };
 
-// ✅ NUEVOS MÉTODOS AÑADIDOS
 exports.obtenerVentaPorId = async (req, res) => {
     const connection = await pool.getConnection();
     try {

@@ -1,17 +1,25 @@
-# Variables de entorno
+# Environment files (keep the example template)
 .env
 .env.*
+!.env.example
 
-# Dependencias
+# Dependencies
 node_modules/
 
-# Archivos de compilación
+# Build output
 dist/
 build/
 
 # Logs
 *.log
 
-# Archivos del sistema
+# Private keys and certificates
+*.key
+*.pem
+*.p12
+*.pfx
+
+# OS / editor files
 .DS_Store
 Thumbs.db
+.vscode/

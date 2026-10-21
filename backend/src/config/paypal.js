@@ -1,13 +1,8 @@
 // Configuración de pagos para el proyecto académico.
-// La integración se mantiene en modo simulación; no se realizan cobros reales.
-// Si se conecta un entorno sandbox en el futuro, las credenciales deben
-// configurarse mediante variables de entorno y nunca guardarse en Git.
+// El flujo se simula localmente: no se realizan cobros reales ni se necesitan
+// credenciales de PayPal para ejecutar esta versión.
 
-const paypalConfig = {
-  mode: process.env.PAYPAL_MODE || 'simulation',
-  sandbox: true,
-  clientId: process.env.PAYPAL_CLIENT_ID || '',
-  clientSecret: process.env.PAYPAL_CLIENT_SECRET || ''
+module.exports = {
+  mode: 'simulation',
+  sandbox: true
 };
-
-module.exports = paypalConfig;

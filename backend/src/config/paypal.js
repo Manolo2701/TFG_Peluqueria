@@ -1,13 +1,13 @@
-﻿// Configuración de PayPal - Modo Simulación
-// No requiere SDK de PayPal instalado
-
-console.log(' Configuración PayPal cargada (Modo Simulación)');
+// Configuración de pagos para el proyecto académico.
+// La integración se mantiene en modo simulación; no se realizan cobros reales.
+// Si se conecta un entorno sandbox en el futuro, las credenciales deben
+// configurarse mediante variables de entorno y nunca guardarse en Git.
 
 const paypalConfig = {
-  mode: 'simulation',
+  mode: process.env.PAYPAL_MODE || 'simulation',
   sandbox: true,
-  clientId: 'AZOlg9pobEzlBxIsPb32Di98pseD9vXnVo5kBziuDs8HsGZ7M8oh_7eFyju7gvOVAZFO8Wfn3q02_Abu',
-  clientSecret: 'EAFnkgCUesyBAlpIEjv0m2DsUtY9-9FELhfNFnVvtmf6wgQ5srmLQX3pGs10WHUzldj9cMxcueeEIIWI'
+  clientId: process.env.PAYPAL_CLIENT_ID || '',
+  clientSecret: process.env.PAYPAL_CLIENT_SECRET || ''
 };
 
 module.exports = paypalConfig;

@@ -85,8 +85,8 @@ Los datos de MySQL se guardan en un volumen de Docker. Para borrar también los 
 
 - `.env.example` documenta las variables requeridas.
 - `.env` es local y está excluido de Git.
-- La configuración de pagos permanece en modo simulación. No necesitas credenciales reales de PayPal para ese modo.
-- No se incluyen claves privadas ni credenciales reales en el repositorio.
+- La configuración de pagos permanece en modo simulación. No necesitas credenciales de PayPal para ese modo.
+- Se han retirado de la versión actual las credenciales de ejemplo y las configuraciones sensibles. Los commits antiguos pueden conservar versiones anteriores de esos archivos; si alguna credencial publicada se hubiera usado fuera de este proyecto, debe revocarse o rotarse. El historial no se ha reescrito.
 
 ## Estructura general
 

@@ -1,11 +1,11 @@
-﻿version: '3.8'
+version: '3.8'
 
 services:
   mysql:
     image: mysql:8.0
     container_name: mysql_peluqueria
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Define MYSQL_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: peluqueria_selene
       TZ: Europe/Madrid
     command:
@@ -29,7 +29,7 @@ services:
     build: ./backend
     container_name: backend_peluqueria
     env_file:
-      - .env 
+      - .env
     environment:
       NODE_ENV: production
       DOCKER_ENV: true
